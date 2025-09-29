@@ -1,0 +1,7 @@
+{
+  "appId": "com.example.twsapp",
+  "appName": "tws-app",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
+
