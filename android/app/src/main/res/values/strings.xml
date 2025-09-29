@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">tws-app</string>
+    <string name="title_activity_main">tws-app</string>
+    <string name="package_name">com.example.twsapp</string>
+    <string name="custom_url_scheme">com.example.twsapp</string>
+</resources>
