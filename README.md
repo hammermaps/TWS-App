@@ -1,236 +1,433 @@
-# CoreUI Free Vue Admin Template [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&logo=twitter)](https://twitter.com/intent/tweet?text=CoreUI%20-%20Free%Vue%204%20Admin%20Template%20&url=https://coreui.io&hashtags=bootstrap,admin,template,dashboard,panel,free,angular,react,vue)
+# TWS-App - Trinkwasser-Leerstandsspülungs-System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![@coreui coreui](https://img.shields.io/badge/@coreui%20-coreui-lightgrey.svg?style=flat-square)](https://github.com/coreui/coreui)
-[![npm package][npm-coreui-badge]][npm-coreui]
-[![NPM downloads][npm-coreui-download]][npm-coreui]
-[![@coreui vue](https://img.shields.io/badge/@coreui%20-vue-lightgrey.svg?style=flat-square)](https://github.com/coreui/vue)
-[![npm package][npm-coreui-vue-badge]][npm-coreui-vue]
-[![NPM downloads][npm-coreui-vue-download]][npm-coreui-vue]  
+[![Vue 3](https://img.shields.io/badge/Vue-3.5+-4FC08D?style=flat-square&logo=vue.js)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-7.1+-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 
-[npm-coreui]: https://www.npmjs.com/package/@coreui/coreui
-[npm-coreui-badge]: https://img.shields.io/npm/v/@coreui/coreui.png?style=flat-square
-[npm-coreui-download]: https://img.shields.io/npm/dm/@coreui/coreui.svg?style=flat-square
-[npm-coreui-vue]: https://www.npmjs.com/package/@coreui/vue
-[npm-coreui-vue-badge]: https://img.shields.io/npm/v/@coreui/vue.png?style=flat-square
-[npm-coreui-vue-download]: https://img.shields.io/npm/dm/@coreui/vue.svg?style=flat-square
-[npm]: https://www.npmjs.com/package/@coreui/vue
+Eine moderne Progressive Web App (PWA) zur Verwaltung und Durchführung von Leerstandsspülungen in Gebäuden. Die App bietet vollständige Offline-Funktionalität und automatische Datensynchronisation.
 
-[![Bootstrap Admin Template](https://assets.coreui.io/products/coreui-free-bootstrap-admin-template-light-dark.webp)](https://coreui.io/product/free-react-admin-template/)
+## 📋 Inhaltsverzeichnis
 
-CoreUI is meant to be the UX game changer. Pure & transparent code is devoid of redundant components, so the app is light enough to offer ultimate user experience. This means mobile devices also, where the navigation is just as easy and intuitive as on a desktop or laptop. The CoreUI Layout API lets you customize your project for almost any device – be it Mobile, Web or WebApp – CoreUI covers them all!
+- [Über das Projekt](#über-das-projekt)
+- [Features](#features)
+- [Technologien](#technologien)
+- [Voraussetzungen](#voraussetzungen)
+- [Installation](#installation)
+- [Entwicklung](#entwicklung)
+- [Build & Deployment](#build--deployment)
+- [Projektstruktur](#projektstruktur)
+- [API-Integration](#api-integration)
+- [Offline-Modus](#offline-modus)
+- [PWA-Features](#pwa-features)
+- [Konfiguration](#konfiguration)
+- [Lizenz](#lizenz)
 
-## Table of Contents
+## 🎯 Über das Projekt
 
-* [Versions](#versions)
-* [CoreUI PRO](#coreui-pro)
-* [CoreUI PRO Vue Admin Templates](#coreui-pro-vue-admin-templates)
-* [Quick Start](#quick-start)
-* [Installation](#installation)
-* [Basic usage](#basic-usage)
-* [What's included](#whats-included)
-* [Documentation](#documentation)
-* [Components](#components)
-* [Versioning](#versioning)
-* [Creators](#creators)
-* [Community](#community)
-* [Support CoreUI Development](#support-coreui-development)
-* [Copyright and License](#copyright-and-license)
+Die TWS-App (Trinkwasser-Spülungs-App) ist ein webbasiertes System zur Verwaltung von Leerstandsspülungen in Wohngebäuden. Sie ermöglicht es Hausverwaltern und Technikern, Spülpläne zu erstellen, durchzuführen und zu dokumentieren - auch ohne aktive Internetverbindung.
 
-## Versions
+### Hauptziele
 
-* [CoreUI Free Bootstrap Admin Template](https://github.com/coreui/coreui-free-bootstrap-admin-template)
-* [CoreUI Free Angular Admin Template](https://github.com/coreui/coreui-free-angular-admin-template)
-* [CoreUI Free React.js Admin Template](https://github.com/coreui/coreui-free-react-admin-template)
-* [CoreUI Free Vue.js Admin Template](https://github.com/coreui/coreui-free-vue-admin-template)
+- ✅ **Compliance**: Sicherstellung der Einhaltung von Trinkwasserhygiene-Vorschriften
+- ✅ **Effizienz**: Optimierte Workflows für Spülvorgänge
+- ✅ **Flexibilität**: Vollständige Offline-Funktionalität
+- ✅ **Transparenz**: Lückenlose Dokumentation aller Spülvorgänge
 
-## CoreUI PRO
+## ✨ Features
 
-* 💪  [CoreUI PRO Angular Admin Template](https://coreui.io/product/angular-dashboard-template/)
-* 💪  [CoreUI PRO Bootstrap Admin Template](https://coreui.io/product/bootstrap-dashboard-template/)
-* 💪  [CoreUI PRO Next.js Admin Template](https://coreui.io/product/next-js-dashboard-template/)
-* 💪  [CoreUI PRO React Admin Template](https://coreui.io/product/react-dashboard-template/)
-* 💪  [CoreUI PRO Vue Admin Template](https://coreui.io/product/vue-dashboard-template/)
+### Kernfunktionen
 
-## CoreUI PRO Vue Admin Templates
+- 🏢 **Gebäudeverwaltung**: Verwaltung mehrerer Gebäude und Apartments
+- 🚰 **Spülmanagement**: Planung, Durchführung und Dokumentation von Leerstandsspülungen
+- 📊 **Dashboard**: Übersichtliche Darstellung von anstehenden und durchgeführten Spülungen
+- 📈 **Statistiken**: Auswertung von Spüldaten und Compliance-Reports
+- 👥 **Benutzerverwaltung**: Rollen- und Rechte-System (Admin, Techniker)
 
-| Default Theme | Light Theme |
-| --- | --- |
-| [![CoreUI PRO Vue Admin Template](https://coreui.io/images/templates/coreui_pro_default_light_dark.webp)](https://coreui.io/product/vue-dashboard-template/?theme=default) | [![CoreUI PRO Vue Admin Template](https://coreui.io/images/templates/coreui_pro_light_light_dark.webp)](https://coreui.io/product/vue-dashboard-template/?theme=light)|
+### Progressive Web App (PWA)
 
-| Modern Theme | Bright Theme |
-| --- | --- |
-| [![CoreUI PRO Vue Admin Template](https://coreui.io/images/templates/coreui_pro_default_v3_light_dark.webp)](https://coreui.io/product/vue-dashboard-template/?theme=modern) | [![CoreUI PRO Vue Admin Template](https://coreui.io/images/templates/coreui_pro_light_v3_light_dark.webp)](https://coreui.io/product/vue-dashboard-template/?theme=bright)|
+- 📱 **Installierbar**: Funktioniert wie eine native App auf allen Geräten
+- 🔌 **Offline-Fähig**: Vollständige Funktionalität ohne Internetverbindung
+- 🔄 **Auto-Sync**: Automatische Synchronisation bei Wiederherstellung der Verbindung
+- ⚡ **Performance**: Service Worker für schnelle Ladezeiten
 
-## Quick Start
+### Benutzerfreundlichkeit
 
-- [Download the latest release](https://github.com/coreui/coreui-free-vue-admin-template/archive/refs/heads/main.zip)
-- Clone the repo: `git clone https://github.com/coreui/coreui-free-vue-admin-template.git`
+- 🌓 **Dark/Light Mode**: Automatische und manuelle Umschaltung
+- 📱 **Responsive Design**: Optimiert für Desktop, Tablet und Mobile
+- ♿ **Barrierefrei**: WCAG-konformes Design
+- 🌐 **Mehrsprachig**: Vorbereitet für Internationalisierung
 
-### Instalation
+## 🛠 Technologien
 
-``` bash
-$ npm install
-```
+### Frontend Stack
 
-or
+- **Framework**: Vue 3.5+ mit Composition API
+- **Build Tool**: Vite 7.1+
+- **UI Library**: CoreUI for Vue 5.5+
+- **State Management**: Pinia 3.0+
+- **Routing**: Vue Router 4.5+
+- **HTTP Client**: Axios 1.12+
+- **Icons**: CoreUI Icons 3.0+
+- **Charts**: Chart.js 4.5+ mit vue-chartjs
 
-``` bash
-$ yarn install
-```
+### Entwicklungstools
 
-### Basic usage
+- **Linting**: ESLint 9.32+ mit Vue-Plugin
+- **CSS-Präprozessor**: Sass 1.90+
+- **Build**: PostCSS mit Autoprefixer
+- **PWA**: vite-plugin-pwa 1.1+
 
-``` bash
-# dev server with hot reload at http://localhost:3000
-$ npm run dev
-```
+## 📦 Voraussetzungen
 
-or 
+- **Node.js**: Version 18.x oder höher
+- **npm**: Version 9.x oder höher (alternativ yarn/pnpm)
+- **Git**: Für Versionskontrolle
 
-``` bash
-# dev server with hot reload at http://localhost:3000
-$ yarn dev
-```
+## 🚀 Installation
 
-Navigate to [http://localhost:3000](http://localhost:3000). The app will automatically reload if you change any of the source files.
-
-#### Build
-
-Run `build` to build the project. The build artifacts will be stored in the `dist/` directory.
+### 1. Repository klonen
 
 ```bash
-# build for production with minification
-$ npm run build
+git clone https://github.com/hammermaps/TWS-App.git
+cd TWS-App
 ```
 
-or
+### 2. Abhängigkeiten installieren
 
 ```bash
-# build for production with minification
-$ yarn build
+npm install
 ```
 
-## What's included
+### 3. Umgebungsvariablen konfigurieren (optional)
 
-Within the download you'll find the following directories and files, logically grouping common assets and providing both compiled and minified variations. You'll see something like this:
+Erstelle eine `.env.local` Datei im Projektverzeichnis:
 
-```
-coreui-free-vue-admin-template
-├── public/          # static files
-├── src/             # project root
-│   ├── assets/      # images, icons, etc.
-│   ├── components/  # common components - header, footer, sidebar, etc.
-│   ├── layouts/     # layout containers
-│   ├── scss/        # scss styles
-│   ├── router       # routes config
-│   ├── stores/      # template state example 
-│   ├── views/       # application views
-│   ├── _nav.js      # sidebar navigation config
-│   ├── App.vue
-│   ├── ...
-│   └── main.js
-├── index.html   # html template
-├── package.json
-└── vite.config.mjs
+```env
+VITE_API_BASE_URL=http://localhost:4040
+VITE_APP_TITLE=TWS-App
 ```
 
-## Documentation
+## 💻 Entwicklung
 
-The documentation for the CoreUI Admin Template is hosted at our website [CoreUI for Vue](https://coreui.io/vue/docs/templates/installation.html)
+### Development Server starten
 
-## Components
+```bash
+npm run dev
+```
 
-CoreUI Vue.js Admin Templates are built on top of CoreUI and CoreUI PRO UI components libraries, including all of these components.
+Die App ist dann unter `http://localhost:3000` erreichbar.
 
-- [Vue Accordion](https://coreui.io/vue/docs/components/accordion.html)
-- [Vue Alert](https://coreui.io/vue/docs/components/alert.html)
-- [Vue Autocomplete](https://coreui.io/vue/docs/forms/autocomplete.html) **PRO**
-- [Vue Avatar](https://coreui.io/vue/docs/components/avatar.html)
-- [Vue Badge](https://coreui.io/vue/docs/components/badge.html)
-- [Vue Breadcrumb](https://coreui.io/vue/docs/components/breadcrumb.html)
-- [Vue Button](https://coreui.io/vue/docs/components/button.html)
-- [Vue Button Group](https://coreui.io/vue/docs/components/button-group.html)
-- [Vue Callout](https://coreui.io/vue/docs/components/callout.html)
-- [Vue Card](https://coreui.io/vue/docs/components/card.html)
-- [Vue Carousel](https://coreui.io/vue/docs/components/carousel.html)
-- [Vue Checkbox](https://coreui.io/vue/docs/forms/checkbox.html)
-- [Vue Close Button](https://coreui.io/vue/docs/components/close-button.html)
-- [Vue Collapse](https://coreui.io/vue/docs/components/collapse.html)
-- [Vue Date Picker](https://coreui.io/vue/docs/forms/date-picker.html) **PRO**
-- [Vue Date Range Picker](https://coreui.io/vue/docs/forms/date-range-picker.html) **PRO**
-- [Vue Dropdown](https://coreui.io/vue/docs/components/dropdown.html)
-- [Vue Floating Labels](https://coreui.io/vue/docs/forms/floating-labels.html)
-- [Vue Footer](https://coreui.io/vue/docs/components/footer.html)
-- [Vue Header](https://coreui.io/vue/docs/components/header.html)
-- [Vue Image](https://coreui.io/vue/docs/components/image.html)
-- [Vue Input](https://coreui.io/vue/docs/forms/input.html)
-- [Vue Input Group](https://coreui.io/vue/docs/forms/input-group.html)
-- [Vue List Group](https://coreui.io/vue/docs/components/list-group.html)
-- [Vue Loading Button](https://coreui.io/vue/docs/components/loading-button.html) **PRO**
-- [Vue Modal](https://coreui.io/vue/docs/components/modal.html)
-- [Vue Multi Select](https://coreui.io/vue/docs/forms/multi-select.html) **PRO**
-- [Vue Navs & Tabs](https://coreui.io/vue/docs/components/navs-tabs.html)
-- [Vue Navbar](https://coreui.io/vue/docs/components/navbar.html)
-- [Vue Offcanvas](https://coreui.io/vue/docs/components/offcanvas.html)
-- [Vue Pagination](https://coreui.io/vue/docs/components/pagination.html)
-- [Vue Password Input](https://coreui.io/vue/docs/forms/password-input.html) **PRO**
-- [Vue Placeholder](https://coreui.io/vue/docs/components/placeholder.html)
-- [Vue Popover](https://coreui.io/vue/docs/components/popover.html)
-- [Vue Progress](https://coreui.io/vue/docs/components/progress.html)
-- [Vue Radio](https://coreui.io/vue/docs/forms/radio.html)
-- [Vue Range](https://coreui.io/vue/docs/forms/range.html)
-- [Vue Range Slider](https://coreui.io/vue/docs/forms/range-slider.html) **PRO**
-- [Vue Rating](https://coreui.io/vue/docs/forms/rating.html) **PRO**
-- [Vue Select](https://coreui.io/vue/docs/forms/select.html)
-- [Vue Sidebar](https://coreui.io/vue/docs/components/sidebar.html)
-- [Vue Smart Pagination](https://coreui.io/vue/docs/components/smart-pagination.html) **PRO**
-- [Vue Smart Table](https://coreui.io/vue/docs/components/smart-table.html) **PRO**
-- [Vue Spinner](https://coreui.io/vue/docs/components/spinner.html)
-- [Vue Stepper](https://coreui.io/vue/docs/forms/stepper.html) **PRO**
-- [Vue Switch](https://coreui.io/vue/docs/forms/switch.html)
-- [Vue Table](https://coreui.io/vue/docs/components/table.html)
-- [Vue Textarea](https://coreui.io/vue/docs/forms/textarea.html)
-- [Vue Time Picker](https://coreui.io/vue/docs/forms/time-picker.html) **PRO**
-- [Vue Toast](https://coreui.io/vue/docs/components/toast.html)
-- [Vue Tooltip](https://coreui.io/vue/docs/components/tooltip.html)
+### Linting
 
-## Versioning
+Code-Qualität prüfen:
 
-For transparency into our release cycle and in striving to maintain backward compatibility, CoreUI Free Admin Template is maintained under [the Semantic Versioning guidelines](http://semver.org/).
+```bash
+npm run lint
+```
 
-See [the Releases section of our project](https://github.com/coreui/coreui-free-vue-admin-template/releases) for changelogs for each release version.
+### Vorschau der Production-Build
 
-## Creators
+```bash
+npm run preview
+```
 
-**Łukasz Holeczek**
+## 🏗 Build & Deployment
 
-* <https://twitter.com/lukaszholeczek>
-* <https://github.com/mrholek>
+### Production Build erstellen
 
-**Andrzej Kopański**
+```bash
+npm run build
+```
 
-* <https://github.com/xidedix>
+Die Build-Artefakte werden im `dist/` Verzeichnis erstellt.
 
-**CoreUI Team**
+### Build-Optimierungen
 
-* <https://twitter.com/core_ui>
-* <https://github.com/coreui>
-* <https://github.com/orgs/coreui/people>
+- Code-Splitting für optimale Ladezeiten
+- Tree-Shaking für minimale Bundle-Größe
+- Asset-Optimierung (Bilder, Fonts)
+- Service Worker für Offline-Caching
 
-## Community
+## 📁 Projektstruktur
 
-Get updates on CoreUI's development and chat with the project maintainers and community members.
+```
+TWS-App/
+├── public/                 # Statische Assets
+│   ├── favicon.ico
+│   └── manifest.json      # PWA Manifest
+├── src/
+│   ├── api/               # API-Client-Module
+│   │   ├── ApiApartment.js
+│   │   ├── ApiBuilding.js
+│   │   ├── ApiHealth.js
+│   │   ├── ApiRecords.js
+│   │   └── ApiUser.js
+│   ├── assets/            # Bilder, Icons, Fonts
+│   │   ├── brand/         # Logo und Branding
+│   │   └── icons/         # Icon-Sets
+│   ├── components/        # Wiederverwendbare Komponenten
+│   │   ├── AppHeader.vue
+│   │   ├── AppSidebar.vue
+│   │   ├── LogoPreview.vue
+│   │   └── OfflineModeBanner.vue
+│   ├── composables/       # Vue Composables
+│   │   └── useFeatureAccess.js
+│   ├── layouts/           # Layout-Komponenten
+│   │   └── DefaultLayout.vue
+│   ├── router/            # Vue Router Konfiguration
+│   │   └── index.js
+│   ├── services/          # Business Logic Services
+│   │   └── OfflineDataPreloader.js
+│   ├── stores/            # Pinia Stores
+│   │   ├── ApartmentStorage.js
+│   │   ├── BuildingStorage.js
+│   │   ├── GlobalToken.js
+│   │   ├── GlobalUser.js
+│   │   ├── OnlineStatus.js
+│   │   └── TokenManager.js
+│   ├── styles/            # SCSS-Dateien
+│   │   ├── components/
+│   │   └── views/
+│   ├── utils/             # Hilfsfunktionen
+│   │   └── CorsDebugger.js
+│   ├── views/             # Seiten-Komponenten
+│   │   ├── apartments/    # Apartment-Verwaltung
+│   │   ├── buildings/     # Gebäude-Verwaltung
+│   │   ├── dashboard/     # Dashboard
+│   │   └── pages/         # Authentifizierung
+│   ├── App.vue            # Root-Komponente
+│   └── main.js            # App-Einstiegspunkt
+├── backend-info/          # API-Dokumentation
+├── index.html             # HTML-Template
+├── vite.config.mjs        # Vite-Konfiguration
+├── eslint.config.mjs      # ESLint-Konfiguration
+├── package.json           # Projekt-Abhängigkeiten
+└── README.md              # Projekt-Dokumentation
+```
 
-- Follow [@core_ui on Twitter](https://twitter.com/core_ui).
-- Read and subscribe to [CoreUI Blog](https://coreui.io/blog/).
+## 🔌 API-Integration
 
-## Support CoreUI Development
+### Backend-API
 
-CoreUI is an MIT-licensed open source project and is completely free to use. However, the amount of effort needed to maintain and develop new features for the project is not sustainable without proper financial backing. You can support development by buying the [CoreUI PRO](https://coreui.io/pricing/?framework=vue&src=github-coreui-free-vue-admin-template) or by becoming a sponsor via [Open Collective](https://opencollective.com/coreui/).
+Die App kommuniziert mit einer RESTful PHP-Backend-API:
 
-## Copyright and License
+- **Base URL (Dev)**: `/api` (Proxy via Vite)
+- **Base URL (Prod)**: `https://wls.dk-automation.de`
 
-copyright 2025 creativeLabs Łukasz Holeczek.   
+### Haupt-Endpunkte
 
-Code released under [the MIT license](https://github.com/coreui/coreui-free-react-admin-template/blob/main/LICENSE).
+#### Authentifizierung
+- `POST /user/login` - Benutzer-Login
+- `POST /user/logout` - Benutzer-Logout
+- `GET /user/check-token` - Token validieren
+
+#### Gebäude
+- `GET /buildings/list` - Gebäudeliste abrufen
+- `POST /buildings/add` - Gebäude hinzufügen
+- `PUT /buildings/edit/{id}` - Gebäude bearbeiten
+- `DELETE /buildings/delete/{id}` - Gebäude löschen
+
+#### Apartments
+- `GET /apartments/list` - Apartment-Liste abrufen
+- `POST /apartments/add` - Apartment hinzufügen
+- `PUT /apartments/edit/{id}` - Apartment bearbeiten
+- `DELETE /apartments/delete/{id}` - Apartment löschen
+
+#### Spül-Records
+- `GET /records/list` - Spül-Protokolle abrufen
+- `POST /records/add` - Spül-Protokoll erstellen
+- `GET /records/history/{apartmentId}` - Spül-Historie eines Apartments
+
+#### Gesundheitsprüfung
+- `GET /health/ping` - Server-Verfügbarkeit prüfen
+
+### API-Client-Architektur
+
+Jeder API-Bereich hat eine dedizierte Client-Klasse:
+
+```javascript
+import ApiApartment from '@/api/ApiApartment.js'
+
+const apartmentApi = new ApiApartment()
+const apartments = await apartmentApi.list()
+```
+
+## 🔌 Offline-Modus
+
+### Automatische Offline-Erkennung
+
+Die App überwacht kontinuierlich die Verbindung:
+
+1. **Browser-Status**: Prüft `navigator.onLine`
+2. **Server-Erreichbarkeit**: Ping alle 30 Sekunden
+3. **Automatische Umschaltung**: Nach 3 fehlgeschlagenen Pings
+
+### Offline-Funktionen
+
+#### Vollständig verfügbar:
+- ✅ Leerstandsspülungen durchführen
+- ✅ Spül-Protokolle erstellen
+- ✅ Gebäude und Apartments anzeigen
+- ✅ Spül-Historie einsehen
+
+#### Eingeschränkt verfügbar:
+- ⚠️ Statistiken (cached Daten)
+- ⚠️ Benutzerverwaltung (nur Anzeige)
+
+#### Nur online verfügbar:
+- ❌ Passwort ändern
+- ❌ Neue Gebäude/Apartments erstellen
+- ❌ Daten-Synchronisation mit Server
+
+### Daten-Synchronisation
+
+```javascript
+// Automatische Synchronisation bei Wiederverbindung
+import { useOfflineFlushSyncService } from '@/stores/OfflineFlushSyncService.js'
+
+const syncService = useOfflineFlushSyncService()
+await syncService.syncPendingFlushes()
+```
+
+### Lokale Datenspeicherung
+
+- **Gebäude & Apartments**: LocalStorage
+- **Pending Flushes**: LocalStorage (Queue)
+- **User & Token**: LocalStorage + SessionStorage
+- **Service Worker Cache**: Statische Assets & API-Responses
+
+## 📱 PWA-Features
+
+### Installation
+
+Die App kann auf allen Geräten installiert werden:
+
+- **Android**: "Zum Startbildschirm hinzufügen"
+- **iOS**: "Zum Home-Bildschirm" (Safari)
+- **Desktop**: Installation über Browser-Menü
+
+### Service Worker
+
+Der Service Worker cached:
+- Statische Assets (HTML, CSS, JS, Icons)
+- API-Responses (NetworkFirst-Strategie)
+- Fonts und Bilder
+
+### Manifest
+
+```json
+{
+  "name": "TWS Leerstandsspülungs-App",
+  "short_name": "TWS App",
+  "theme_color": "#321fdb",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/"
+}
+```
+
+## ⚙️ Konfiguration
+
+### Vite-Konfiguration
+
+Die `vite.config.mjs` enthält:
+
+- Proxy-Setup für API-Anfragen
+- PWA-Plugin-Konfiguration
+- Build-Optimierungen
+- Path-Aliases (@, ~)
+
+### Umgebungsvariablen
+
+```env
+# Development
+VITE_API_BASE_URL=/api
+
+# Production
+VITE_API_BASE_URL=https://wls.dk-automation.de
+```
+
+### ESLint-Konfiguration
+
+```javascript
+// eslint.config.mjs
+export default [
+  { ignores: ['dist/', 'dev-dist/'] },
+  ...eslintPluginVue.configs['flat/essential'],
+  {
+    rules: {
+      'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+      'vue/multi-word-component-names': 'off',
+    }
+  }
+]
+```
+
+## 🔐 Sicherheit
+
+### Authentifizierung
+
+- Token-basierte Authentifizierung (JWT)
+- Automatische Token-Validierung alle 5 Minuten
+- Sichere Speicherung in LocalStorage
+- CSRF-Schutz via Cookies
+
+### Best Practices
+
+- ✅ HTTPS in Production
+- ✅ CORS-Konfiguration
+- ✅ XSS-Prävention
+- ✅ Input-Validierung
+- ✅ Sichere API-Kommunikation
+
+## 🧪 Testing
+
+Derzeit keine automatisierten Tests implementiert.
+
+Geplant:
+- [ ] Unit Tests (Vitest)
+- [ ] Component Tests (Vue Test Utils)
+- [ ] E2E Tests (Playwright/Cypress)
+
+## 📝 Lizenz
+
+Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](LICENSE) für Details.
+
+Copyright © 2025 creativeLabs Łukasz Holeczek
+
+## 👥 Mitwirkende
+
+- **Projektentwicklung**: hammermaps
+- **UI/UX Design**: CoreUI Team
+- **Backend-API**: DK Automation
+
+## 📞 Support
+
+Bei Fragen oder Problemen:
+
+- 📧 E-Mail: support@dk-automation.de
+- 🐛 Issues: [GitHub Issues](https://github.com/hammermaps/TWS-App/issues)
+
+## 🗺️ Roadmap
+
+### Geplante Features
+
+- [ ] Push-Benachrichtigungen für fällige Spülungen
+- [ ] QR-Code-Scanner für Apartment-Identifikation
+- [ ] Export von Reports (PDF, Excel)
+- [ ] Erweiterte Statistiken und Analysen
+- [ ] Multi-Tenant-Unterstützung
+- [ ] Automatisierte Tests
+- [ ] Mehrsprachigkeit (i18n)
+
+## 📚 Weitere Dokumentation
+
+- [PWA Dokumentation](PWA_DOCUMENTATION.md)
+- [Offline-Modus Guide](OFFLINE_PRELOADING_DOCUMENTATION.md)
+- [Logo Design Guide](LOGO_README.md)
+- [API Controller Docs](backend-info/)
+
+---
+
+**Entwickelt mit ❤️ für bessere Trinkwasserhygiene**
