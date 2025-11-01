@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import healthClient from '../api/ApiHealth.js'
 import { useOfflineDataPreloader } from '../services/OfflineDataPreloader.js'
-import configSyncService from '../services/ConfigSyncService.js'
+import { useConfigSyncService } from '../services/ConfigSyncService.js'
 
 export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // State
@@ -16,6 +16,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   const consecutiveFailures = ref(0)
   const isCheckingConnection = ref(false)
   const dataPreloader = useOfflineDataPreloader() // Preloader für Offline-Daten
+  const configSyncService = useConfigSyncService() // Config Sync Service
 
   // Konfiguration
   const PING_INTERVAL = 30000 // 30 Sekunden
@@ -255,7 +256,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       return
     }
 
-    if (!configSyncService.hasPendingChanges()) {
+    if (!configSyncService.hasPending()) {
       console.log('✓ Keine ausstehenden Konfigurationsänderungen')
       return
     }
@@ -263,7 +264,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     console.log('🔄 Synchronisiere Konfigurationsänderungen...')
     
     try {
-      const result = await configSyncService.syncPendingChanges()
+      const result = await configSyncService.syncPending()
       
       if (result.success) {
         console.log(`✅ ${result.synced} Konfigurationsänderungen synchronisiert`)
