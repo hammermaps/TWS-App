@@ -52,4 +52,16 @@ export default [
     icon: 'cilSettings',
     requiresOnline: true, // Profil bearbeiten (Passwort ändern) nur online
   },
+  {
+    component: 'CNavTitle',
+    name: 'Einstellungen',
+    requiresOnline: false,
+  },
+  {
+    component: 'CNavItem',
+    name: 'Konfiguration',
+    to: '/settings',
+    icon: 'cilCog',
+    requiresOnline: false, // Konfiguration offline verfügbar (gecachte Daten)
+  },
 ]

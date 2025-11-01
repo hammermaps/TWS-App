@@ -6,13 +6,16 @@
 import { ref } from 'vue'
 import { ApiBuilding } from '../api/ApiBuilding.js'
 import { ApiApartment } from '../api/ApiApartment.js'
+import { ApiConfig } from '../api/ApiConfig.js'
 import BuildingStorage from '../stores/BuildingStorage.js'
 import { useApartmentStorage } from '../stores/ApartmentStorage.js'
+import configStorage from '../stores/ConfigStorage.js'
 
 export class OfflineDataPreloader {
   constructor() {
     this.buildingApi = new ApiBuilding()
     this.apartmentApi = new ApiApartment()
+    this.configApi = new ApiConfig()
     this.apartmentStorage = useApartmentStorage()
 
     this.isPreloading = ref(false)
@@ -22,6 +25,7 @@ export class OfflineDataPreloader {
       totalBuildings: 0,
       totalApartments: 0,
       currentBuilding: null,
+      config: false,
       status: 'idle' // idle, loading, success, error
     })
     this.lastPreloadTime = ref(null)
@@ -49,9 +53,25 @@ export class OfflineDataPreloader {
     this.preloadProgress.value.status = 'loading'
     this.preloadError.value = null
 
-    console.log('🚀 Starte Preloading von Gebäuden und Apartments für Offline-Modus...')
+    console.log('🚀 Starte Preloading von Gebäuden, Apartments und Konfiguration für Offline-Modus...')
 
     try {
+      // Schritt 0: Lade Konfiguration
+      console.log('⚙️ Lade Konfiguration...')
+      try {
+        const configResult = await this.configApi.get()
+        if (configResult) {
+          configStorage.saveConfig(configResult)
+          this.preloadProgress.value.config = true
+          console.log('✅ Konfiguration geladen und gespeichert')
+        } else {
+          console.warn('⚠️ Keine Konfiguration verfügbar')
+        }
+      } catch (configError) {
+        console.warn('⚠️ Fehler beim Laden der Konfiguration:', configError)
+        // Konfigurationsfehler nicht als kritisch behandeln
+      }
+
       // Schritt 1: Lade alle Gebäude
       console.log('📋 Lade Gebäude...')
       const buildingsResponse = await this.buildingApi.list()
@@ -105,6 +125,7 @@ export class OfflineDataPreloader {
         timestamp: this.lastPreloadTime.value,
         buildingsCount: buildings.length,
         apartmentsCount: totalApartmentsLoaded,
+        configLoaded: this.preloadProgress.value.config,
         buildingDetails: buildings.map((b, idx) => ({
           id: b.id,
           name: b.name,
@@ -243,6 +264,7 @@ export class OfflineDataPreloader {
     try {
       BuildingStorage.clearBuildings()
       this.apartmentStorage.storage.clearAll()
+      configStorage.clearConfig()
       localStorage.removeItem('wls_preload_metadata')
       console.log('🗑️ Alle vorgeladenen Daten gelöscht')
       return true

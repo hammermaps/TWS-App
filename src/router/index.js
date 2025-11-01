@@ -53,6 +53,15 @@ const routes = [
             /* webpackChunkName: "profile-view" */ '@/views/pages/ProfileView.vue'
           ),
       },
+      {
+        path: '/settings',
+        name: 'Settings',
+        meta: { requiresAuth: true, requiresOnline: false }, // Einstellungen offline verfügbar
+        component: () =>
+          import(
+            /* webpackChunkName: "settings" */ '@/views/pages/ConfigSettings.vue'
+          ),
+      },
       // Buildings routes
       {
         path: '/buildings',
