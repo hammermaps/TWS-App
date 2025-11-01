@@ -1,0 +1,100 @@
+/* Manual Toggle Box Styling */
+.manual-toggle-box {
+  background: linear-gradient(135deg, var(--cui-tertiary-bg), var(--cui-secondary-bg));
+  border: 1px solid var(--cui-border-color);
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.manual-toggle-box:hover {
+  border-color: var(--cui-primary);
+  box-shadow: 0 2px 8px rgba(var(--cui-primary-rgb), 0.15);
+  transform: translateY(-1px);
+}
+
+/* Dark Mode Support for Manual Toggle Box */
+@media (prefers-color-scheme: dark) {
+  .manual-toggle-box {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .manual-toggle-box:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+    border-color: rgba(var(--cui-primary-rgb), 0.6);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* CoreUI Dark Theme Support */
+[data-coreui-theme="dark"] .manual-toggle-box {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+[data-coreui-theme="dark"] .manual-toggle-box:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  border-color: rgba(var(--cui-primary-rgb), 0.6);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Offline Info Box Styling */
+.offline-info-box {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.08), rgba(255, 193, 7, 0.03));
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(255, 193, 7, 0.1);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .offline-info-box {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
+    border-color: rgba(255, 193, 7, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* CoreUI Dark Theme Support */
+[data-coreui-theme="dark"] .offline-info-box {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
+  border-color: rgba(255, 193, 7, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Rotating Icon Animation */
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+

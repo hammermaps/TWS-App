@@ -1,0 +1,249 @@
+.app-sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.app-sidebar-brand:hover {
+  opacity: 0.9;
+}
+
+.sidebar-brand-full,
+.sidebar-brand-narrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: inherit;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+  .app-sidebar-brand {
+    padding: 0.5rem;
+  }
+
+  .brand-title {
+    font-size: 1rem;
+  }
+}
+/* Offline Banner Base Styling */
+.offline-banner {
+  position: relative;
+  width: 100%;
+  border-bottom: 2px solid;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+/* Banner Color Variants - Light Mode */
+.banner-secondary {
+  background: linear-gradient(135deg, rgba(108, 117, 125, 0.15), rgba(108, 117, 125, 0.05));
+  border-bottom-color: rgba(108, 117, 125, 0.3);
+  color: var(--cui-body-color);
+}
+
+.banner-danger {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(220, 53, 69, 0.05));
+  border-bottom-color: rgba(220, 53, 69, 0.4);
+  color: var(--cui-body-color);
+}
+
+.banner-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.05));
+  border-bottom-color: rgba(255, 193, 7, 0.5);
+  color: var(--cui-body-color);
+}
+
+.banner-info {
+  background: linear-gradient(135deg, rgba(13, 202, 240, 0.15), rgba(13, 202, 240, 0.05));
+  border-bottom-color: rgba(13, 202, 240, 0.4);
+  color: var(--cui-body-color);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .banner-secondary {
+    background: linear-gradient(135deg, rgba(108, 117, 125, 0.25), rgba(108, 117, 125, 0.1));
+    border-bottom-color: rgba(108, 117, 125, 0.5);
+  }
+
+  .banner-danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.25), rgba(220, 53, 69, 0.1));
+    border-bottom-color: rgba(220, 53, 69, 0.6);
+  }
+
+  .banner-warning {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 193, 7, 0.1));
+    border-bottom-color: rgba(255, 193, 7, 0.6);
+  }
+
+  .banner-info {
+    background: linear-gradient(135deg, rgba(13, 202, 240, 0.25), rgba(13, 202, 240, 0.1));
+    border-bottom-color: rgba(13, 202, 240, 0.6);
+  }
+}
+
+/* CoreUI Dark Theme Support */
+[data-coreui-theme="dark"] .banner-secondary {
+  background: linear-gradient(135deg, rgba(108, 117, 125, 0.25), rgba(108, 117, 125, 0.1));
+  border-bottom-color: rgba(108, 117, 125, 0.5);
+}
+
+[data-coreui-theme="dark"] .banner-danger {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.25), rgba(220, 53, 69, 0.1));
+  border-bottom-color: rgba(220, 53, 69, 0.6);
+}
+
+[data-coreui-theme="dark"] .banner-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 193, 7, 0.1));
+  border-bottom-color: rgba(255, 193, 7, 0.6);
+}
+
+[data-coreui-theme="dark"] .banner-info {
+  background: linear-gradient(135deg, rgba(13, 202, 240, 0.25), rgba(13, 202, 240, 0.1));
+  border-bottom-color: rgba(13, 202, 240, 0.6);
+}
+
+/* Banner Icon Wrapper */
+.banner-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .banner-icon-wrapper {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+[data-coreui-theme="dark"] .banner-icon-wrapper {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Banner Text */
+.banner-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.banner-description {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* Banner Action Button */
+.banner-action-btn {
+  font-weight: 500;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  transition: all 0.2s ease;
+}
+
+.banner-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .banner-action-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .banner-action-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+  }
+}
+
+[data-coreui-theme="dark"] .banner-action-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-coreui-theme="dark"] .banner-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Rotating Animation */
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Slide Down Transition */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-down-enter-from {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.slide-down-leave-to {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .banner-title {
+    font-size: 0.9rem;
+  }
+
+  .banner-description {
+    font-size: 0.8rem;
+  }
+
+  .banner-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+
+  .offline-banner .d-flex {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .banner-action-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+}
+

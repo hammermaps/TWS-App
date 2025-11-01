@@ -1,0 +1,47 @@
+.logo-test-page {
+  padding: 2rem 0;
+}
+.logo-test-page h1 {
+  font-size: 2rem;
+  color: var(--cui-body-color);
+  margin: 0;
+}
+.logo-test-page h3 {
+  font-size: 1.3rem;
+  color: var(--cui-body-color);
+  margin-bottom: 1rem;
+}
+.documentation-links ul {
+  list-style: none;
+  padding-left: 0;
+}
+.documentation-links li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--cui-border-color);
+}
+.documentation-links li:last-child {
+  border-bottom: none;
+}
+.documentation-links code {
+  background: var(--cui-tertiary-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: var(--cui-code-color);
+}
+.features ul {
+  list-style: none;
+  padding-left: 0;
+}
+.features li {
+  padding: 0.3rem 0;
+  font-size: 0.95rem;
+}
+@media (max-width: 768px) {
+  .logo-test-page {
+    padding: 1rem 0;
+  }
+  .logo-test-page h1 {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,59 @@
+.apartment-flushing {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.flush-circle-container {
+  position: relative;
+  width: 250px;
+  height: 250px;
+  margin: 0 auto;
+}
+
+.flush-circle {
+  transform: rotate(-90deg);
+}
+
+.progress-circle {
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+.flush-control-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.flush-control-button:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+}
+
+.flush-control-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status-display {
+  margin-top: 1rem;
+}
+.wrapper {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.text-end {
+  text-align: right;
+}
+
+.me-2 {
+  margin-right: 0.5rem;
+}
+
