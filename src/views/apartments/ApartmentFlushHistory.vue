@@ -534,38 +534,3 @@ export default {
 </script>
 
 <style scoped src="@/styles/views/ApartmentFlushHistory.css"></style>
-
-/* Erzwinge korrekte Farben für Status-Badges */
-.badge.bg-success {
-  background-color: #198754 !important;
-  color: white !important;
-}
-
-.badge.bg-danger {
-  background-color: #dc3545 !important;
-  color: white !important;
-}
-
-.badge.bg-warning {
-  background-color: #ffc107 !important;
-  color: black !important;
-}
-
-/* Überschreibe CoreUI Badge-Farben falls nötig */
-:deep(.badge) {
-  &[class*="bg-success"] {
-    background-color: #198754 !important;
-    color: white !important;
-  }
-
-  &[class*="bg-danger"] {
-    background-color: #dc3545 !important;
-    color: white !important;
-  }
-
-  &[class*="bg-warning"] {
-    background-color: #ffc107 !important;
-    color: black !important;
-  }
-}
-</style>

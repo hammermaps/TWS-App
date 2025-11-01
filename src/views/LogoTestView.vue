@@ -76,39 +76,4 @@ import LogoPreview from '@/components/LogoPreview.vue'
 </script>
 
 <style scoped src="@/styles/views/LogoTestView.css"></style>
-}
-
-.documentation-links code {
-  background: var(--cui-tertiary-bg);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.documentation-links ul ul {
-  padding-left: 1.5rem;
-  margin-top: 0.5rem;
-  list-style: disc;
-}
-
-.features ul {
-  list-style: none;
-  padding-left: 0;
-}
-
-.features li {
-  padding: 0.5rem 0;
-  line-height: 1.6;
-}
-
-@media (max-width: 768px) {
-  .logo-test-page {
-    padding: 1rem 0;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-  }
-}
-</style>
 

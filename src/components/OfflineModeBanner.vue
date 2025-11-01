@@ -49,12 +49,11 @@ const enableOnlineMode = () => {
 
 <template>
   <Transition name="slide-down">
-    <div class="container-lg px-4">
-    <div
-      v-if="showBanner"
-      class="offline-banner alert"
-      :class="getBannerClass"
-    >
+    <div v-if="showBanner" class="container-lg px-4">
+      <div
+        class="offline-banner alert"
+        :class="getBannerClass"
+      >
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
           <!-- Left: Status Info -->
           <div class="d-flex align-items-start flex-grow-1">
