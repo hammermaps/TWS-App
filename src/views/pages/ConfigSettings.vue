@@ -337,6 +337,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useApiConfig } from '@/api/ApiConfig.js'
 import { useConfigStorage } from '@/stores/ConfigStorage.js'
+import { useConfigSyncService } from '@/services/ConfigSyncService.js'
 import { isAdmin } from '@/stores/GlobalUser.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import CIcon from '@coreui/icons-vue'
@@ -359,6 +360,7 @@ import {
 
 const apiConfig = useApiConfig()
 const configStorageComposable = useConfigStorage()
+const configSyncService = useConfigSyncService()
 const onlineStatusStore = useOnlineStatusStore()
 
 // State
@@ -473,11 +475,12 @@ const saveConfiguration = async () => {
         throw new Error('Fehler beim Speichern auf dem Server')
       }
     } else {
-      // Save only locally when offline
+      // Save only locally when offline and add to sync queue
       configStorageComposable.saveConfig(configForm.value)
+      configSyncService.addToQueue(configForm.value)
       lastUpdate.value = new Date()
       successMessage.value = 'Konfiguration lokal gespeichert. Wird synchronisiert, sobald Sie online sind.'
-      console.log('📦 Konfiguration lokal gespeichert (Offline)')
+      console.log('📦 Konfiguration lokal gespeichert und zur Sync-Queue hinzugefügt (Offline)')
     }
   } catch (error) {
     console.error('❌ Fehler beim Speichern der Konfiguration:', error)
