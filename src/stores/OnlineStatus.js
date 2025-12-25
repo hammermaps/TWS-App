@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import healthClient from '../api/ApiHealth.js'
 import { useOfflineDataPreloader } from '../services/OfflineDataPreloader.js'
+import { useConfigSyncService } from '../services/ConfigSyncService.js'
 
 export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // State
@@ -15,6 +16,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   const consecutiveFailures = ref(0)
   const isCheckingConnection = ref(false)
   const dataPreloader = useOfflineDataPreloader() // Preloader für Offline-Daten
+  const configSyncService = useConfigSyncService() // Config Sync Service
 
   // Konfiguration
   const PING_INTERVAL = 30000 // 30 Sekunden
@@ -105,6 +107,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
           // Preloading starten wenn Daten veraltet sind oder nicht existieren
           triggerPreloadIfNeeded()
+
+          // Synchronisiere ausstehende Konfigurationsänderungen
+          syncConfigChanges()
         }
         return true
       } else {
@@ -187,6 +192,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
       // Preloading starten wenn Daten veraltet sind oder nicht existieren
       triggerPreloadIfNeeded()
+      
+      // Config-Synchronisation starten
+      syncConfigChanges()
     }
   }
 
@@ -240,6 +248,40 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   }
 
   /**
+   * Synchronisiert ausstehende Konfigurationsänderungen
+   */
+  async function syncConfigChanges() {
+    if (!isFullyOnline.value) {
+      console.log('⏸️ Config-Sync übersprungen - nicht online')
+      return
+    }
+
+    if (!configSyncService.hasPending()) {
+      console.log('✓ Keine ausstehenden Konfigurationsänderungen')
+      return
+    }
+
+    console.log('🔄 Synchronisiere Konfigurationsänderungen...')
+    
+    try {
+      const result = await configSyncService.syncPending()
+      
+      if (result.success) {
+        console.log(`✅ ${result.synced} Konfigurationsänderungen synchronisiert`)
+        if (result.synced > 0) {
+          notifyUser(`${result.synced} Konfigurationsänderungen synchronisiert`, 'success')
+        }
+      } else {
+        console.warn(`⚠️ Config-Sync teilweise fehlgeschlagen: ${result.failed} Fehler`)
+        notifyUser('Einige Konfigurationsänderungen konnten nicht synchronisiert werden', 'warning')
+      }
+    } catch (error) {
+      console.error('❌ Fehler bei Config-Synchronisation:', error)
+      notifyUser('Fehler bei der Synchronisation der Konfiguration', 'error')
+    }
+  }
+
+  /**
    * Manuelles Preloading (z.B. per Button)
    */
   async function forcePreload() {
@@ -278,6 +320,8 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         pingServer()
         // Preloading starten wenn nötig
         setTimeout(() => triggerPreloadIfNeeded(), 2000) // 2 Sekunden Verzögerung
+        // Config-Synchronisation starten
+        setTimeout(() => syncConfigChanges(), 3000) // 3 Sekunden Verzögerung
       }
     })
 
