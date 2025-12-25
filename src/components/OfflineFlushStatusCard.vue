@@ -121,10 +121,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useOfflineFlushStorage } from '@/stores/OfflineFlushStorage.js'
 import { useOfflineFlushSync } from '@/stores/OfflineFlushSyncService.js'
+import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import {
   CCard,
   CCardHeader,
@@ -139,6 +140,7 @@ import { CIcon } from '@coreui/icons-vue'
 const router = useRouter()
 const { storage: offlineStorage } = useOfflineFlushStorage()
 const { getSyncStatus, forceSync } = useOfflineFlushSync()
+const onlineStatusStore = useOnlineStatusStore()
 
 // Reactive State
 const stats = ref({
@@ -149,13 +151,13 @@ const stats = ref({
 })
 
 const syncStatus = ref({
-  isOnline: navigator.onLine,
   isSyncing: false,
   unsyncedCount: 0,
   syncInProgress: []
 })
 
-const isOnline = ref(navigator.onLine)
+// Verwende OnlineStatus Store als einzige Quelle
+const isOnline = computed(() => onlineStatusStore.isFullyOnline)
 const showDetails = ref(false)
 const updateInterval = ref(null)
 
@@ -197,8 +199,11 @@ const updateStats = () => {
       oldestUnsynced: offlineStats.oldestUnsynced
     }
 
-    syncStatus.value = currentSyncStatus
-    isOnline.value = currentSyncStatus.isOnline
+    // isOnline kommt vom OnlineStatus Store
+    syncStatus.value = {
+      ...currentSyncStatus,
+      isOnline: isOnline.value
+    }
 
     console.log('📊 Offline-Flush Status aktualisiert:', stats.value)
   } catch (error) {
@@ -228,37 +233,28 @@ const cleanupOldFlushes = () => {
   }
 }
 
-// Event Handlers
-const handleOnline = () => {
-  isOnline.value = true
-  updateStats()
-}
-
-const handleOffline = () => {
-  isOnline.value = false
-  updateStats()
-}
-
 // Lifecycle
 onMounted(() => {
   console.log('📊 OfflineFlushStatusCard mounted')
 
-  // Event Listeners
-  window.addEventListener('online', handleOnline)
-  window.addEventListener('offline', handleOffline)
+  // KEINE eigenen Online/Offline Event Listeners mehr
+  // Der OnlineStatus Store koordiniert alle Online/Offline Übergänge zentral
 
   // Initiale Daten laden
   updateStats()
 
   // Regelmäßige Updates
   updateInterval.value = setInterval(updateStats, 10000) // Alle 10 Sekunden
+  
+  // Watch auf isFullyOnline für UI-Updates
+  watch(() => onlineStatusStore.isFullyOnline, () => {
+    console.log('🔄 Online-Status geändert im OfflineFlushStatusCard')
+    updateStats()
+  })
 })
 
 onUnmounted(() => {
   console.log('🧹 OfflineFlushStatusCard cleanup')
-
-  window.removeEventListener('online', handleOnline)
-  window.removeEventListener('offline', handleOffline)
 
   if (updateInterval.value) {
     clearInterval(updateInterval.value)

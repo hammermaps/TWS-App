@@ -1,4 +1,3 @@
-// OnlineStatus.js - Store für Online/Offline-Status mit automatischer Ping-Überwachung
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import healthClient from '../api/ApiHealth.js'
@@ -17,6 +16,16 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   const isCheckingConnection = ref(false)
   const dataPreloader = useOfflineDataPreloader() // Preloader für Offline-Daten
   const configSyncService = useConfigSyncService() // Config Sync Service
+  
+  // Lazy-Loading für OfflineFlushSyncService (Import erfolgt bei Bedarf)
+  let offlineFlushSyncService = null
+  const getFlushSyncService = async () => {
+    if (!offlineFlushSyncService) {
+      const module = await import('./OfflineFlushSyncService.js')
+      offlineFlushSyncService = module.default
+    }
+    return offlineFlushSyncService
+  }
 
   // Konfiguration
   const PING_INTERVAL = 30000 // 30 Sekunden
@@ -110,6 +119,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
           // Synchronisiere ausstehende Konfigurationsänderungen
           syncConfigChanges()
+          
+          // Synchronisiere ausstehende Offline-Spülungen
+          syncFlushData()
         }
         return true
       } else {
@@ -136,6 +148,40 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       isServerReachable.value = false
       console.error('🔴 Server nicht erreichbar - Wechsel zu Offline-Modus')
       notifyUser('Server nicht erreichbar. App wurde in den Offline-Modus geschaltet.', 'warning')
+    }
+  }
+
+  /**
+   * Synchronisiert ausstehende Offline-Spülungen
+   */
+  async function syncFlushData() {
+    if (!isFullyOnline.value) {
+      console.log('⏸️ Flush-Sync übersprungen - nicht online')
+      return
+    }
+
+    try {
+      const flushSyncService = await getFlushSyncService()
+      console.log('🔄 Starte Flush-Synchronisation...')
+      
+      const result = await flushSyncService.attemptSync()
+      
+      if (result) {
+        if (result.success) {
+          console.log(`✅ ${result.successCount} Spülungen synchronisiert`)
+          if (result.successCount > 0) {
+            notifyUser(`${result.successCount} Spülungen erfolgreich synchronisiert`, 'success')
+          }
+        } else {
+          console.warn(`⚠️ Flush-Sync teilweise fehlgeschlagen: ${result.errorCount} Fehler`)
+          if (result.successCount > 0) {
+            notifyUser(`${result.successCount} von ${result.total} Spülungen synchronisiert`, 'warning')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Fehler bei Flush-Synchronisation:', error)
+      // Nicht als kritischer Fehler anzeigen, da es nur um Offline-Daten geht
     }
   }
 
@@ -195,6 +241,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       
       // Config-Synchronisation starten
       syncConfigChanges()
+      
+      // Flush-Synchronisation starten
+      syncFlushData()
     }
   }
 
@@ -322,6 +371,8 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         setTimeout(() => triggerPreloadIfNeeded(), 2000) // 2 Sekunden Verzögerung
         // Config-Synchronisation starten
         setTimeout(() => syncConfigChanges(), 3000) // 3 Sekunden Verzögerung
+        // Flush-Synchronisation starten
+        setTimeout(() => syncFlushData(), 4000) // 4 Sekunden Verzögerung
       }
     })
 
@@ -390,6 +441,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     stopPingMonitoring,
     setManualOffline,
     triggerPreloadIfNeeded,
+    syncFlushData,
     forcePreload,
     initialize,
     cleanup
