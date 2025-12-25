@@ -672,13 +672,13 @@ onMounted(async () => {
   autoSyncInterval = syncService.startAutoSync(2) // Alle 2 Minuten
 
   // Auto-Navigation Einstellung speichern wenn geändert
-  watch(autoNavigate, (newValue) => {
+  const stopAutoNavWatch = watch(autoNavigate, (newValue) => {
     localStorage.setItem('wls_auto_navigate_apartments', JSON.stringify(newValue))
     console.log('💾 Auto-Navigation gespeichert:', newValue)
   })
   
   // Watch auf isFullyOnline für UI-Updates
-  watch(() => onlineStatusStore.isFullyOnline, (newIsOnline) => {
+  const stopOnlineWatch = watch(() => onlineStatusStore.isFullyOnline, (newIsOnline) => {
     console.log('🔄 Online-Status geändert:', newIsOnline)
     updateSyncStatus()
     
@@ -711,6 +711,10 @@ onMounted(async () => {
     if (statusInterval) {
       clearInterval(statusInterval)
     }
+    
+    // Stoppe die Watchers
+    stopAutoNavWatch()
+    stopOnlineWatch()
   })
 })
 

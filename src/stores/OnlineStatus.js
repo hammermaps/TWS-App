@@ -18,6 +18,8 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   const configSyncService = useConfigSyncService() // Config Sync Service
   
   // Lazy-Loading für OfflineFlushSyncService (Import erfolgt bei Bedarf)
+  // HINWEIS: Dies ist sicher, da Pinia Stores Singletons sind.
+  // Der Service wird nur einmal geladen und über alle Store-Instanzen geteilt.
   let offlineFlushSyncService = null
   const getFlushSyncService = async () => {
     if (!offlineFlushSyncService) {

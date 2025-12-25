@@ -247,18 +247,22 @@ onMounted(() => {
   updateInterval.value = setInterval(updateStats, 10000) // Alle 10 Sekunden
   
   // Watch auf isFullyOnline für UI-Updates
-  watch(() => onlineStatusStore.isFullyOnline, () => {
+  const stopWatch = watch(() => onlineStatusStore.isFullyOnline, () => {
     console.log('🔄 Online-Status geändert im OfflineFlushStatusCard')
     updateStats()
   })
-})
+  
+  // Cleanup
+  onUnmounted(() => {
+    console.log('🧹 OfflineFlushStatusCard cleanup')
 
-onUnmounted(() => {
-  console.log('🧹 OfflineFlushStatusCard cleanup')
-
-  if (updateInterval.value) {
-    clearInterval(updateInterval.value)
-  }
+    if (updateInterval.value) {
+      clearInterval(updateInterval.value)
+    }
+    
+    // Stoppe den Watcher
+    stopWatch()
+  })
 })
 </script>
 
