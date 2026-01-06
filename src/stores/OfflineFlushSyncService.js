@@ -1,6 +1,9 @@
 /**
  * OfflineFlushSyncService.js
  * Service für die Synchronisation von Offline-Spülungen mit dem Server
+ * 
+ * WICHTIG: Verwendet OnlineStatus Store als einzige Quelle für Online/Offline Status.
+ * Keine eigenen Event-Listener mehr - wird zentral vom OnlineStatus Store koordiniert.
  */
 
 import { useOfflineFlushStorage } from './OfflineFlushStorage.js'
@@ -9,51 +12,34 @@ import { useApartmentStorage } from './ApartmentStorage.js'
 
 class OfflineFlushSyncService {
   constructor() {
-    this.isOnline = navigator.onLine
     this.isSyncing = false
     this.syncInProgress = new Set()
-
-    // Event Listeners für Online/Offline Status
-    window.addEventListener('online', () => {
-      console.log('🌐 Online-Status: Verbunden')
-      this.isOnline = true
-      this.attemptSync()
-    })
-
-    window.addEventListener('offline', () => {
-      console.log('📴 Online-Status: Offline')
-      this.isOnline = false
-    })
+    // Keine eigenen Event Listener mehr - wird vom OnlineStatus Store koordiniert
   }
 
   /**
    * Prüft ob eine Internetverbindung verfügbar ist
+   * HINWEIS: Diese Methode ist nun hauptsächlich zur Verifizierung,
+   * der primäre Online-Status kommt vom OnlineStatus Store
    */
   async checkConnectivity() {
     try {
       // Versuche einen einfachen API-Call
       const { checkHealth } = useApiApartment()
       await checkHealth()
-      this.isOnline = true
       return true
     } catch (error) {
-      this.isOnline = false
       return false
     }
   }
 
   /**
    * Startet die Synchronisation aller ausstehenden Spülungen
+   * HINWEIS: Sollte vom OnlineStatus Store aufgerufen werden, nicht direkt von Events
    */
   async attemptSync() {
     if (this.isSyncing) {
       console.log('🔄 Synchronisation bereits aktiv')
-      return
-    }
-
-    // Prüfe erst, ob wirklich eine Verbindung besteht
-    if (!this.isOnline) {
-      console.log('📴 Keine Synchronisation möglich: Offline')
       return
     }
 
@@ -112,11 +98,6 @@ class OfflineFlushSyncService {
    * Synchronisiert eine einzelne Spülung mit dem Server
    */
   async syncSingleFlush(flush) {
-    // Prüfe, ob wir online sind, bevor wir versuchen zu synchronisieren
-    if (!this.isOnline) {
-      throw new Error('Keine Internetverbindung verfügbar')
-    }
-
     const { createFlushRecord } = useApiApartment()
     const { storage: offlineStorage } = useOfflineFlushStorage()
     const apartmentStorage = useApartmentStorage()
@@ -153,10 +134,6 @@ class OfflineFlushSyncService {
    * Synchronisiert eine spezifische Spülung sofort (falls online)
    */
   async syncFlushImmediately(flushId) {
-    if (!this.isOnline) {
-      throw new Error('Keine Internetverbindung verfügbar')
-    }
-
     const { storage } = useOfflineFlushStorage()
     const syncQueue = storage.getSyncQueue()
     const flush = syncQueue.find(f => f.id === flushId)
@@ -170,15 +147,15 @@ class OfflineFlushSyncService {
 
   /**
    * Startet automatische periodische Synchronisation
+   * HINWEIS: Wird vom OnlineStatus Store koordiniert
    */
   startAutoSync(intervalMinutes = 5) {
     console.log(`⏰ Auto-Sync gestartet (alle ${intervalMinutes} Minuten)`)
 
     return setInterval(async () => {
-      if (this.isOnline && !this.isSyncing) {
-        console.log('⏰ Auto-Sync Versuch...')
-        await this.attemptSync()
-      }
+      // Prüfe ob Online-Status gegeben ist (wird extern gemanaged)
+      console.log('⏰ Auto-Sync Versuch...')
+      await this.attemptSync()
     }, intervalMinutes * 60 * 1000)
   }
 
@@ -194,13 +171,13 @@ class OfflineFlushSyncService {
 
   /**
    * Gibt den aktuellen Sync-Status zurück
+   * HINWEIS: isOnline wird nun vom OnlineStatus Store verwaltet
    */
   getSyncStatus() {
     const { storage } = useOfflineFlushStorage()
     const stats = storage.getStats()
 
     return {
-      isOnline: this.isOnline,
       isSyncing: this.isSyncing,
       unsyncedCount: stats.unsyncedFlushes,
       syncInProgress: Array.from(this.syncInProgress),
