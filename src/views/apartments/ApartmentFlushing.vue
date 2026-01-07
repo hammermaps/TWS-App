@@ -394,7 +394,7 @@ const currentApartment = ref(null)
 const allApartments = ref([])
 const autoNavigate = ref(true)
 
-// Offline/Sync State - Verwende Online-Status-Store
+// Offline/Sync State - Verwende Online-Status-Store als einzige Quelle
 const isOnline = computed(() => onlineStatusStore.isFullyOnline)
 const syncStatus = ref(null)
 const offlineFlushes = ref([])
@@ -650,46 +650,44 @@ const loadOfflineFlushes = () => {
 
 // Sync-Status aktualisieren
 const updateSyncStatus = () => {
-  syncStatus.value = getSyncStatus()
-}
-
-// Online/Offline Event Handlers
-const handleOnline = () => {
-  console.log('🌐 Online-Status: Verbunden')
-  isOnline.value = true
-  updateSyncStatus()
-
-  // Automatische Synchronisation starten
-  setTimeout(() => {
-    forceSync().catch(console.error)
-  }, 1000)
-}
-
-const handleOffline = () => {
-  console.log('📴 Online-Status: Offline')
-  isOnline.value = false
-  updateSyncStatus()
+  const status = getSyncStatus()
+  // isOnline kommt vom Store, nicht vom syncService
+  syncStatus.value = {
+    ...status,
+    isOnline: isOnline.value
+  }
 }
 
 // Lifecycle
 onMounted(async () => {
   console.log('🏠 ApartmentFlushing mounted')
 
-  // Event Listeners für Online/Offline
-  window.addEventListener('online', handleOnline)
-  window.addEventListener('offline', handleOffline)
+  // KEINE eigenen Online/Offline Event Listeners mehr
+  // Der OnlineStatus Store koordiniert alle Online/Offline Übergänge zentral
 
   // Initial Status setzen
-  isOnline.value = navigator.onLine
   updateSyncStatus()
 
   // Auto-Sync starten
   autoSyncInterval = syncService.startAutoSync(2) // Alle 2 Minuten
 
   // Auto-Navigation Einstellung speichern wenn geändert
-  watch(autoNavigate, (newValue) => {
+  const stopAutoNavWatch = watch(autoNavigate, (newValue) => {
     localStorage.setItem('wls_auto_navigate_apartments', JSON.stringify(newValue))
     console.log('💾 Auto-Navigation gespeichert:', newValue)
+  })
+  
+  // Watch auf isFullyOnline für UI-Updates
+  const stopOnlineWatch = watch(() => onlineStatusStore.isFullyOnline, (newIsOnline) => {
+    console.log('🔄 Online-Status geändert:', newIsOnline)
+    updateSyncStatus()
+    
+    // Wenn wieder online, Sync anstoßen
+    if (newIsOnline) {
+      setTimeout(() => {
+        forceSync().catch(console.error)
+      }, 1000)
+    }
   })
 
   // Sync-Status regelmäßig aktualisieren
@@ -705,8 +703,6 @@ onMounted(async () => {
     console.log('🧹 ApartmentFlushing cleanup')
 
     clearTimer()
-    window.removeEventListener('online', handleOnline)
-    window.removeEventListener('offline', handleOffline)
 
     if (autoSyncInterval) {
       syncService.stopAutoSync(autoSyncInterval)
@@ -715,6 +711,10 @@ onMounted(async () => {
     if (statusInterval) {
       clearInterval(statusInterval)
     }
+    
+    // Stoppe die Watchers
+    stopAutoNavWatch()
+    stopOnlineWatch()
   })
 })
 
