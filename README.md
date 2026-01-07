@@ -3,18 +3,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Vue 3](https://img.shields.io/badge/Vue-3.5+-4FC08D?style=flat-square&logo=vue.js)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-7.1+-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
+[![Capacitor](https://img.shields.io/badge/Capacitor-8.0+-119EFF?style=flat-square&logo=capacitor)](https://capacitorjs.com/)
 
-Eine moderne Progressive Web App (PWA) zur Verwaltung und Durchführung von Leerstandsspülungen in Gebäuden. Die App bietet vollständige Offline-Funktionalität und automatische Datensynchronisation.
+Eine moderne Progressive Web App (PWA) zur Verwaltung und Durchführung von Leerstandsspülungen in Gebäuden. Die App bietet vollständige Offline-Funktionalität und automatische Datensynchronisation. **Jetzt auch als native Android-App verfügbar!**
 
 ## 📋 Inhaltsverzeichnis
 
 - [Über das Projekt](#über-das-projekt)
 - [Features](#features)
+- [Plattformen](#plattformen)
 - [Technologien](#technologien)
 - [Voraussetzungen](#voraussetzungen)
 - [Installation](#installation)
 - [Entwicklung](#entwicklung)
 - [Build & Deployment](#build--deployment)
+- [Android App](#android-app)
 - [Projektstruktur](#projektstruktur)
 - [API-Integration](#api-integration)
 - [Offline-Modus](#offline-modus)
@@ -42,6 +45,8 @@ Die TWS-App (Trinkwasser-Spülungs-App) ist ein webbasiertes System zur Verwaltu
 - 📊 **Dashboard**: Übersichtliche Darstellung von anstehenden und durchgeführten Spülungen
 - 📈 **Statistiken**: Auswertung von Spüldaten und Compliance-Reports
 - 👥 **Benutzerverwaltung**: Rollen- und Rechte-System (Admin, Techniker)
+
+## 📱 Plattformen
 
 ### Progressive Web App (PWA)
 
@@ -148,10 +153,62 @@ Die Build-Artefakte werden im `dist/` Verzeichnis erstellt.
 - Asset-Optimierung (Bilder, Fonts)
 - Service Worker für Offline-Caching
 
+## 📱 Android App
+
+Die TWS-App kann als native Android-Anwendung mit Android Studio kompiliert und installiert werden.
+
+### Schnellstart
+
+```bash
+# Build Web-App und synchronisiere mit Android
+npm run android:build
+
+# Öffne Android Studio
+npm run android:open
+
+# Oder direkt auf Gerät ausführen
+npm run android:run
+```
+
+### Android-spezifische npm Scripts
+
+```bash
+npm run android:build    # Web-App bauen und mit Android synchronisieren
+npm run android:sync     # Nur synchronisieren (Build muss existieren)
+npm run android:open     # Android Studio öffnen
+npm run android:run      # Bauen, synchronisieren und auf Gerät ausführen
+```
+
+### Voraussetzungen für Android-Entwicklung
+
+- **Android Studio** (neueste stabile Version)
+- **JDK 17** (wird mit Android Studio installiert)
+- **Android SDK** API Level 22+ (Android 5.1+)
+
+### Dokumentation
+
+- **📘 Ausführliche Anleitung (Deutsch)**: [ANDROID_SETUP.md](ANDROID_SETUP.md)
+- **📗 Quick Start (English)**: [ANDROID_QUICKSTART.md](ANDROID_QUICKSTART.md)
+
+### Technische Details
+
+- **Build-Tool**: Capacitor 8.0+
+- **Min SDK**: API 22 (Android 5.1 Lollipop)
+- **Target SDK**: API 33 (Android 13)
+- **App ID**: `de.dk_automation.tws`
+
 ## 📁 Projektstruktur
 
 ```
 TWS-App/
+├── android/                # Android-Projekt (Capacitor)
+│   ├── app/
+│   │   ├── src/main/
+│   │   │   ├── assets/public/  # Web-App Dateien
+│   │   │   ├── AndroidManifest.xml
+│   │   │   └── res/        # Android-Ressourcen
+│   │   └── build.gradle
+│   └── build.gradle
 ├── public/                 # Statische Assets
 │   ├── favicon.ico
 │   └── manifest.json      # PWA Manifest
@@ -413,6 +470,8 @@ Bei Fragen oder Problemen:
 
 ### Geplante Features
 
+- [x] Native Android-App mit Capacitor
+- [ ] iOS-App (Capacitor)
 - [ ] Push-Benachrichtigungen für fällige Spülungen
 - [ ] QR-Code-Scanner für Apartment-Identifikation
 - [ ] Export von Reports (PDF, Excel)
@@ -423,6 +482,8 @@ Bei Fragen oder Problemen:
 
 ## 📚 Weitere Dokumentation
 
+- [Android Setup Anleitung (Deutsch)](ANDROID_SETUP.md)
+- [Android Quick Start (English)](ANDROID_QUICKSTART.md)
 - [PWA Dokumentation](PWA_DOCUMENTATION.md)
 - [Offline-Modus Guide](OFFLINE_PRELOADING_DOCUMENTATION.md)
 - [Logo Design Guide](LOGO_README.md)

@@ -1,0 +1,14 @@
+{
+  "appId": "de.dk_automation.tws",
+  "appName": "TWS Leerstandsspülung App",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
