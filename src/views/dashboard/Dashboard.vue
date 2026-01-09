@@ -10,6 +10,13 @@
           </div>
           <div class="d-flex gap-2">
             <CButton
+              color="success"
+              variant="outline"
+              @click="openQRScanner">
+              <CIcon icon="cil-qr-code" class="me-2" />
+              {{ $t('qrScanner.title') }}
+            </CButton>
+            <CButton
               color="primary"
               @click="loadWorkStats"
               :disabled="!statisticsAvailable">
@@ -329,6 +336,13 @@
         {{ $t('dashboard.loadStatistics') }}
       </CButton>
     </div>
+
+    <!-- QR-Code Scanner Modal -->
+    <QRCodeScanner
+      :visible="showQRScanner"
+      @update:visible="showQRScanner = $event"
+      @close="showQRScanner = false"
+    />
   </div>
 </template>
 
@@ -339,6 +353,7 @@ import { useApiStats } from '@/api/ApiStats.js'
 import { getCurrentUser } from '@/stores/GlobalUser.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import OfflineDataPreloadCard from '@/components/OfflineDataPreloadCard.vue'
+import QRCodeScanner from '@/components/QRCodeScanner.vue'
 import {
   CButton,
   CCard,
@@ -369,6 +384,9 @@ const onlineStatusStore = useOnlineStatusStore()
 
 // Letztes Export-Ergebnis zwischenspeichern
 const lastExportData = ref(null)
+
+// QR-Scanner State
+const showQRScanner = ref(false)
 
 // Prüfung ob Statistiken verfügbar sind
 const statisticsAvailable = computed(() => {
@@ -500,6 +518,11 @@ async function exportToCSV() {
   } else {
     error.value = 'Keine Export-Daten verfügbar für den CSV-Download'
   }
+}
+
+// QR-Scanner öffnen
+function openQRScanner() {
+  showQRScanner.value = true
 }
 
 // Debug-Funktion für Raw-Daten

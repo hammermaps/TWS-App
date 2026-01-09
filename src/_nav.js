@@ -20,6 +20,17 @@ export default [
   },
   {
     component: 'CNavItem',
+    name: 'QR-Code Scanner',
+    to: '/qr-scanner',
+    icon: 'cilQrCode',
+    badge: {
+      color: 'info',
+      text: 'SCAN',
+    },
+    requiresOnline: false, // QR-Scanner funktioniert auch offline (mit Cache)
+  },
+  {
+    component: 'CNavItem',
     name: 'Gebäude',
     to: '/buildings',
     icon: 'cilBuilding',

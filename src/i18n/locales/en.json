@@ -388,7 +388,25 @@
     "initError": "Error initializing camera",
     "invalidQRCode": "Invalid QR code",
     "apartmentNotFound": "Apartment not found",
-    "scanError": "Scan error"
+    "scanError": "Scan error",
+    "startScanning": "Start Scanning",
+    "howItWorks": "How it works",
+    "howItWorksDesc": "Scan the QR code at the apartment door to go directly to the flushing page.",
+    "quickAccess": "Quick Access",
+    "quickAccessDesc": "Save time with direct access to flushing function without manual navigation.",
+    "offlineCapable": "Offline Capable",
+    "offlineCapableDesc": "Works without internet connection with previously loaded data.",
+    "recentScans": "Recent Scans",
+    "timestamp": "Timestamp",
+    "requirements": "Requirements",
+    "requirementCamera": "Device with working camera",
+    "requirementPermission": "Camera permission granted",
+    "requirementQRCode": "Valid apartment QR code",
+    "steps": "Steps",
+    "step1": "Click 'Start Scanning'",
+    "step2": "Allow camera access",
+    "step3": "Point camera at QR code",
+    "step4": "Wait for automatic detection"
   }
 }
 

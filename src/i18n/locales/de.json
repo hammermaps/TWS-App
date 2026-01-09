@@ -388,7 +388,25 @@
     "initError": "Fehler beim Initialisieren der Kamera",
     "invalidQRCode": "Ungültiger QR-Code",
     "apartmentNotFound": "Wohnung nicht gefunden",
-    "scanError": "Fehler beim Scannen"
+    "scanError": "Fehler beim Scannen",
+    "startScanning": "Scannen starten",
+    "howItWorks": "Wie es funktioniert",
+    "howItWorksDesc": "Scannen Sie den QR-Code an der Wohnungstür, um direkt zur Spülungsseite zu gelangen.",
+    "quickAccess": "Schneller Zugriff",
+    "quickAccessDesc": "Sparen Sie Zeit durch direkten Zugriff auf die Spülungsfunktion ohne manuelles Navigieren.",
+    "offlineCapable": "Offline-Fähig",
+    "offlineCapableDesc": "Funktioniert auch ohne Internetverbindung mit vorher geladenen Daten.",
+    "recentScans": "Letzte Scans",
+    "timestamp": "Zeitstempel",
+    "requirements": "Voraussetzungen",
+    "requirementCamera": "Gerät mit funktionierender Kamera",
+    "requirementPermission": "Kamera-Berechtigung erteilt",
+    "requirementQRCode": "Gültiger QR-Code eines Apartments",
+    "steps": "Schritte",
+    "step1": "Klicken Sie auf 'Scannen starten'",
+    "step2": "Erlauben Sie Kamera-Zugriff",
+    "step3": "Richten Sie die Kamera auf den QR-Code",
+    "step4": "Warten Sie auf automatische Erkennung"
   }
 }
 

@@ -62,6 +62,16 @@ const routes = [
             /* webpackChunkName: "settings" */ '@/views/pages/ConfigSettings.vue'
           ),
       },
+      // QR Scanner route
+      {
+        path: '/qr-scanner',
+        name: 'QRScanner',
+        meta: { requiresAuth: true, requiresOnline: false }, // QR-Scanner offline verfügbar (mit Cache)
+        component: () =>
+          import(
+            /* webpackChunkName: "qr-scanner" */ '@/views/scanner/QRScannerPage.vue'
+          ),
+      },
       // Buildings routes
       {
         path: '/buildings',
