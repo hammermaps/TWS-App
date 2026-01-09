@@ -296,15 +296,21 @@
   },
   "auth": {
     "login": "Anmelden",
+    "loginSubtitle": "Melden Sie sich mit Ihrem Konto an",
     "logout": "Abmelden",
     "username": "Benutzername",
     "password": "Passwort",
     "email": "E-Mail",
     "rememberMe": "Angemeldet bleiben",
     "forgotPassword": "Passwort vergessen?",
+    "forgotPasswordNotImplemented": "Diese Funktion ist noch nicht implementiert",
+    "loggingIn": "Wird angemeldet...",
     "loginSuccess": "Erfolgreich angemeldet",
     "loginError": "Anmeldung fehlgeschlagen",
-    "logoutSuccess": "Erfolgreich abgemeldet"
+    "logoutSuccess": "Erfolgreich abgemeldet",
+    "register": "Registrieren",
+    "registerText": "Noch kein Konto? Registrieren Sie sich jetzt und erhalten Sie Zugriff auf alle Funktionen.",
+    "registerNow": "Jetzt registrieren!"
   },
   "offline": {
     "title": "Offline-Modus",

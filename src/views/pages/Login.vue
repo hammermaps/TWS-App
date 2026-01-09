@@ -7,8 +7,28 @@
             <CCard class="p-4">
               <CCardBody>
                 <CForm @submit.prevent="handleLogin">
-                  <h1>{{ $t('auth.login') }}</h1>
-                  <p class="text-body-secondary">{{ $t('auth.loginSubtitle') }}</p>
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                      <h1>{{ $t('auth.login') }}</h1>
+                      <p class="text-body-secondary mb-0">{{ $t('auth.loginSubtitle') }}</p>
+                    </div>
+                    <!-- Language Selector -->
+                    <CDropdown variant="btn-group" placement="bottom-end" class="language-selector">
+                      <CDropdownToggle color="light" size="sm" class="border">
+                        {{ currentLocale.flag }} {{ currentLocale.code.toUpperCase() }}
+                      </CDropdownToggle>
+                      <CDropdownMenu>
+                        <CDropdownItem
+                          v-for="locale in availableLocales"
+                          :key="locale.code"
+                          @click="switchLanguage(locale.code)"
+                          :active="locale.code === currentLocale.code"
+                        >
+                          {{ locale.flag }} {{ locale.name }}
+                        </CDropdownItem>
+                      </CDropdownMenu>
+                    </CDropdown>
+                  </div>
 
                   <!-- Error Alert -->
                   <CAlert
@@ -129,13 +149,18 @@ import {
   CInputGroupText,
   CButton,
   CAlert,
-  CSpinner
+  CSpinner,
+  CDropdown,
+  CDropdownToggle,
+  CDropdownMenu,
+  CDropdownItem
 } from '@coreui/vue'
 import CIcon from '@coreui/icons-vue'
 import { useUser } from '../../api/useUser.js'
+import { availableLocales, changeLanguage } from '../../i18n/index.js'
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // User Composable - Verwende Proxy-URL im Development-Mode
 const {
@@ -161,6 +186,15 @@ const canSubmit = computed(() => {
          loginForm.password.trim() !== '' &&
          !isLoading.value
 })
+
+const currentLocale = computed(() => {
+  return availableLocales.find(l => l.code === locale.value) || availableLocales[0]
+})
+
+// Methods
+const switchLanguage = (newLocale) => {
+  changeLanguage(newLocale)
+}
 
 // Methods
 const handleLogin = async () => {
@@ -205,4 +239,29 @@ onMounted(() => {
 })
 </script>
 
-<style scoped src="@/styles/views/Login.css"></style>
+<style scoped>
+.language-selector {
+  min-width: 100px;
+}
+
+.language-selector .dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wrapper {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Verbesserte Dropdown-Darstellung */
+:deep(.dropdown-item.active) {
+  background-color: var(--cui-primary);
+  color: white;
+}
+
+:deep(.dropdown-item:hover) {
+  background-color: var(--cui-secondary);
+  cursor: pointer;
+}
+</style>

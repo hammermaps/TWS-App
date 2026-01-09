@@ -296,15 +296,21 @@
   },
   "auth": {
     "login": "Login",
+    "loginSubtitle": "Sign in to your account",
     "logout": "Logout",
     "username": "Username",
     "password": "Password",
     "email": "Email",
     "rememberMe": "Remember me",
     "forgotPassword": "Forgot password?",
+    "forgotPasswordNotImplemented": "This feature is not yet implemented",
+    "loggingIn": "Logging in...",
     "loginSuccess": "Successfully logged in",
     "loginError": "Login failed",
-    "logoutSuccess": "Successfully logged out"
+    "logoutSuccess": "Successfully logged out",
+    "register": "Sign Up",
+    "registerText": "Don't have an account yet? Register now and get access to all features.",
+    "registerNow": "Register now!"
   },
   "offline": {
     "title": "Offline Mode",
