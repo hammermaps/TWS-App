@@ -315,36 +315,68 @@ const handleVisibilityChange = async () => {
   }
 }
 
-// Event Listener für Tab-Sichtbarkeit
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', handleVisibilityChange)
+// Activity Handler - separate Funktion für bessere Verwaltung
+const handleActivity = () => {
+  if (authToken.value && tokenCheckActive.value) {
+    registerActivity()
+  }
 }
 
-// Event Listener für Benutzeraktivität
-if (typeof document !== 'undefined') {
-  // Mouse- und Keyboard-Events für Activity-Tracking
-  const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
+// Event Listener Referenzen für Cleanup speichern
+const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
+let listenersAttached = false
 
+// Event Listener hinzufügen
+const attachEventListeners = () => {
+  if (listenersAttached || typeof document === 'undefined' || typeof window === 'undefined') {
+    return
+  }
+
+  // Tab-Sichtbarkeit
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
+  // Benutzeraktivität
   activityEvents.forEach(event => {
-    document.addEventListener(event, () => {
-      if (authToken.value && tokenCheckActive.value) {
-        registerActivity()
-      }
-    }, { passive: true })
+    document.addEventListener(event, handleActivity, { passive: true })
   })
+
+  // Page Unload
+  window.addEventListener('beforeunload', cleanup)
+
+  listenersAttached = true
+  console.log('✅ Event Listeners für TokenManager registriert')
+}
+
+// Event Listener entfernen
+const detachEventListeners = () => {
+  if (!listenersAttached || typeof document === 'undefined' || typeof window === 'undefined') {
+    return
+  }
+
+  // Tab-Sichtbarkeit
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+
+  // Benutzeraktivität
+  activityEvents.forEach(event => {
+    document.removeEventListener(event, handleActivity)
+  })
+
+  // Page Unload
+  window.removeEventListener('beforeunload', cleanup)
+
+  listenersAttached = false
+  console.log('✅ Event Listeners für TokenManager entfernt')
 }
 
 // Cleanup bei Seiten-Verlassen
 const cleanup = () => {
   stopTokenCheck()
-  if (typeof document !== 'undefined') {
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }
+  detachEventListeners()
 }
 
-// Bei Page Unload aufräumen
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', cleanup)
+// Event Listeners beim Modul-Load einmalig hinzufügen
+if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+  attachEventListeners()
 }
 
 // Cookie-Manager Debugging-Funktionen hinzufügen
@@ -367,6 +399,8 @@ export {
   performTokenCheck,
   setRouter,
   cleanup,
+  attachEventListeners,
+  detachEventListeners,
   debugCookies,
   cookieManager
 }
