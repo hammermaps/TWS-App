@@ -25,7 +25,7 @@
     <!-- Apartment Info -->
     <CRow v-if="apartment" class="mb-4">
       <CCol md="6">
-        <CCard>
+        <CCard class="h-100">
           <CCardHeader>
             <h5>Wohnungsinformationen</h5>
           </CCardHeader>
@@ -70,7 +70,7 @@
         </CCard>
       </CCol>
       <CCol md="6">
-        <CCard>
+        <CCard class="h-100">
           <CCardHeader>
             <h5>Statistiken</h5>
           </CCardHeader>
