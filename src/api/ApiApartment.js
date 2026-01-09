@@ -9,7 +9,7 @@ import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 export class ApartmentItem {
     constructor({
         id, building_id, number, floor, min_flush_duration, enabled, sorted,
-        created_at, updated_at, last_flush_date, next_flush_due
+        created_at, updated_at, last_flush_date, next_flush_due, qr_code_uuid
     } = {}) {
         this.id = typeof id === "string" ? parseInt(id, 10) : (Number.isFinite(id) ? id : 0)
         this.building_id = typeof building_id === "string" ? parseInt(building_id, 10) : (Number.isFinite(building_id) ? building_id : 0)
@@ -22,6 +22,7 @@ export class ApartmentItem {
         this.updated_at = typeof updated_at === "string" ? updated_at : ""
         this.last_flush_date = typeof last_flush_date === "string" ? last_flush_date : null
         this.next_flush_due = typeof next_flush_due === "string" ? next_flush_due : null
+        this.qr_code_uuid = typeof qr_code_uuid === "string" ? qr_code_uuid : null
     }
 }
 
@@ -334,7 +335,69 @@ export class ApiApartment {
     }
 
     /**
-     * GET /apartments/get/{id} - Apartment nach ID abrufen
+     * GET /apartments/by-uuid/{uuid} - Apartment per QR-Code UUID finden
+     */
+    async findByUUID(uuid, options = {}) {
+        const { timeout = 30000, headers = {} } = options
+        const storage = useApartmentStorage()
+        const onlineStatus = useOnlineStatusStore()
+
+        // Zuerst in LocalStorage suchen
+        const buildings = storage.storage.getAllBuildings()
+        for (const building of buildings) {
+            const apartments = storage.storage.getApartmentsForBuilding(building.id)
+            const apartment = apartments.find(apt => apt.qr_code_uuid === uuid)
+            if (apartment) {
+                console.log('📦 Apartment per UUID aus LocalStorage gefunden:', apartment.number)
+                return new ApiResponse({
+                    success: true,
+                    data: {
+                        apartment,
+                        building
+                    }
+                })
+            }
+        }
+
+        // Falls nicht im Cache und offline, Fehler zurückgeben
+        if (!onlineStatus.isFullyOnline) {
+            console.log('📴 Apartment nicht im Cache und offline')
+            return new ApiResponse({
+                success: false,
+                error: 'Apartment nicht im Offline-Cache gefunden'
+            })
+        }
+
+        // Online: API-Call zum Backend
+        const request = new ApiRequest({
+            endpoint: `/apartments/by-uuid/${encodeURIComponent(uuid)}`,
+            method: "GET",
+            headers,
+            timeout
+        })
+
+        const response = await this.send(request)
+
+        if (response.success && response.data) {
+            const apartment = new ApartmentItem(response.data.apartment)
+
+            // Speichere im LocalStorage für Offline-Zugriff
+            storage.storage.addOrUpdateApartment(apartment.building_id, apartment)
+
+            return new ApiResponse({
+                success: true,
+                data: {
+                    apartment,
+                    building: response.data.building
+                }
+            })
+        }
+
+        return response
+    }
+
+    /**
+     * DELETE /apartments/delete/{id} - Apartment löschen
      */
     async getById(id, options = {}) {
         const { timeout = null, headers = {} } = options // Timeout auf 15 Sekunden erhöht
@@ -642,6 +705,7 @@ export function useApiApartment() {
         create: (apartment, options) => handleRequest(() => apiApartment.create(apartment, options)),
         createFlushRecord: (apartmentId, options) => handleRequest(() => apiApartment.createFlushRecord(apartmentId, options)),
         update: (id, changes, options) => handleRequest(() => apiApartment.update(id, changes, options)),
-        getApartment: (id, options) => handleRequest(() => apiApartment.getById(id, options))
+        getApartment: (id, options) => handleRequest(() => apiApartment.getById(id, options)),
+        findByUUID: (uuid, options) => handleRequest(() => apiApartment.findByUUID(uuid, options))
     }
 }

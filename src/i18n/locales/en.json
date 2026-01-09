@@ -372,6 +372,23 @@
     "max": "Maximum value is {max}",
     "numeric": "Must be a number",
     "url": "Invalid URL"
+  },
+  "qrScanner": {
+    "title": "QR Code Scanner",
+    "initializing": "Initializing camera...",
+    "ready": "Ready to scan",
+    "instructions": "Point the camera at a QR code to scan it",
+    "scanSuccess": "Successfully scanned!",
+    "redirecting": "Redirecting...",
+    "apartment": "Apartment",
+    "building": "Building",
+    "goToFlushing": "Go to Flushing",
+    "scanAgain": "Scan again",
+    "noCameraFound": "No camera found",
+    "initError": "Error initializing camera",
+    "invalidQRCode": "Invalid QR code",
+    "apartmentNotFound": "Apartment not found",
+    "scanError": "Scan error"
   }
 }
 

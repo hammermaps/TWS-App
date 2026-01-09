@@ -372,6 +372,23 @@
     "max": "Maximalwert ist {max}",
     "numeric": "Muss eine Zahl sein",
     "url": "Ungültige URL"
+  },
+  "qrScanner": {
+    "title": "QR-Code Scanner",
+    "initializing": "Kamera wird initialisiert...",
+    "ready": "Bereit zum Scannen",
+    "instructions": "Richten Sie die Kamera auf einen QR-Code, um ihn zu scannen",
+    "scanSuccess": "Erfolgreich gescannt!",
+    "redirecting": "Sie werden weitergeleitet...",
+    "apartment": "Wohnung",
+    "building": "Gebäude",
+    "goToFlushing": "Zur Spülung",
+    "scanAgain": "Erneut scannen",
+    "noCameraFound": "Keine Kamera gefunden",
+    "initError": "Fehler beim Initialisieren der Kamera",
+    "invalidQRCode": "Ungültiger QR-Code",
+    "apartmentNotFound": "Wohnung nicht gefunden",
+    "scanError": "Fehler beim Scannen"
   }
 }
 

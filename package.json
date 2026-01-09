@@ -33,6 +33,7 @@
     "@coreui/vue": "^5.5.0",
     "@coreui/vue-chartjs": "^3.0.0",
     "@popperjs/core": "^2.11.8",
+    "@zxing/library": "^0.20.0",
     "axios": "^1.12.2",
     "chart.js": "^4.5.0",
     "pinia": "^3.0.3",

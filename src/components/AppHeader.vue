@@ -6,16 +6,26 @@ import AppHeaderDropdownAccnt from '@/components/AppHeaderDropdownAccnt.vue'
 import OnlineStatusToggle from '@/components/OnlineStatusToggle.vue'
 import OfflineDataBadge from '@/components/OfflineDataBadge.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import QRCodeScanner from '@/components/QRCodeScanner.vue'
 import { useSidebarStore } from '@/stores/sidebar.js'
 
 const headerClassNames = ref('mb-4 p-0')
 const { colorMode, changeTheme } = useThemeSync()
 const sidebar = useSidebarStore()
+const showQRScanner = ref(false)
 
 // Funktion zum Ändern des Themes mit Server-Synchronisation
 const handleThemeChange = async (theme) => {
   console.log('🎨 Theme-Änderung im Header:', theme)
   await changeTheme(theme)
+}
+
+const openQRScanner = () => {
+  showQRScanner.value = true
+}
+
+const closeQRScanner = () => {
+  showQRScanner.value = false
 }
 
 onMounted(() => {
@@ -44,6 +54,20 @@ onMounted(() => {
       <CHeaderNav>
         <CNavItem class="d-flex align-items-center">
           <OfflineDataBadge />
+        </CNavItem>
+        <li class="nav-item py-1">
+          <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+        </li>
+        <CNavItem>
+          <CButton
+            color="primary"
+            variant="ghost"
+            size="sm"
+            @click="openQRScanner"
+            class="d-flex align-items-center"
+          >
+            <CIcon icon="cil-qr-code" size="lg" />
+          </CButton>
         </CNavItem>
         <li class="nav-item py-1">
           <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
@@ -98,5 +122,12 @@ onMounted(() => {
         <AppHeaderDropdownAccnt />
       </CHeaderNav>
     </CContainer>
+
+    <!-- QR-Code Scanner Modal -->
+    <QRCodeScanner
+      :visible="showQRScanner"
+      @update:visible="showQRScanner = $event"
+      @close="closeQRScanner"
+    />
   </CHeader>
 </template>
