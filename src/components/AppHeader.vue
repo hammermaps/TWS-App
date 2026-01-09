@@ -40,8 +40,7 @@ onMounted(() => {
           <CNavLink href="/dashboard"> {{ $t('nav.dashboard') }} </CNavLink>
         </CNavItem>
       </CHeaderNav>
-      <CHeaderNav class="ms-auto">
-      </CHeaderNav>
+      <CHeaderNav class="ms-auto"></CHeaderNav>
       <CHeaderNav>
         <CNavItem class="d-flex align-items-center">
           <OfflineDataBadge />

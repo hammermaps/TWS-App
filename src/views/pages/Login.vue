@@ -162,7 +162,7 @@ import { availableLocales, changeLanguage } from '../../i18n/index.js'
 const router = useRouter()
 const { t, locale } = useI18n()
 
-// User Composable - Verwende Proxy-URL im Development-Mode
+// User Composable
 const {
   login,
   isLoading,
@@ -170,7 +170,7 @@ const {
   error,
   clearError,
   isAuthenticated
-} = useUser() // Keine hardcodierte URL - verwende automatische Proxy-Erkennung
+} = useUser()
 
 // Reactive Data
 const loginForm = reactive({
@@ -196,7 +196,6 @@ const switchLanguage = (newLocale) => {
   changeLanguage(newLocale)
 }
 
-// Methods
 const handleLogin = async () => {
   clearError()
 
