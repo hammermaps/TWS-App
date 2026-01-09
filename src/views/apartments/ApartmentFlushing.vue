@@ -313,13 +313,13 @@
                   <CTableDataCell>
                     <CBadge color="info">
                       <CIcon icon="cil-wifi-off" class="me-1" size="sm" />
-                      Offline
+                      {{ $t('flushing.offline') }}
                     </CBadge>
                   </CTableDataCell>
                   <CTableDataCell>
                     <CBadge :color="flush.synced ? 'success' : 'warning'">
                       <CIcon :icon="flush.synced ? 'cil-check-circle' : 'cil-clock'" class="me-1" size="sm" />
-                      {{ flush.synced ? 'Synced' : 'Pending' }}
+                      {{ flush.synced ? $t('flushing.synced') : $t('flushing.pending') }}
                     </CBadge>
                   </CTableDataCell>
                 </CTableRow>
@@ -330,13 +330,13 @@
                   <CTableDataCell>{{ flush.duration }}s</CTableDataCell>
                   <CTableDataCell>
                     <CBadge :color="flush.success ? 'success' : 'danger'">
-                      {{ flush.success ? 'Erfolgreich' : 'Fehler' }}
+                      {{ flush.success ? $t('flushing.successful') : $t('flushing.failed') }}
                     </CBadge>
                   </CTableDataCell>
                   <CTableDataCell>
                     <CBadge color="success">
                       <CIcon icon="cil-cloud-check" class="me-1" size="sm" />
-                      Online
+                      {{ $t('flushing.online') }}
                     </CBadge>
                   </CTableDataCell>
                 </CTableRow>
@@ -351,6 +351,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/dateFormatter.js'
 import { useRoute, useRouter } from 'vue-router'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
@@ -380,6 +381,7 @@ import { CIcon } from '@coreui/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const apartmentStorage = useApartmentStorage()
 const { storage: offlineStorage } = useOfflineFlushStorage()
 const { syncService, getSyncStatus, forceSync } = useOfflineFlushSync()
@@ -488,10 +490,10 @@ const loadApartmentData = async () => {
       // Offline-Spülungen laden
       loadOfflineFlushes()
     } else {
-      error.value = 'Apartment nicht gefunden'
+      error.value = t('flushing.apartmentNotFound')
     }
   } catch (err) {
-    error.value = err.message || 'Fehler beim Laden der Apartment-Daten'
+    error.value = err.message || t('flushing.errorLoadingApartment')
   } finally {
     loading.value = false
   }
@@ -622,7 +624,7 @@ const stopFlushing = async () => {
     }
   } catch (err) {
     console.error('❌ Fehler beim Speichern der Spülung:', err)
-    error.value = err.message || 'Fehler beim Speichern der Spülung'
+    error.value = err.message || t('flushing.errorSavingFlush')
   }
 }
 
@@ -662,7 +664,7 @@ const forceSyncFlushes = async () => {
     }
   } catch (err) {
     console.error('❌ Sync-Fehler:', err)
-    error.value = 'Fehler bei der Synchronisation: ' + err.message
+    error.value = t('flushing.errorSyncing') + ': ' + err.message
   }
 }
 
@@ -826,10 +828,10 @@ const getStatusIcon = () => {
 }
 
 const getStatusText = () => {
-  if (isFlushingActive.value && minDurationReached.value) return 'Mindestdauer erreicht - Stopp möglich'
-  if (isFlushingActive.value) return `Spülung läuft - noch ${remainingTime.value}s`
-  if (currentApartment.value?.last_flush_date) return 'Bereit für Spülung'
-  return 'Noch nie gespült'
+  if (isFlushingActive.value && minDurationReached.value) return t('flushing.minDurationReachedCanStop')
+  if (isFlushingActive.value) return `${t('flushing.flushRunning', { seconds: remainingTime.value })}`
+  if (currentApartment.value?.last_flush_date) return t('flushing.readyForFlushing')
+  return t('flushing.neverFlushed')
 }
 
 // Hilfsfunktionen für Formatierung
@@ -847,11 +849,11 @@ const formatTimeAgo = (dateString) => {
     const now = new Date()
     const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24))
 
-    if (diffInDays === 0) return 'Heute'
-    if (diffInDays === 1) return 'Gestern'
-    if (diffInDays < 7) return `vor ${diffInDays} Tagen`
-    if (diffInDays < 30) return `vor ${Math.floor(diffInDays / 7)} Wochen`
-    return `vor ${Math.floor(diffInDays / 30)} Monaten`
+    if (diffInDays === 0) return t('flushing.today')
+    if (diffInDays === 1) return t('flushing.yesterday')
+    if (diffInDays < 7) return t('flushing.daysAgo', { days: diffInDays })
+    if (diffInDays < 30) return t('flushing.daysAgo', { days: Math.floor(diffInDays / 7) * 7 })
+    return t('flushing.daysAgo', { days: Math.floor(diffInDays / 30) * 30 })
   } catch {
     return ''
   }
@@ -864,11 +866,11 @@ const formatTimeToNext = (dateString) => {
     const now = new Date()
     const diffInDays = Math.floor((date - now) / (1000 * 60 * 60 * 24))
 
-    if (diffInDays < 0) return `${Math.abs(diffInDays)} Tage überfällig`
-    if (diffInDays === 0) return 'Heute fällig'
-    if (diffInDays === 1) return 'Morgen fällig'
-    if (diffInDays < 7) return `in ${diffInDays} Tagen`
-    return `in ${Math.floor(diffInDays / 7)} Wochen`
+    if (diffInDays < 0) return t('flushing.daysAgo', { days: Math.abs(diffInDays) }) + ' ' + t('apartments.overdue').toLowerCase()
+    if (diffInDays === 0) return t('flushing.todayDue')
+    if (diffInDays === 1) return t('flushing.tomorrowDue')
+    if (diffInDays < 7) return t('flushing.daysLeft', { days: diffInDays })
+    return t('flushing.daysLeft', { days: Math.floor(diffInDays / 7) * 7 })
   } catch {
     return ''
   }

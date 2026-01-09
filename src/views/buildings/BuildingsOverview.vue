@@ -125,6 +125,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/dateFormatter.js'
 import { useRouter } from 'vue-router'
 import {
@@ -144,6 +145,7 @@ import { useApiBuilding } from '@/api/ApiBuilding'
 import BuildingStorage from '@/stores/BuildingStorage'
 
 const router = useRouter()
+const { t } = useI18n()
 const { buildings, loading, error, list } = useApiBuilding()
 
 // Lokale States für besseres UX
@@ -212,12 +214,12 @@ const viewApartments = (building) => {
 // Cache-Status-Text
 const cacheStatusText = computed(() => {
   if (cacheAge.value === null) return ''
-  if (cacheAge.value < 1) return 'gerade eben aktualisiert'
-  if (cacheAge.value === 1) return 'vor 1 Minute aktualisiert'
-  if (cacheAge.value < 60) return `vor ${cacheAge.value} Minuten aktualisiert`
+  if (cacheAge.value < 1) return t('buildings.updatedJustNow')
+  if (cacheAge.value === 1) return t('buildings.updatedOneMinuteAgo')
+  if (cacheAge.value < 60) return t('buildings.updatedMinutesAgo', { minutes: cacheAge.value })
   const hours = Math.floor(cacheAge.value / 60)
-  if (hours === 1) return 'vor 1 Stunde aktualisiert'
-  return `vor ${hours} Stunden aktualisiert`
+  if (hours === 1) return t('buildings.updatedOneHourAgo')
+  return t('buildings.updatedHoursAgo', { hours })
 })
 
 onMounted(() => {

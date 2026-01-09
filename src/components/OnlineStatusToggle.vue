@@ -48,7 +48,7 @@ const getLastPingInfo = computed(() => {
         class="position-absolute top-0 start-100 translate-middle p-1 bg-info border border-light rounded-circle"
         style="width: 12px; height: 12px;"
       >
-        <span class="visually-hidden">Prüfe Verbindung...</span>
+        <span class="visually-hidden">{{ $t('online.checking') }}</span>
       </span>
       <!-- Status Badge -->
       <CBadge
@@ -62,7 +62,7 @@ const getLastPingInfo = computed(() => {
     </CDropdownToggle>
     <CDropdownMenu class="pt-0" style="min-width: 280px;">
       <CDropdownHeader class="bg-body-secondary fw-semibold mb-2">
-        Verbindungsstatus
+        {{ $t('online.connectionStatus') }}
       </CDropdownHeader>
 
       <!-- Status Info -->
@@ -78,27 +78,27 @@ const getLastPingInfo = computed(() => {
         <!-- Detail-Informationen -->
         <div class="small text-body-secondary">
           <div class="d-flex justify-content-between mb-1">
-            <span>Browser:</span>
+            <span>{{ $t('online.browser') }}:</span>
             <span :class="onlineStatusStore.isOnline ? 'text-success' : 'text-danger'">
-              {{ onlineStatusStore.isOnline ? 'Online' : 'Offline' }}
+              {{ onlineStatusStore.isOnline ? $t('online.online') : $t('offline.title') }}
             </span>
           </div>
           <div class="d-flex justify-content-between mb-1">
-            <span>Server:</span>
+            <span>{{ $t('online.server') }}:</span>
             <span :class="onlineStatusStore.isServerReachable ? 'text-success' : 'text-danger'">
-              {{ onlineStatusStore.isServerReachable ? 'Erreichbar' : 'Nicht erreichbar' }}
+              {{ onlineStatusStore.isServerReachable ? $t('online.reachable') : $t('online.unreachable') }}
             </span>
           </div>
 
           <!-- Letzter Ping -->
           <div v-if="getLastPingInfo" class="d-flex justify-content-between mb-1">
-            <span>Letzter Ping:</span>
-            <span>vor {{ getLastPingInfo.seconds }}s</span>
+            <span>{{ $t('online.lastPing') }}:</span>
+            <span>{{ $t('online.agoSeconds', { seconds: getLastPingInfo.seconds }) }}</span>
           </div>
 
           <!-- Fehlgeschlagene Versuche -->
           <div v-if="getLastPingInfo && getLastPingInfo.failures > 0" class="d-flex justify-content-between mb-1">
-            <span>Fehler:</span>
+            <span>{{ $t('online.errors') }}:</span>
             <span class="text-warning">{{ getLastPingInfo.failures }}</span>
           </div>
         </div>
@@ -111,9 +111,9 @@ const getLastPingInfo = computed(() => {
         <div class="manual-toggle-box p-2 rounded-3">
           <div class="d-flex align-items-center justify-content-between">
             <div class="flex-grow-1 me-2">
-              <div class="fw-semibold mb-1" style="font-size: 0.9rem;">Manueller Offline-Modus</div>
+              <div class="fw-semibold mb-1" style="font-size: 0.9rem;">{{ $t('online.manualOfflineMode') }}</div>
               <div class="small text-body-secondary" style="font-size: 0.8rem;">
-                {{ isManualMode ? 'Netzwerküberwachung ist pausiert' : 'Automatische Verbindungsprüfung läuft' }}
+                {{ isManualMode ? $t('online.monitoringPaused') : $t('online.autoCheckRunning') }}
               </div>
             </div>
             <CFormCheck
@@ -134,7 +134,7 @@ const getLastPingInfo = computed(() => {
               :class="isManualMode ? 'text-secondary' : 'text-primary'"
             />
             <small class="fw-medium" :class="isManualMode ? 'text-secondary' : 'text-primary'" style="font-size: 0.75rem;">
-              {{ isManualMode ? 'Ping-Prüfungen deaktiviert' : 'Automatische Überwachung aktiv' }}
+              {{ isManualMode ? $t('online.pingDisabled') : $t('online.autoMonitoringActive') }}
             </small>
           </div>
         </div>
@@ -157,10 +157,10 @@ const getLastPingInfo = computed(() => {
             class="me-2"
             :class="{ 'rotating': getCheckingIndicator }"
           />
-          {{ getCheckingIndicator ? 'Prüfe Verbindung...' : 'Verbindung jetzt prüfen' }}
+          {{ getCheckingIndicator ? $t('online.checking') : $t('online.checkNow') }}
         </CButton>
         <small v-if="isManualMode" class="text-body-secondary d-block mt-2 text-center">
-          Im manuellen Modus deaktiviert
+          {{ $t('online.disabledInManualMode') }}
         </small>
       </div>
 
@@ -172,23 +172,23 @@ const getLastPingInfo = computed(() => {
             <div class="d-flex align-items-start mb-2">
               <CIcon icon="cil-warning" class="text-warning me-2 mt-1 flex-shrink-0" />
               <div class="flex-grow-1">
-                <div class="fw-semibold mb-1" style="font-size: 0.9rem;">Eingeschränkter Modus</div>
+                <div class="fw-semibold mb-1" style="font-size: 0.9rem;">{{ $t('online.limitedMode') }}</div>
                 <div class="small text-body-secondary mb-1" style="font-size: 0.8rem;">
-                  Folgende Features sind offline nicht verfügbar:
+                  {{ $t('online.featuresNotAvailable') }}:
                 </div>
                 <ul class="small mb-0 ps-3 text-body-secondary" style="font-size: 0.75rem;">
-                  <li>Passwort ändern</li>
-                  <li>Statistiken</li>
-                  <li>Benutzerverwaltung</li>
-                  <li>Gebäudeverwaltung</li>
+                  <li>{{ $t('online.changePassword') }}</li>
+                  <li>{{ $t('online.statistics') }}</li>
+                  <li>{{ $t('online.userManagement') }}</li>
+                  <li>{{ $t('online.buildingManagement') }}</li>
                 </ul>
               </div>
             </div>
             <div class="d-flex align-items-start pt-2 border-top border-success-subtle">
               <CIcon icon="cil-check-circle" class="text-success me-2 flex-shrink-0" />
               <div class="small" style="font-size: 0.75rem;">
-                <span class="fw-semibold text-success">Offline verfügbar:</span>
-                <span class="text-body-secondary ms-1">Leerstandspülungen können weiterhin durchgeführt werden</span>
+                <span class="fw-semibold text-success">{{ $t('online.offlineAvailable') }}:</span>
+                <span class="text-body-secondary ms-1">{{ $t('online.flushingContinue') }}</span>
               </div>
             </div>
           </div>

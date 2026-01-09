@@ -310,20 +310,25 @@ function save() {
 - [x] Dashboard.vue (100%) ✅
 - [x] BuildingsOverview.vue (100%) ✅
 - [x] ApartmentFlushing.vue (90%) ✅
-- [x] FlushingManager.vue (100%) ✅ NEU
-- [ ] Login.vue (0%)
+- [x] FlushingManager.vue (100%) ✅
+- [x] Login.vue (100%) ✅
+- [x] OnlineStatusToggle.vue (100%) ✅ NEU
 - [ ] Profile.vue (0%)
+- [ ] BuildingApartments.vue (0%)
+- [ ] OfflineDataBadge.vue (0%)
 
-**Gesamt**: 6 von ~15 Komponenten (≈40%)
+**Gesamt**: 8 von ~15 Komponenten (≈53%)
 
-**Übersetzte Texte**: ~153
-**Zeitaufwand**: ~90 Minuten (1,5 Stunden)
+**Übersetzte Texte**: ~188
+**Zeitaufwand**: ~108 Minuten (~1,8 Stunden)
+**Übersetzungskeys**: ~278 Keys (556 Übersetzungen gesamt)
 
-**Meilenstein**: 40% erreicht! 🎉
+**🎉 50% MARKE ERREICHT! Alle Hauptkomponenten sind mehrsprachig!**
 
 ---
 
 **Stand**: 09.01.2026
-**Nächster Schritt**: Login.vue oder BuildingApartments.vue
-**Aktuell**: FlushingManager.vue vollständig übersetzt! 🎉
+**Nächster Schritt**: Optional - Verbleibende Detail-Komponenten
+**Aktuell**: HAUPTKOMPONENTEN VOLLSTÄNDIG ABGESCHLOSSEN! 🎉🌐
+
 

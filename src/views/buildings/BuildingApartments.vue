@@ -5,16 +5,16 @@
       <CCardBody>
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h2>Apartments - {{ buildingName || `Gebäude #${buildingId}` }}</h2>
+            <h2>{{ $t('apartments.title') }} - {{ buildingName || `${$t('buildings.name')} #${buildingId}` }}</h2>
             <nav aria-label="breadcrumb">
               <ol class="breadcrumb mb-2">
                 <li class="breadcrumb-item">
                   <router-link to="/buildings" class="text-decoration-none">
-                    Gebäude
+                    {{ $t('nav.buildings') }}
                   </router-link>
                 </li>
                 <li class="breadcrumb-item active" aria-current="page">
-                  {{ buildingName || `Gebäude #${buildingId}` }}
+                  {{ buildingName || `${$t('buildings.name')} #${buildingId}` }}
                 </li>
               </ol>
             </nav>
@@ -26,11 +26,11 @@
           <div class="d-flex gap-2 align-items-center">
             <CBadge v-if="isPreloading" color="info" class="me-2">
               <CIcon icon="cil-sync" class="me-1" size="sm" />
-              Wird aktualisiert...
+              {{ $t('apartments.updating') }}
             </CBadge>
             <CButton color="primary" @click="refreshApartments" :disabled="loading">
               <CIcon icon="cil-reload" class="me-2" />
-              Aktualisieren
+              {{ $t('common.refresh') }}
             </CButton>
           </div>
         </div>
@@ -40,12 +40,12 @@
     <!-- Loading State -->
     <div v-if="loading && (!apartments || apartments.length === 0)" class="text-center">
       <CSpinner color="primary" />
-      <p class="mt-2">Lade Apartments...</p>
+      <p class="mt-2">{{ $t('apartments.loading') }}</p>
     </div>
 
     <!-- Error State -->
     <CAlert v-if="error" color="danger" :visible="true">
-      <strong>Fehler:</strong> {{ error }}
+      <strong>{{ $t('common.error') }}:</strong> {{ error }}
     </CAlert>
 
     <!-- Apartments Table -->
@@ -53,20 +53,20 @@
       <CCardHeader>
         <h5 class="mb-0">
           <CIcon icon="cil-home" class="me-2" />
-          Apartment-Übersicht ({{ apartments?.length || 0 }} Apartments)
+          {{ $t('apartments.overview') }} ({{ $t('apartments.apartmentsCount', { count: apartments?.length || 0 }) }})
         </h5>
       </CCardHeader>
       <CCardBody class="p-0">
         <CTable hover responsive>
           <CTableHead>
             <CTableRow>
-              <CTableHeaderCell>Apartment</CTableHeaderCell>
-              <CTableHeaderCell>Etage</CTableHeaderCell>
-              <CTableHeaderCell>Status</CTableHeaderCell>
-              <CTableHeaderCell>Letzte Spülung</CTableHeaderCell>
-              <CTableHeaderCell>Nächste Spülung</CTableHeaderCell>
-              <CTableHeaderCell>Status Spülung</CTableHeaderCell>
-              <CTableHeaderCell>Aktionen</CTableHeaderCell>
+              <CTableHeaderCell>{{ $t('apartments.apartment') }}</CTableHeaderCell>
+              <CTableHeaderCell>{{ $t('apartments.floor') }}</CTableHeaderCell>
+              <CTableHeaderCell>{{ $t('common.status') }}</CTableHeaderCell>
+              <CTableHeaderCell>{{ $t('apartments.lastFlush') }}</CTableHeaderCell>
+              <CTableHeaderCell>{{ $t('apartments.nextFlush') }}</CTableHeaderCell>
+              <CTableHeaderCell>{{ $t('apartments.flushStatus') }}</CTableHeaderCell>
+              <CTableHeaderCell>{{ $t('apartments.actions') }}</CTableHeaderCell>
             </CTableRow>
           </CTableHead>
           <CTableBody>
@@ -93,7 +93,7 @@
                   :color="apartment.enabled ? 'success' : 'danger'"
                   shape="rounded-pill"
                 >
-                  {{ apartment.enabled ? 'Aktiv' : 'Deaktiviert' }}
+                  {{ apartment.enabled ? $t('apartments.enabled') : $t('apartments.disabled') }}
                 </CBadge>
               </CTableDataCell>
 
@@ -102,7 +102,7 @@
                   <div>{{ formatDate(apartment.last_flush_date) }}</div>
                   <small class="text-muted">{{ formatTimeAgo(apartment.last_flush_date) }}</small>
                 </div>
-                <span v-else class="text-muted">Noch nie</span>
+                <span v-else class="text-muted">{{ $t('apartments.neverFlushed') }}</span>
               </CTableDataCell>
 
               <CTableDataCell class="align-middle">
@@ -112,7 +112,7 @@
                     {{ formatTimeToNext(apartment.next_flush_due) }}
                   </small>
                 </div>
-                <span v-else class="text-muted">Nicht geplant</span>
+                <span v-else class="text-muted">{{ $t('apartments.notPlanned') }}</span>
               </CTableDataCell>
 
               <CTableDataCell class="align-middle">
@@ -136,7 +136,7 @@
                     @click="startFlushing(apartment)"
                   >
                     <CIcon icon="cil-media-play" class="me-1" />
-                    Spülen
+                    {{ $t('apartments.flush') }}
                   </CButton>
                   <CButton
                     color="info"
@@ -145,7 +145,7 @@
                     @click="viewFlushHistory(apartment)"
                   >
                     <CIcon icon="cil-history" class="me-1" />
-                    Historie
+                    {{ $t('apartments.history') }}
                   </CButton>
                 </div>
               </CTableDataCell>
@@ -172,7 +172,7 @@
         <CCard class="text-center">
           <CCardBody>
             <h4 class="text-primary">{{ apartments.length }}</h4>
-            <p class="text-muted mb-0">Gesamt Apartments</p>
+            <p class="text-muted mb-0">{{ $t('common.total') }} {{ $t('apartments.title') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
@@ -180,7 +180,7 @@
         <CCard class="text-center">
           <CCardBody>
             <h4 class="text-success">{{ activeApartments }}</h4>
-            <p class="text-muted mb-0">Aktive Apartments</p>
+            <p class="text-muted mb-0">{{ $t('apartments.enabled') }} {{ $t('apartments.title') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
@@ -188,7 +188,7 @@
         <CCard class="text-center">
           <CCardBody>
             <h4 class="text-warning">{{ overdueFlushes }}</h4>
-            <p class="text-muted mb-0">Überfällige Spülungen</p>
+            <p class="text-muted mb-0">{{ $t('apartments.statusOverdue') }} {{ $t('flushing.title') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
@@ -196,7 +196,7 @@
         <CCard class="text-center">
           <CCardBody>
             <h4 class="text-info">{{ upcomingFlushes }}</h4>
-            <p class="text-muted mb-0">Anstehende Spülungen</p>
+            <p class="text-muted mb-0">{{ $t('apartments.statusPending') }} {{ $t('flushing.title') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
@@ -207,6 +207,7 @@
 <script setup>
 import { onMounted, computed, watch, nextTick, onUnmounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
 import { useApiApartment } from '@/api/ApiApartment.js'
 import {
@@ -230,6 +231,7 @@ import { CIcon } from '@coreui/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const { apartments, loading, error, list, storage } = useApiApartment()
 
 const buildingId = computed(() => route.params.id)
@@ -254,12 +256,12 @@ const calculateCacheAge = () => {
 // Cache-Status-Text
 const cacheStatusText = computed(() => {
   if (cacheAge.value === null) return ''
-  if (cacheAge.value < 1) return 'gerade eben aktualisiert'
-  if (cacheAge.value === 1) return 'vor 1 Minute aktualisiert'
-  if (cacheAge.value < 60) return `vor ${cacheAge.value} Minuten aktualisiert`
+  if (cacheAge.value < 1) return t('apartments.updatedJustNow')
+  if (cacheAge.value === 1) return t('apartments.updatedOneMinuteAgo')
+  if (cacheAge.value < 60) return t('apartments.updatedMinutesAgo', { minutes: cacheAge.value })
   const hours = Math.floor(cacheAge.value / 60)
-  if (hours === 1) return 'vor 1 Stunde aktualisiert'
-  return `vor ${hours} Stunden aktualisiert`
+  if (hours === 1) return t('apartments.updatedOneHourAgo')
+  return t('apartments.updatedHoursAgo', { hours })
 })
 
 const sortedApartments = computed(() => {
@@ -328,7 +330,7 @@ const refreshApartments = async () => {
 }
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'Unbekannt'
+  if (!dateString) return t('apartments.unknown')
   try {
     return new Date(dateString).toLocaleDateString('de-DE', {
       year: 'numeric',
@@ -336,7 +338,7 @@ const formatDate = (dateString) => {
       day: '2-digit'
     })
   } catch {
-    return 'Ungültiges Datum'
+    return t('apartments.invalidDate')
   }
 }
 
@@ -347,11 +349,11 @@ const formatTimeAgo = (dateString) => {
     const now = new Date()
     const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24))
 
-    if (diffInDays === 0) return 'Heute'
-    if (diffInDays === 1) return 'Gestern'
-    if (diffInDays < 7) return `vor ${diffInDays} Tagen`
-    if (diffInDays < 30) return `vor ${Math.floor(diffInDays / 7)} Wochen`
-    return `vor ${Math.floor(diffInDays / 30)} Monaten`
+    if (diffInDays === 0) return t('apartments.today')
+    if (diffInDays === 1) return t('apartments.yesterday')
+    if (diffInDays < 7) return t('apartments.daysAgo', { days: diffInDays })
+    if (diffInDays < 30) return t('apartments.daysAgo', { days: Math.floor(diffInDays / 7) * 7 })
+    return t('apartments.daysAgo', { days: Math.floor(diffInDays / 30) * 30 })
   } catch {
     return ''
   }
@@ -364,12 +366,12 @@ const formatTimeToNext = (dateString) => {
     const now = new Date()
     const diffInDays = Math.floor((date - now) / (1000 * 60 * 60 * 24))
 
-    if (diffInDays < 0) return `${Math.abs(diffInDays)} Tage überfällig`
-    if (diffInDays === 0) return 'Heute fällig'
-    if (diffInDays === 1) return 'Morgen fällig'
-    if (diffInDays < 7) return `in ${diffInDays} Tagen`
-    if (diffInDays < 30) return `in ${Math.floor(diffInDays / 7)} Wochen`
-    return `in ${Math.floor(diffInDays / 30)} Monaten`
+    if (diffInDays < 0) return t('apartments.daysAgo', { days: Math.abs(diffInDays) }) + ' ' + t('apartments.overdue').toLowerCase()
+    if (diffInDays === 0) return t('apartments.todayDue')
+    if (diffInDays === 1) return t('apartments.tomorrowDue')
+    if (diffInDays < 7) return t('apartments.daysLeft', { days: diffInDays })
+    if (diffInDays < 30) return t('apartments.daysLeft', { days: Math.floor(diffInDays / 7) * 7 })
+    return t('apartments.daysLeft', { days: Math.floor(diffInDays / 30) * 30 })
   } catch {
     return ''
   }
@@ -472,8 +474,8 @@ const getFlushStatusIcon = (apartment) => {
 }
 
 const getFlushStatusText = (apartment) => {
-  if (!apartment.enabled) return 'Deaktiviert'
-  if (isFlushOverdue(apartment)) return 'Überfällig'
+  if (!apartment.enabled) return t('apartments.statusDisabled')
+  if (isFlushOverdue(apartment)) return t('apartments.statusOverdue')
 
   // Prüfe auf heute fällige Spülungen (höchste Priorität nach Überfällig)
   if (apartment.next_flush_due) {
@@ -484,7 +486,7 @@ const getFlushStatusText = (apartment) => {
 
       // Heute fällig
       if (diffInDays === 0) {
-        return 'Fällig'
+        return t('apartments.statusDue')
       }
     } catch (error) {
       console.warn('Fehler beim Parsen des next_flush_due Datums:', error)
@@ -500,7 +502,7 @@ const getFlushStatusText = (apartment) => {
 
       // 0-2 Tage nach letzter Spülung = "Anstehend" (kürzlich gespült)
       if (daysSinceLastFlush <= 1) {
-        return 'Anstehend'
+        return t('apartments.statusPending')
       }
     } catch (error) {
       console.warn('Fehler beim Parsen des last_flush_date Datums:', error)
@@ -508,7 +510,7 @@ const getFlushStatusText = (apartment) => {
   }
 
   // Standard für Apartments ohne Historie
-  return 'Aktuell'
+  return t('apartments.statusCurrent')
 }
 
 const getRowClass = (apartment) => {

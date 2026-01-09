@@ -7,8 +7,8 @@
             <CCard class="p-4">
               <CCardBody>
                 <CForm @submit.prevent="handleLogin">
-                  <h1>Login</h1>
-                  <p class="text-body-secondary">Melden Sie sich in Ihrem Konto an</p>
+                  <h1>{{ $t('auth.login') }}</h1>
+                  <p class="text-body-secondary">{{ $t('auth.loginSubtitle') }}</p>
 
                   <!-- Error Alert -->
                   <CAlert
@@ -38,7 +38,7 @@
                     </CInputGroupText>
                     <CFormInput
                       v-model="loginForm.username"
-                      placeholder="Benutzername"
+                      :placeholder="$t('auth.username')"
                       autocomplete="username"
                       :disabled="isLoading"
                       required
@@ -52,7 +52,7 @@
                     <CFormInput
                       v-model="loginForm.password"
                       type="password"
-                      placeholder="Passwort"
+                      :placeholder="$t('auth.password')"
                       autocomplete="current-password"
                       :disabled="isLoading"
                       required
@@ -72,7 +72,7 @@
                           size="sm"
                           class="me-2"
                         />
-                        {{ isLoading ? 'Anmelden...' : 'Anmelden' }}
+                        {{ isLoading ? $t('auth.loggingIn') : $t('auth.login') }}
                       </CButton>
                     </CCol>
                     <CCol :xs="6" class="text-end">
@@ -82,7 +82,7 @@
                         @click="forgotPassword"
                         :disabled="isLoading"
                       >
-                        Passwort vergessen?
+                        {{ $t('auth.forgotPassword') }}
                       </CButton>
                     </CCol>
                   </CRow>
@@ -93,14 +93,13 @@
             <CCard class="text-white bg-primary py-5" style="width: 44%">
               <CCardBody class="text-center">
                 <div>
-                  <h2>Registrieren</h2>
+                  <h2>{{ $t('auth.register') }}</h2>
                   <p>
-                    Noch kein Konto? Erstellen Sie jetzt ein neues Konto
-                    und nutzen Sie alle Funktionen unserer Plattform.
+                    {{ $t('auth.registerText') }}
                   </p>
                   <RouterLink to="/register">
                     <CButton color="primary" variant="outline" class="mt-3">
-                      Jetzt registrieren!
+                      {{ $t('auth.registerNow') }}
                     </CButton>
                   </RouterLink>
                 </div>
@@ -116,6 +115,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   CContainer,
   CRow,
@@ -135,6 +135,7 @@ import CIcon from '@coreui/icons-vue'
 import { useUser } from '../../api/useUser.js'
 
 const router = useRouter()
+const { t } = useI18n()
 
 // User Composable - Verwende Proxy-URL im Development-Mode
 const {
@@ -174,7 +175,7 @@ const handleLogin = async () => {
     })
 
     if (result.success) {
-      successMessage.value = 'Login erfolgreich! Weiterleitung...'
+      successMessage.value = t('auth.loginSuccess')
 
       // Reset form
       loginForm.username = ''
@@ -192,7 +193,7 @@ const handleLogin = async () => {
 
 const forgotPassword = () => {
   // TODO: Implementierung für Passwort vergessen
-  alert('Passwort vergessen Funktion wird noch implementiert')
+  alert(t('auth.forgotPasswordNotImplemented'))
 }
 
 // Lifecycle
