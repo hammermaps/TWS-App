@@ -94,7 +94,7 @@ export default defineConfig({
     port: 3001,
     cors: true,
     headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de ws://localhost:* wss://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
       'X-Frame-Options': 'DENY',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',

@@ -6,18 +6,31 @@ Die TWS-App implementiert eine Content Security Policy (CSP) zum Schutz vor Cros
 
 ### Implementierte CSP-Richtlinie
 
+**Für Development (mit HMR WebSocket-Unterstützung):**
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de ws://localhost:* wss://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
 ```
+
+**Für Production:**
+```
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+```
+
+> **Hinweis zu `'unsafe-eval'`:** Diese Direktive ist aktuell notwendig für vue-i18n (Internationalisierung) in Composition API-Modus, da die Message-Compiler-Funktion `new Function()` verwendet. Dies ist eine bekannte Einschränkung. Für strengere Sicherheit könnte zukünftig auf pre-compiled Messages umgestellt werden.
+
+> **Hinweis zu `frame-ancestors`:** Die `frame-ancestors`-Direktive funktioniert nur über HTTP-Header, nicht über Meta-Tags. In der `index.html` ist sie daher nicht enthalten, in den Server-Konfigurationen aber schon.
 
 ### CSP-Direktiven Erklärung
 
 - **`default-src 'self'`**: Standardmäßig dürfen nur Ressourcen vom gleichen Origin geladen werden
-- **`script-src 'self' 'unsafe-inline'`**: JavaScript nur von eigener Domain und inline (benötigt für Vue-SFC und Vite)
-- **`style-src 'self' 'unsafe-inline'`**: CSS nur von eigener Domain und inline (benötigt für Vue-SFC)
+- **`script-src 'self' 'unsafe-inline' 'unsafe-eval'`**: JavaScript von eigener Domain, inline und eval
+  - `'unsafe-inline'`: Benötigt für Vue SFC und Vite HMR
+  - `'unsafe-eval'`: Benötigt für vue-i18n Message Compilation (Composition API Modus)
+- **`style-src 'self' 'unsafe-inline'`**: CSS nur von eigener Domain und inline (benötigt für Vue SFC)
 - **`img-src 'self' data: https:`**: Bilder von eigener Domain, Data-URIs und HTTPS-Quellen
 - **`font-src 'self' data:`**: Schriften von eigener Domain und Data-URIs
 - **`connect-src 'self' https://wls.dk-automation.de`**: API-Verbindungen zur Backend-API
+  - Im Development zusätzlich: `ws://localhost:* wss://localhost:*` für Vite HMR (Hot Module Replacement)
 - **`frame-ancestors 'none'`**: Verhindert Einbettung in Frames (Clickjacking-Schutz)
 - **`base-uri 'self'`**: Beschränkt `<base>`-Tag auf eigene Domain
 - **`form-action 'self'`**: Formulare dürfen nur an eigene Domain gesendet werden
@@ -77,7 +90,7 @@ server {
     index index.html;
 
     # Security Headers
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" always;
     add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
@@ -104,7 +117,7 @@ Für Apache-Server mit mod_headers aktiviert:
 ```apache
 <IfModule mod_headers.c>
     # Content Security Policy
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
     
     # Additional Security Headers
     Header always set X-Frame-Options "DENY"
@@ -136,7 +149,7 @@ your-domain.com {
 
     # Security Headers
     header {
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://wls.dk-automation.de; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
         X-Frame-Options "DENY"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
@@ -192,6 +205,73 @@ style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
 ```
 script-src 'self' 'unsafe-inline' https://cdn.example.com;
 ```
+
+## Bekannte Einschränkungen
+
+### `'unsafe-inline'` für Scripts und Styles
+
+Aktuell benötigt für:
+- Vue Single File Components (SFC)
+- Vite Hot Module Replacement (HMR) im Development-Modus
+- Inline-Scripts im `index.html` (Theme-Detection)
+
+**Zukünftige Verbesserungen**: Migration zu `nonce`-basierter CSP oder Hash-basierter CSP für strengere Sicherheit.
+
+### `'unsafe-eval'` für Scripts
+
+Aktuell benötigt für:
+- **vue-i18n Message Compilation**: Die Internationalisierungsbibliothek verwendet `new Function()` für die Message-Compilation im Composition API-Modus
+
+**Sicherheitsimplikationen**: 
+- `'unsafe-eval'` erlaubt die dynamische Ausführung von JavaScript-Code
+- Dies schwächt die XSS-Protection der CSP ab, bietet aber immer noch deutlich mehr Schutz als keine CSP
+- Das Risiko ist bei vertrauenswürdigen Bibliotheken wie vue-i18n überschaubar
+
+**Zukünftige Verbesserungen**:
+1. **Pre-compiled Messages**: Verwendung von @intlify/unplugin-vue-i18n für Build-Zeit-Compilation
+2. **Runtime-Only Mode**: Umstellung auf einen Modus ohne Message-Compilation
+3. **Alternative i18n-Lösung**: Evaluierung von Alternativen, die ohne eval auskommen
+
+**Migration zu strengerer CSP**:
+```bash
+# Installation des Pre-Compilation-Plugins
+npm install -D @intlify/unplugin-vue-i18n
+
+# Vite-Konfiguration erweitern
+import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
+
+plugins: [
+  VueI18nPlugin({
+    /* options */
+  })
+]
+```
+
+## Sicherheitsbewertung
+
+### Aktuelle Schutzmaßnahmen
+
+✅ **Verhindert**:
+- Laden von Scripts/Styles von unbekannten Domains
+- Clickjacking-Angriffe (frame-ancestors, X-Frame-Options)
+- MIME-Type-Sniffing (X-Content-Type-Options)
+- Base-Tag-Injection
+- Form-Hijacking
+
+⚠️ **Eingeschränkter Schutz**:
+- XSS-Angriffe: Durch `'unsafe-inline'` und `'unsafe-eval'` abgeschwächt, aber deutlich besser als ohne CSP
+- Die Verwendung von `'unsafe-eval'` ist auf vertrauenswürdige Bibliotheken beschränkt
+
+❌ **Nicht geschützt**:
+- Server-seitige Angriffe (SQL-Injection, etc.) - werden durch andere Maßnahmen im Backend adressiert
+
+### Sicherheitsbewertung
+
+**CSP-Level**: Moderat (7/10)
+- Grundlegender Schutz vorhanden
+- Einschränkungen durch Framework-Anforderungen
+- Deutliche Verbesserung gegenüber keiner CSP
+- Raum für zukünftige Verbesserungen
 
 ## Best Practices
 
