@@ -78,14 +78,54 @@
         <!-- Gebäude-Details (optional ausklappbar) -->
         <CCollapse :visible="showDetails">
           <div class="border-top pt-3 mt-3">
-            <h6 class="text-muted mb-2">Geladene Gebäude:</h6>
-            <div
-              v-for="building in preloadStats.buildings"
-              :key="building.id"
-              class="d-flex justify-content-between align-items-center mb-1 small"
-            >
-              <span>{{ building.name }}</span>
-              <CBadge color="info">{{ building.apartmentsCount }} Apartments</CBadge>
+            <h6 class="mb-3">
+              <CIcon icon="cil-building" class="me-2" />
+              Geladene Gebäude
+            </h6>
+
+            <!-- Gebäude-Liste als Cards -->
+            <div class="building-list">
+              <div
+                v-for="building in preloadStats.buildings"
+                :key="building.id"
+                class="building-card"
+              >
+                <div class="building-icon">
+                  <CIcon icon="cil-building" size="lg" />
+                </div>
+                <div class="building-info">
+                  <div class="building-name">{{ building.name }}</div>
+                  <div class="building-apartments">
+                    <CIcon icon="cil-home" size="sm" class="me-1" />
+                    {{ building.apartmentsCount }} {{ building.apartmentsCount === 1 ? 'Apartment' : 'Apartments' }}
+                  </div>
+                </div>
+                <div class="building-badge">
+                  <CBadge color="primary" class="px-3 py-2">
+                    {{ building.apartmentsCount }}
+                  </CBadge>
+                </div>
+              </div>
+            </div>
+
+            <!-- Statistik-Zusammenfassung -->
+            <div class="stats-summary mt-3 p-3 bg-light rounded">
+              <div class="row text-center">
+                <div class="col-4">
+                  <div class="stat-value text-primary">{{ preloadStats.buildings?.length || 0 }}</div>
+                  <div class="stat-label">Gebäude</div>
+                </div>
+                <div class="col-4">
+                  <div class="stat-value text-success">{{ preloadStats.apartmentsCount }}</div>
+                  <div class="stat-label">Apartments</div>
+                </div>
+                <div class="col-4">
+                  <div class="stat-value text-info">
+                    {{ Math.round(preloadStats.apartmentsCount / (preloadStats.buildings?.length || 1)) }}
+                  </div>
+                  <div class="stat-label">Ø pro Gebäude</div>
+                </div>
+              </div>
             </div>
           </div>
         </CCollapse>

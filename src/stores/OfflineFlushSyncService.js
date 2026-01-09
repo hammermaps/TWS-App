@@ -1,7 +1,7 @@
 /**
  * OfflineFlushSyncService.js
  * Service für die Synchronisation von Offline-Spülungen mit dem Server
- * 
+ *
  * WICHTIG: Verwendet OnlineStatus Store als einzige Quelle für Online/Offline Status.
  * Keine eigenen Event-Listener mehr - wird zentral vom OnlineStatus Store koordiniert.
  */
@@ -9,12 +9,37 @@
 import { useOfflineFlushStorage } from './OfflineFlushStorage.js'
 import { useApiApartment } from '@/api/ApiApartment.js'
 import { useApartmentStorage } from './ApartmentStorage.js'
+import healthClient from '@/api/ApiHealth.js'
 
 class OfflineFlushSyncService {
   constructor() {
     this.isSyncing = false
     this.syncInProgress = new Set()
+    this.listeners = new Set() // Event-Listeners für Sync-Events
     // Keine eigenen Event Listener mehr - wird vom OnlineStatus Store koordiniert
+  }
+
+  /**
+   * Registriert einen Listener für Sync-Events
+   * @param {Function} callback - Callback-Funktion die bei Sync-Events aufgerufen wird
+   * @returns {Function} - Unsubscribe-Funktion
+   */
+  onSyncComplete(callback) {
+    this.listeners.add(callback)
+    return () => this.listeners.delete(callback)
+  }
+
+  /**
+   * Benachrichtigt alle Listeners über ein Sync-Event
+   */
+  notifyListeners(event) {
+    this.listeners.forEach(listener => {
+      try {
+        listener(event)
+      } catch (error) {
+        console.error('❌ Fehler in Sync-Listener:', error)
+      }
+    })
   }
 
   /**
@@ -24,11 +49,11 @@ class OfflineFlushSyncService {
    */
   async checkConnectivity() {
     try {
-      // Versuche einen einfachen API-Call
-      const { checkHealth } = useApiApartment()
-      await checkHealth()
-      return true
+      // Versuche einen Ping zum Server
+      const response = await healthClient.ping()
+      return response.isPong()
     } catch (error) {
+      console.warn('⚠️ Connectivity-Check fehlgeschlagen:', error.message)
       return false
     }
   }
@@ -85,6 +110,14 @@ class OfflineFlushSyncService {
     this.isSyncing = false
 
     console.log(`🏁 Synchronisation abgeschlossen: ${successCount} erfolgreich, ${errorCount} Fehler`)
+
+    // Benachrichtige alle Listeners über die abgeschlossene Synchronisation
+    this.notifyListeners({
+      type: 'sync_complete',
+      successCount,
+      errorCount,
+      total: syncQueue.length
+    })
 
     return {
       success: errorCount === 0,
@@ -210,7 +243,8 @@ export function useOfflineFlushSync() {
     getSyncStatus: () => syncService.getSyncStatus(),
     forceSync: () => syncService.forceSync(),
     startAutoSync: (interval) => syncService.startAutoSync(interval),
-    stopAutoSync: (intervalId) => syncService.stopAutoSync(intervalId)
+    stopAutoSync: (intervalId) => syncService.stopAutoSync(intervalId),
+    onSyncComplete: (callback) => syncService.onSyncComplete(callback)
   }
 }
 

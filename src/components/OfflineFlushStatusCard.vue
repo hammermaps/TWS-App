@@ -139,7 +139,7 @@ import { CIcon } from '@coreui/icons-vue'
 
 const router = useRouter()
 const { storage: offlineStorage } = useOfflineFlushStorage()
-const { getSyncStatus, forceSync } = useOfflineFlushSync()
+const { getSyncStatus, forceSync, onSyncComplete } = useOfflineFlushSync()
 const onlineStatusStore = useOnlineStatusStore()
 
 // Reactive State
@@ -214,10 +214,21 @@ const updateStats = () => {
 const triggerSync = async () => {
   try {
     console.log('🔄 Manuelle Synchronisation gestartet vom Dashboard')
+
+    // Prüfe ob online
+    if (!isOnline.value) {
+      alert('Synchronisation nicht möglich: Keine Netzwerkverbindung')
+      return
+    }
+
     await forceSync()
     updateStats()
+
+    // Erfolgs-Benachrichtigung
+    alert('Synchronisation erfolgreich abgeschlossen')
   } catch (error) {
     console.error('❌ Sync-Fehler:', error)
+    alert(`Fehler bei der Synchronisation: ${error.message}`)
   }
 }
 
@@ -245,13 +256,23 @@ onMounted(() => {
 
   // Regelmäßige Updates
   updateInterval.value = setInterval(updateStats, 10000) // Alle 10 Sekunden
-  
+
   // Watch auf isFullyOnline für UI-Updates
   const stopWatch = watch(() => onlineStatusStore.isFullyOnline, () => {
     console.log('🔄 Online-Status geändert im OfflineFlushStatusCard')
     updateStats()
   })
-  
+
+  // Listener für Sync-Events
+  const unsubscribeSyncListener = onSyncComplete((event) => {
+    console.log('🔄 Sync-Event im OfflineFlushStatusCard:', event)
+
+    if (event.type === 'sync_complete' && event.successCount > 0) {
+      console.log('✅ Aktualisiere Stats nach erfolgreicher Synchronisation')
+      updateStats()
+    }
+  })
+
   // Cleanup
   onUnmounted(() => {
     console.log('🧹 OfflineFlushStatusCard cleanup')
@@ -259,9 +280,12 @@ onMounted(() => {
     if (updateInterval.value) {
       clearInterval(updateInterval.value)
     }
-    
+
     // Stoppe den Watcher
     stopWatch()
+
+    // Unsubscribe vom Sync-Listener
+    unsubscribeSyncListener()
   })
 })
 </script>

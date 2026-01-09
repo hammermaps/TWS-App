@@ -431,6 +431,32 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   })
 
   /**
+   * Watch auf isFullyOnline - Automatische Synchronisation beim Online-Kommen
+   */
+  watch(isFullyOnline, async (newValue, oldValue) => {
+    // Nur reagieren wenn von Offline zu Online gewechselt wird
+    if (newValue && !oldValue) {
+      console.log('🔄 Status wechselte zu Online - starte automatische Synchronisation')
+
+      // Kleine Verzögerung, damit der Status sich stabilisieren kann
+      setTimeout(async () => {
+        try {
+          // 1. Preloading wenn nötig
+          await triggerPreloadIfNeeded()
+
+          // 2. Config-Synchronisation
+          await syncConfigChanges()
+
+          // 3. Flush-Synchronisation
+          await syncFlushData()
+        } catch (error) {
+          console.error('❌ Fehler bei automatischer Synchronisation:', error)
+        }
+      }, 1000) // 1 Sekunde Verzögerung
+    }
+  })
+
+  /**
    * Cleanup
    */
   function cleanup() {

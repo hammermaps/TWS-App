@@ -4,10 +4,6 @@ export default [
     name: 'Dashboard',
     to: '/dashboard',
     icon: 'cilSpeedometer',
-    badge: {
-      color: 'info',
-      text: 'NEU',
-    },
     requiresOnline: false, // Dashboard funktioniert offline (gecachte Daten)
   },
   {

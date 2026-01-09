@@ -237,6 +237,7 @@
     "online": "Online",
     "synced": "Synced",
     "pending": "Pending",
+    "offlineCreated": "Offline erstellt",
     "successful": "Erfolgreich",
     "failed": "Fehler",
     "apartmentNotFound": "Apartment nicht gefunden",

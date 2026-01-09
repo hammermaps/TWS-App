@@ -288,7 +288,8 @@
               <CIcon icon="cil-history" class="me-2" />
               {{ $t('flushing.recentFlushes') }}
               <small v-if="offlineFlushes.length > 0" class="text-muted">
-                ({{ offlineFlushes.length }} {{ $t('offline.title').toLowerCase() }})
+                ({{ offlineFlushes.filter(f => !f.synced).length }} {{ $t('flushing.pending') }},
+                {{ offlineFlushes.filter(f => f.synced).length }} {{ $t('flushing.synced') }})
               </small>
             </h5>
           </CCardHeader>
@@ -307,19 +308,19 @@
                 <CTableRow v-for="flush in offlineFlushes" :key="flush.id">
                   <CTableDataCell>
                     {{ formatDate(flush.endTime) }}
-                    <small class="text-muted d-block">Offline erstellt</small>
+                    <small class="text-muted d-block">{{ $t('flushing.offlineCreated') }}</small>
                   </CTableDataCell>
                   <CTableDataCell>{{ flush.duration }}s</CTableDataCell>
                   <CTableDataCell>
-                    <CBadge color="info">
-                      <CIcon icon="cil-wifi-off" class="me-1" size="sm" />
-                      {{ $t('flushing.offline') }}
+                    <CBadge :color="flush.synced ? 'success' : 'warning'">
+                      <CIcon :icon="flush.synced ? 'cil-check-circle' : 'cil-clock'" class="me-1" size="sm" />
+                      {{ flush.synced ? $t('flushing.successful') : $t('flushing.pending') }}
                     </CBadge>
                   </CTableDataCell>
                   <CTableDataCell>
-                    <CBadge :color="flush.synced ? 'success' : 'warning'">
-                      <CIcon :icon="flush.synced ? 'cil-check-circle' : 'cil-clock'" class="me-1" size="sm" />
-                      {{ flush.synced ? $t('flushing.synced') : $t('flushing.pending') }}
+                    <CBadge :color="flush.synced ? 'success' : 'info'">
+                      <CIcon :icon="flush.synced ? 'cil-cloud-check' : 'cil-wifi-off'" class="me-1" size="sm" />
+                      {{ flush.synced ? $t('flushing.online') : $t('flushing.offline') }}
                     </CBadge>
                   </CTableDataCell>
                 </CTableRow>
@@ -384,7 +385,7 @@ const router = useRouter()
 const { t } = useI18n()
 const apartmentStorage = useApartmentStorage()
 const { storage: offlineStorage } = useOfflineFlushStorage()
-const { syncService, getSyncStatus, forceSync } = useOfflineFlushSync()
+const { syncService, getSyncStatus, forceSync, onSyncComplete } = useOfflineFlushSync()
 const onlineStatusStore = useOnlineStatusStore()
 const { flush, loading: flushLoading, error: flushError } = useApiApartment()
 
@@ -756,6 +757,28 @@ onMounted(async () => {
     }
   })
 
+  // Listener für Sync-Events - aktualisiert die Seite nach erfolgreicher Synchronisation
+  const unsubscribeSyncListener = onSyncComplete((event) => {
+    console.log('🔄 Sync-Event empfangen:', event)
+
+    if (event.type === 'sync_complete' && event.successCount > 0) {
+      console.log('✅ Synchronisation abgeschlossen - aktualisiere Offline-Spülungen')
+
+      // Lade Offline-Spülungen neu, um den aktualisierten Status zu zeigen
+      loadOfflineFlushes()
+
+      // Aktualisiere Sync-Status
+      updateSyncStatus()
+
+      // Optional: Apartment-Daten neu laden vom Server (falls online)
+      if (isOnline.value) {
+        console.log('📥 Lade Apartment-Daten vom Server nach Sync')
+        // Hier könnten wir die Apartment-Daten vom Server neu laden
+        // um sicherzustellen, dass last_flush_date aktuell ist
+      }
+    }
+  })
+
   // Sync-Status regelmäßig aktualisieren
   const statusInterval = setInterval(() => {
     updateSyncStatus()
@@ -781,6 +804,9 @@ onMounted(async () => {
     // Stoppe die Watchers
     stopAutoNavWatch()
     stopOnlineWatch()
+
+    // Unsubscribe vom Sync-Listener
+    unsubscribeSyncListener()
   })
 })
 
