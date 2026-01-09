@@ -430,11 +430,23 @@ export default [
 - Sichere Speicherung in LocalStorage
 - CSRF-Schutz via Cookies
 
+### Security Headers
+
+Die App implementiert umfassende Security Headers zum Schutz vor XSS und anderen Angriffen:
+
+- ✅ **Content Security Policy (CSP)** - Verhindert XSS-Angriffe
+- ✅ **X-Frame-Options** - Schutz vor Clickjacking
+- ✅ **X-Content-Type-Options** - Verhindert MIME-Type-Sniffing
+- ✅ **Referrer-Policy** - Kontrollierte Referrer-Informationen
+- ✅ **Permissions-Policy** - Eingeschränkte Browser-Features
+
+Siehe [SECURITY_HEADERS.md](SECURITY_HEADERS.md) für detaillierte Informationen und Deployment-Konfigurationen.
+
 ### Best Practices
 
 - ✅ HTTPS in Production
 - ✅ CORS-Konfiguration
-- ✅ XSS-Prävention
+- ✅ XSS-Prävention via CSP
 - ✅ Input-Validierung
 - ✅ Sichere API-Kommunikation
 
@@ -482,6 +494,7 @@ Bei Fragen oder Problemen:
 
 ## 📚 Weitere Dokumentation
 
+- [Security Headers & CSP](SECURITY_HEADERS.md)
 - [Android Setup Anleitung (Deutsch)](ANDROID_SETUP.md)
 - [Android Quick Start (English)](ANDROID_QUICKSTART.md)
 - [PWA Dokumentation](PWA_DOCUMENTATION.md)
