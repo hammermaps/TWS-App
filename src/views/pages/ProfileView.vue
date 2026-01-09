@@ -1,27 +1,18 @@
 <template>
   <div>
-    <CRow>
+    <CRow style="padding-left: 9px;">
       <CCol :lg="8">
-        <!-- Benutzer-Profil Card -->
+        <!-- Benutzer-Profil Card mit Header in CCardBody -->
         <CCard class="mb-4">
-          <CCardHeader class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-              <CIcon icon="cil-user" class="me-2" />
-              Benutzer-Profil
-            </h4>
-            <div>
-              <CButton
-                color="secondary"
-                variant="outline"
-                size="sm"
-                @click="navigateToProfile"
-              >
-                <CIcon icon="cil-pencil" class="me-2" />
-                Bearbeiten
-              </CButton>
-            </div>
-          </CCardHeader>
           <CCardBody>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                <h2 class="mb-0">
+                  <CIcon icon="cil-user" class="me-2" />
+                  Benutzer-Profil
+                </h2>
+              </div>
+            </div>
             <!-- Avatar Sektion -->
             <CRow class="mb-4">
               <CCol :md="3" class="text-center">
@@ -81,55 +72,61 @@
                 </h5>
                 <CRow>
                   <CCol :sm="4" class="mb-3">
-                    <div class="text-center">
-                      <div class="status-icon mb-2">
-                        <CIcon
-                          :icon="currentUser?.enabled ? 'cil-check-circle' : 'cil-x-circle'"
-                          :class="currentUser?.enabled ? 'text-success' : 'text-danger'"
-                          size="xl"
-                        />
-                      </div>
-                      <div class="status-label">Account Status</div>
-                      <CBadge
-                        :color="currentUser?.enabled ? 'success' : 'danger'"
-                        class="mt-1"
-                      >
-                        {{ currentUser?.enabled ? 'Aktiv' : 'Deaktiviert' }}
-                      </CBadge>
-                    </div>
+                    <CCard class="text-center h-100">
+                      <CCardBody>
+                        <div class="status-icon mb-2">
+                          <CIcon
+                            :icon="currentUser?.enabled ? 'cil-check-circle' : 'cil-x-circle'"
+                            :class="currentUser?.enabled ? 'text-success' : 'text-danger'"
+                            size="xl"
+                          />
+                        </div>
+                        <div class="status-label mb-2">Account Status</div>
+                        <CBadge
+                          :color="currentUser?.enabled ? 'success' : 'danger'"
+                          class="px-3 py-2"
+                        >
+                          {{ currentUser?.enabled ? 'Aktiv' : 'Deaktiviert' }}
+                        </CBadge>
+                      </CCardBody>
+                    </CCard>
                   </CCol>
                   <CCol :sm="4" class="mb-3">
-                    <div class="text-center">
-                      <div class="status-icon mb-2">
-                        <CIcon
-                          icon="cil-shield-alt"
-                          :class="getRoleIconColor(currentUser?.role)"
-                          size="xl"
-                        />
-                      </div>
-                      <div class="status-label">Benutzerrolle</div>
-                      <CBadge
-                        :color="getRoleColor(currentUser?.role)"
-                        class="mt-1"
-                      >
-                        {{ getRoleDisplayName(currentUser?.role) }}
-                      </CBadge>
-                    </div>
+                    <CCard class="text-center h-100">
+                      <CCardBody>
+                        <div class="status-icon mb-2">
+                          <CIcon
+                            icon="cil-shield-alt"
+                            :class="getRoleIconColor(currentUser?.role)"
+                            size="xl"
+                          />
+                        </div>
+                        <div class="status-label mb-2">Benutzerrolle</div>
+                        <CBadge
+                          :color="getRoleColor(currentUser?.role)"
+                          class="px-3 py-2"
+                        >
+                          {{ getRoleDisplayName(currentUser?.role) }}
+                        </CBadge>
+                      </CCardBody>
+                    </CCard>
                   </CCol>
                   <CCol :sm="4" class="mb-3">
-                    <div class="text-center">
-                      <div class="status-icon mb-2">
-                        <CIcon
-                          icon="cil-fingerprint"
-                          class="text-info"
-                          size="xl"
-                        />
-                      </div>
-                      <div class="status-label">Benutzer-ID</div>
-                      <div class="mt-1">
-                        <strong>{{ currentUser?.id || 'N/A' }}</strong>
-                      </div>
-                    </div>
+                    <CCard class="text-center h-100">
+                      <CCardBody>
+                        <div class="status-icon mb-2">
+                          <CIcon
+                            icon="cil-fingerprint"
+                            class="text-info"
+                            size="xl"
+                          />
+                        </div>
+                        <div class="status-label mb-2">Benutzer-ID</div>
+                        <div class="mt-1">
+                          <strong class="fs-5">{{ currentUser?.id || 'N/A' }}</strong>
+                        </div>
+                      </CCardBody>
+                    </CCard>
                   </CCol>
                 </CRow>
               </CCol>

@@ -1,8 +1,9 @@
 // ApiUser.js - Moderne API-Client-Klasse für User-Aktionen
 import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { UserItem, currentUser } from '../stores/GlobalUser.js'
-import { cookieManager, parseCookiesFromResponse } from '../stores/CookieManager.js'
+import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
+import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 
 /**
  * Standardisierte API-Response-Klasse
@@ -35,15 +36,16 @@ export class ApiRequest {
     method = "GET",
     body = null,
     headers = {},
-    timeout = 5000,
-    retries = 2,
+    timeout = null,
+    retries = null,
   }) {
     this.endpoint = endpoint
     this.method = method
     this.body = body
     this.headers = headers
-    this.timeout = timeout
-    this.retries = retries
+    // Verwende Konfigurationswerte mit Fallback
+    this.timeout = getApiTimeout(timeout)
+    this.retries = getMaxRetries(retries)
   }
 }
 
@@ -245,7 +247,7 @@ export class ApiUser {
    * POST /user/register - Benutzer registrieren
    */
   async register(data = {}, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const request = new ApiRequest({
       endpoint: "/user/register",
@@ -263,7 +265,7 @@ export class ApiUser {
    * POST /user/login - Benutzer anmelden
    */
   async login(data = {}, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const request = new ApiRequest({
       endpoint: "/user/login",
@@ -290,7 +292,7 @@ export class ApiUser {
    * GET /user/get oder /user/get/{id} - Benutzer abrufen
    */
   async get(id = null, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const endpoint = id == null || id === "" ? "/user/get" : `/user/get/${encodeURIComponent(id)}`
     const request = new ApiRequest({
@@ -308,7 +310,7 @@ export class ApiUser {
    * GET /user/list - Alle Benutzer auflisten
    */
   async list(options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const request = new ApiRequest({
       endpoint: "/user/list",
@@ -333,7 +335,7 @@ export class ApiUser {
    * POST /user/update/{id} - Benutzer aktualisieren
    */
   async update(id, partial = {}, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const body = toPlainUserPartial(partial)
     // ID nicht im Body senden
@@ -355,7 +357,7 @@ export class ApiUser {
    * GET /user/role - Benutzerrolle abrufen
    */
   async getRole(options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
     const onlineStatus = useOnlineStatusStore()
 
     // ✅ NEU: Im Offline-Modus Rolle aus LocalStorage (currentUser) zurückgeben
@@ -386,7 +388,7 @@ export class ApiUser {
    * POST /user/setrole - Benutzerrolle setzen
    */
   async setRole(data = {}, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const request = new ApiRequest({
       endpoint: "/user/setrole",
@@ -404,7 +406,7 @@ export class ApiUser {
    * DELETE /user/remove/{id} - Benutzer löschen
    */
   async remove(id, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const request = new ApiRequest({
       endpoint: `/user/remove/${encodeURIComponent(id)}`,
@@ -421,7 +423,7 @@ export class ApiUser {
    * POST /user/logout - Benutzer abmelden
    */
   async logout(options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const request = new ApiRequest({
       endpoint: "/user/logout",
@@ -438,7 +440,7 @@ export class ApiUser {
    * POST /user/changepw - Passwort ändern
    */
   async changePassword(data = {}, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     const request = new ApiRequest({
       endpoint: "/user/changepw",
@@ -456,7 +458,7 @@ export class ApiUser {
    * POST /user/checktoken - Token validieren
    */
   async checkToken(token = null, options = {}) {
-    const { timeout = 5000, headers = {} } = options
+    const { timeout = null, headers = {} } = options
 
     if (!token || typeof token !== 'string' || token.trim().length === 0) {
       return new TokenCheckResponse({

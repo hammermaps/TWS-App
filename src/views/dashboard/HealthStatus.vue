@@ -1,7 +1,7 @@
 <!-- HealthStatus.vue - Health Status mit CoreUI Komponenten -->
 <template>
   <OnlineRequiredWrapper>
-    <CRow>
+    <CRow style="padding-left: 9px;">
     <CCol :xs="12">
       <CCard class="mb-4">
         <CCardHeader class="d-flex justify-content-between align-items-center">
@@ -117,7 +117,7 @@
                       <CProgress
                         :value="(status.data.server_info.memory_usage.used / status.data.server_info.memory_usage.limit) * 100"
                         :color="getMemoryColor(status.data.server_info.memory_usage.used, status.data.server_info.memory_usage.limit)"
-                        height={20}
+                        :height="20"
                       />
                     </div>
                   </CCardBody>
@@ -244,7 +244,7 @@
                   <CCardBody class="py-2">
                     <small class="text-body-secondary">
                       <CIcon icon="cil-clock" class="me-1" width="16" height="16" />
-                      Server Zeit: {{ new Date(status.server_time * 1000).toLocaleString('de-DE') }}
+                      Server Zeit: {{ formatDateTime(new Date(status.server_time * 1000)) }}
                     </small>
                   </CCardBody>
                 </CCard>
@@ -272,6 +272,7 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { formatDateTime } from '@/utils/dateFormatter.js'
 import {
   CRow,
   CCol,

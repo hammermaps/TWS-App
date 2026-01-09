@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
+import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 
 // Einzelner Record-Element (Spüldatensatz)
 export class RecordItem {
@@ -59,15 +60,16 @@ export class ApiRequest {
         method = "GET",
         body = null,
         headers = {},
-        timeout = 5000,
-        retries = 2,
+        timeout = null,
+        retries = null,
     }) {
         this.endpoint = endpoint
         this.method = method
         this.body = body
         this.headers = headers
-        this.timeout = timeout
-        this.retries = retries
+        // Verwende Konfigurationswerte mit Fallback
+        this.timeout = getApiTimeout(timeout)
+        this.retries = getMaxRetries(retries)
     }
 }
 

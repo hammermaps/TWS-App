@@ -2,3 +2,45 @@
   display: inline-block;
 }
 
+/* Rotating Icon Animation */
+.rotating-icon {
+  animation: rotate-icon 2s linear infinite;
+}
+
+@keyframes rotate-icon {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Progress Dropdown */
+.progress-dropdown {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .progress-dropdown {
+    background-color: var(--cui-body-bg);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+[data-coreui-theme="dark"] .progress-dropdown {
+  background-color: var(--cui-body-bg);
+  border-color: rgba(255, 255, 255, 0.15);
+}

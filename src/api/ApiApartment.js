@@ -3,6 +3,7 @@ import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { useApartmentStorage } from '../stores/ApartmentStorage.js'
 import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
+import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 
 // Apartment-Element mit Leerstandsspülung
 export class ApartmentItem {
@@ -52,15 +53,16 @@ export class ApiRequest {
         method = "GET",
         body = null,
         headers = {},
-        timeout = 5000,
-        retries = 2,
+        timeout = null,
+        retries = null,
     }) {
         this.endpoint = endpoint
         this.method = method
         this.body = body
         this.headers = headers
-        this.timeout = timeout
-        this.retries = retries
+        // Verwende Konfigurationswerte mit Fallback
+        this.timeout = getApiTimeout(timeout)
+        this.retries = getMaxRetries(retries)
     }
 }
 
@@ -201,7 +203,10 @@ export class ApiApartment {
             clearTimeout(timeoutId)
             console.error('❌ Apartment API - Network error:', error)
 
-            if (attempt < request.retries && !controller.signal.aborted) {
+            // Bei AbortError (Timeout) keine Retries, nur bei echten Netzwerkfehlern
+            const isTimeout = error.name === 'AbortError'
+
+            if (!isTimeout && attempt < request.retries) {
                 console.log(`🔄 Apartment API - Retrying request (attempt ${attempt + 1}/${request.retries})`)
                 await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
                 return this.send(request, attempt + 1)
@@ -209,7 +214,7 @@ export class ApiApartment {
 
             return new ApiResponse({
                 success: false,
-                error: error.name === 'AbortError' ? 'Request timeout' : (error.message || 'Netzwerkfehler'),
+                error: isTimeout ? 'Request timeout - Server antwortet nicht rechtzeitig' : (error.message || 'Netzwerkfehler'),
                 data: null
             })
         }
@@ -219,7 +224,7 @@ export class ApiApartment {
      * GET /apartments/list - Alle Apartments auflisten (Backend verwendet Plural)
      */
     async list(options = {}) {
-        const { timeout = 5000, headers = {}, building_id } = options
+        const { timeout = 120000, headers = {}, building_id } = options // Timeout auf 120 Sekunden erhöht
         const storage = useApartmentStorage()
         const onlineStatus = useOnlineStatusStore()
 
@@ -332,7 +337,7 @@ export class ApiApartment {
      * GET /apartments/get/{id} - Apartment nach ID abrufen
      */
     async getById(id, options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options // Timeout auf 15 Sekunden erhöht
 
         const request = new ApiRequest({
             endpoint: `/apartments/get/${encodeURIComponent(id)}`,

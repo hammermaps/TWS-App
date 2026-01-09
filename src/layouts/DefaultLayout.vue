@@ -23,7 +23,7 @@ onMounted(() => {
       <AppHeader />
       <OfflineModeBanner />
       <div class="body flex-grow-1">
-        <CContainer class="px-4" lg>
+        <CContainer class="container-fluid flex-grow-1 container-p-y" fluid>
           <router-view />
         </CContainer>
       </div>

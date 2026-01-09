@@ -159,14 +159,30 @@ setRouter(router)
 
 // Navigation Guards für Authentication und Token-Validierung
 router.beforeEach(async (to, from, next) => {
+  // Sicherstellen, dass Token aus localStorage geladen wurde
+  // (Schutz gegen Race Condition beim App-Start)
+  const tokenFromStorage = localStorage.getItem('jwt_token')
   const token = getToken()
-  const isAuthenticated = !!token
+
+  // Wenn Token im Storage, aber nicht in State -> laden
+  if (tokenFromStorage && !token) {
+    console.warn('⚠️ Token im localStorage gefunden, aber nicht im State. Lade Token...')
+    const { loadTokenFromStorage } = await import('@/stores/GlobalToken.js')
+    loadTokenFromStorage()
+    // Token erneut abrufen nach dem Laden
+    const reloadedToken = getToken()
+    console.log('🔄 Token neu geladen:', !!reloadedToken)
+  }
+
+  const isAuthenticated = !!getToken() // Nach potentiellem Nachladen erneut prüfen
 
   console.log(`🧭 Navigation von "${from.name || 'Startseite'}" zu "${to.name || to.path}"`)
+  console.log(`🔑 Token vorhanden: ${!!getToken()}, isAuthenticated: ${isAuthenticated}`)
 
   // Routen die Authentication erfordern
   if (to.meta.requiresAuth && !isAuthenticated) {
-    console.log('Route erfordert Authentication, weiterleitung zu /login')
+    console.error('❌ Route erfordert Authentication, aber Token fehlt! weiterleitung zu /login')
+    console.error('🔍 Token-Status Debug:', { token: getToken() ? 'exists' : 'missing', length: getToken()?.length, localStorage: !!tokenFromStorage })
     next('/login')
     return
   }
@@ -213,15 +229,24 @@ router.beforeEach(async (to, from, next) => {
 
       if (!tokenValidation.valid) {
         console.warn(`❌ Token-Prüfung für Route "${to.name}" fehlgeschlagen:`, tokenValidation.reason)
-        // Umleitung erfolgt bereits im TokenManager
-        return // Stoppe Navigation
+
+        // WICHTIG: Nur zur Login-Seite umleiten, wenn wirklich nicht authentifiziert
+        // Bei "Nicht authentifiziert" umleiten, bei anderen Fehlern NICHT
+        if (tokenValidation.reason === 'Nicht authentifiziert') {
+          console.error('🚫 Nicht authentifiziert - Umleitung zu /login')
+          next('/login')
+          return
+        } else {
+          // Bei anderen Fehlern Navigation trotzdem erlauben
+          console.warn('⚠️ Token-Prüfung fehlgeschlagen, aber Navigation wird erlaubt (lokales Token vorhanden)')
+        }
       } else {
         console.log(`✅ Token-Prüfung für Route "${to.name}" erfolgreich`)
       }
     } catch (error) {
       console.error('❌ Fehler bei Router Token-Prüfung:', error)
-      // Bei Fehler trotzdem weiter navigieren, aber warnen
-      console.warn('⚠️ Navigation wird trotz Token-Prüfungsfehler fortgesetzt')
+      // Bei Fehler trotzdem weiter navigieren, da lokales Token vorhanden ist
+      console.warn('⚠️ Navigation wird trotz Token-Prüfungsfehler fortgesetzt (lokales Token vorhanden)')
     }
   }
 

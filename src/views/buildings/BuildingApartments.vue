@@ -1,30 +1,44 @@
 <template>
   <div class="building-apartments">
-    <!-- Header mit Gebäude-Info -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h2>Apartments - {{ buildingName || `Gebäude #${buildingId}` }}</h2>
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <router-link to="/buildings" class="text-decoration-none">
-                Gebäude
-              </router-link>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">
-              {{ buildingName || `Gebäude #${buildingId}` }}
-            </li>
-          </ol>
-        </nav>
-      </div>
-      <CButton color="primary" @click="loadApartments">
-        <CIcon icon="cil-reload" class="me-2" />
-        Aktualisieren
-      </CButton>
-    </div>
+    <!-- Header mit Gebäude-Info in Card -->
+    <CCard class="mb-4">
+      <CCardBody>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2>Apartments - {{ buildingName || `Gebäude #${buildingId}` }}</h2>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item">
+                  <router-link to="/buildings" class="text-decoration-none">
+                    Gebäude
+                  </router-link>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                  {{ buildingName || `Gebäude #${buildingId}` }}
+                </li>
+              </ol>
+            </nav>
+            <small v-if="cacheStatusText" class="text-muted">
+              <CIcon icon="cil-clock" class="me-1" size="sm" />
+              {{ cacheStatusText }}
+            </small>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <CBadge v-if="isPreloading" color="info" class="me-2">
+              <CIcon icon="cil-sync" class="me-1" size="sm" />
+              Wird aktualisiert...
+            </CBadge>
+            <CButton color="primary" @click="refreshApartments" :disabled="loading">
+              <CIcon icon="cil-reload" class="me-2" />
+              Aktualisieren
+            </CButton>
+          </div>
+        </div>
+      </CCardBody>
+    </CCard>
 
     <!-- Loading State -->
-    <div v-if="loading" class="text-center">
+    <div v-if="loading && (!apartments || apartments.length === 0)" class="text-center">
       <CSpinner color="primary" />
       <p class="mt-2">Lade Apartments...</p>
     </div>
@@ -35,7 +49,7 @@
     </CAlert>
 
     <!-- Apartments Table -->
-    <CCard v-if="!loading && !error">
+    <CCard v-if="!loading && !error || (apartments && apartments.length > 0)">
       <CCardHeader>
         <h5 class="mb-0">
           <CIcon icon="cil-home" class="me-2" />
@@ -61,20 +75,20 @@
               :key="apartment.id"
               :class="getRowClass(apartment)"
             >
-              <CTableDataCell>
+              <CTableDataCell class="align-middle">
                 <div class="d-flex align-items-center">
                   <CIcon icon="cil-door" class="me-2 text-muted" />
                   <strong>{{ apartment.number }}</strong>
                 </div>
               </CTableDataCell>
 
-              <CTableDataCell>
+              <CTableDataCell class="align-middle">
                 <CBadge color="info" shape="rounded-pill">
                   {{ apartment.floor || 'N/A' }}
                 </CBadge>
               </CTableDataCell>
 
-              <CTableDataCell>
+              <CTableDataCell class="align-middle">
                 <CBadge
                   :color="apartment.enabled ? 'success' : 'danger'"
                   shape="rounded-pill"
@@ -83,7 +97,7 @@
                 </CBadge>
               </CTableDataCell>
 
-              <CTableDataCell>
+              <CTableDataCell class="align-middle">
                 <div v-if="apartment.last_flush_date">
                   <div>{{ formatDate(apartment.last_flush_date) }}</div>
                   <small class="text-muted">{{ formatTimeAgo(apartment.last_flush_date) }}</small>
@@ -91,7 +105,7 @@
                 <span v-else class="text-muted">Noch nie</span>
               </CTableDataCell>
 
-              <CTableDataCell>
+              <CTableDataCell class="align-middle">
                 <div v-if="apartment.next_flush_due">
                   <div>{{ formatDate(apartment.next_flush_due) }}</div>
                   <small :class="getNextFlushClass(apartment.next_flush_due)">
@@ -101,7 +115,7 @@
                 <span v-else class="text-muted">Nicht geplant</span>
               </CTableDataCell>
 
-              <CTableDataCell>
+              <CTableDataCell class="align-middle">
                 <CBadge
                   :color="getFlushStatusColor(apartment)"
                   shape="rounded-pill"
@@ -113,7 +127,7 @@
                 </CBadge>
               </CTableDataCell>
 
-              <CTableDataCell>
+              <CTableDataCell class="align-middle">
                 <div class="d-flex gap-2">
                   <CButton
                     color="primary"
@@ -191,7 +205,7 @@
 </template>
 
 <script setup>
-import { onMounted, computed, watch, nextTick, onUnmounted, onBeforeUnmount } from 'vue'
+import { onMounted, computed, watch, nextTick, onUnmounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
 import { useApiApartment } from '@/api/ApiApartment.js'
@@ -221,6 +235,33 @@ const { apartments, loading, error, list, storage } = useApiApartment()
 const buildingId = computed(() => route.params.id)
 const buildingName = computed(() => route.query.buildingName)
 
+// Lokale States für besseres UX
+const isPreloading = ref(false)
+const cacheAge = ref(null)
+
+// Berechne das Alter des Caches
+const calculateCacheAge = () => {
+  const cacheKey = `apartments_${buildingId.value}_timestamp`
+  const timestamp = localStorage.getItem(cacheKey)
+  if (timestamp) {
+    const ageInMinutes = Math.floor((Date.now() - parseInt(timestamp)) / 60000)
+    cacheAge.value = ageInMinutes
+  } else {
+    cacheAge.value = null
+  }
+}
+
+// Cache-Status-Text
+const cacheStatusText = computed(() => {
+  if (cacheAge.value === null) return ''
+  if (cacheAge.value < 1) return 'gerade eben aktualisiert'
+  if (cacheAge.value === 1) return 'vor 1 Minute aktualisiert'
+  if (cacheAge.value < 60) return `vor ${cacheAge.value} Minuten aktualisiert`
+  const hours = Math.floor(cacheAge.value / 60)
+  if (hours === 1) return 'vor 1 Stunde aktualisiert'
+  return `vor ${hours} Stunden aktualisiert`
+})
+
 const sortedApartments = computed(() => {
   if (!apartments.value || !Array.isArray(apartments.value)) return []
   return [...apartments.value].sort((a, b) => {
@@ -247,9 +288,43 @@ const upcomingFlushes = computed(() => {
   return apartments.value.filter(apt => isFlushUpcoming(apt)).length
 })
 
-const loadApartments = async () => {
+// Initialer Ladevorgang mit Cache
+const loadApartments = async (forceRefresh = false) => {
   console.log('Loading apartments for building:', buildingId.value)
+
+  // Wenn nicht erzwungen, versuche Cache zu laden
+  if (!forceRefresh) {
+    const cachedApartments = storage.storage.getApartmentsForBuilding(buildingId.value)
+    if (cachedApartments && cachedApartments.length > 0) {
+      apartments.value = cachedApartments
+      calculateCacheAge()
+
+      // Im Hintergrund aktualisieren
+      isPreloading.value = true
+      try {
+        await list({ building_id: buildingId.value })
+        const cacheKey = `apartments_${buildingId.value}_timestamp`
+        localStorage.setItem(cacheKey, Date.now().toString())
+        calculateCacheAge()
+      } catch (err) {
+        console.warn('Hintergrund-Aktualisierung fehlgeschlagen:', err)
+      } finally {
+        isPreloading.value = false
+      }
+      return
+    }
+  }
+
+  // Ansonsten normales Laden
   await list({ building_id: buildingId.value })
+  const cacheKey = `apartments_${buildingId.value}_timestamp`
+  localStorage.setItem(cacheKey, Date.now().toString())
+  calculateCacheAge()
+}
+
+// Erzwungenes Neuladen
+const refreshApartments = async () => {
+  await loadApartments(true)
 }
 
 const formatDate = (dateString) => {
@@ -437,47 +512,8 @@ const getFlushStatusText = (apartment) => {
 }
 
 const getRowClass = (apartment) => {
-  // Deaktivierte Apartments grau
-  if (!apartment.enabled) return 'table-secondary'
-
-  // Prüfe zuerst auf überfällige Spülungen (rot)
-  if (apartment.next_flush_due) {
-    try {
-      const nextFlushDate = new Date(apartment.next_flush_due)
-      const now = new Date()
-      const diffInDays = Math.floor((nextFlushDate - now) / (1000 * 60 * 60 * 24))
-
-      // Überfällig (rot)
-      if (diffInDays < 0) {
-        return 'table-danger'
-      }
-
-      // Heute fällig (gelb)
-      if (diffInDays === 0) {
-        return 'table-warning'
-      }
-    } catch (error) {
-      console.warn('Fehler beim Parsen des next_flush_due Datums:', error)
-    }
-  }
-
-  // Prüfe letzte Spülung für grüne Färbung (1-2 Tage nach Spülung)
-  if (apartment.last_flush_date) {
-    try {
-      const lastFlushDate = new Date(apartment.last_flush_date)
-      const now = new Date()
-      const daysSinceLastFlush = Math.floor((now - lastFlushDate) / (1000 * 60 * 60 * 24))
-
-      // 1-2 Tage nach letzter Spülung = grün (frisch gespült)
-      if (daysSinceLastFlush >= 1 && daysSinceLastFlush <= 2) {
-        return 'table-success'
-      }
-    } catch (error) {
-      console.warn('Fehler beim Parsen des last_flush_date Datums:', error)
-    }
-  }
-
-  // Standard (keine besondere Färbung)
+  // Keine farbigen Klassen mehr - Zebra-Streifen bleiben erhalten
+  // Die Status-Information wird über Badges in den Zellen angezeigt
   return ''
 }
 

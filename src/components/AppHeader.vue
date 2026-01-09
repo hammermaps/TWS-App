@@ -1,15 +1,22 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useColorModes } from '@coreui/vue'
+import { useThemeSync } from '@/services/ThemeService.js'
 
 import AppHeaderDropdownAccnt from '@/components/AppHeaderDropdownAccnt.vue'
 import OnlineStatusToggle from '@/components/OnlineStatusToggle.vue'
 import OfflineDataBadge from '@/components/OfflineDataBadge.vue'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { useSidebarStore } from '@/stores/sidebar.js'
 
 const headerClassNames = ref('mb-4 p-0')
-const { colorMode, setColorMode } = useColorModes('coreui-free-vue-admin-template-theme')
+const { colorMode, changeTheme } = useThemeSync()
 const sidebar = useSidebarStore()
+
+// Funktion zum Ändern des Themes mit Server-Synchronisation
+const handleThemeChange = async (theme) => {
+  console.log('🎨 Theme-Änderung im Header:', theme)
+  await changeTheme(theme)
+}
 
 onMounted(() => {
   document.addEventListener('scroll', () => {
@@ -30,7 +37,7 @@ onMounted(() => {
       </CHeaderToggler>
       <CHeaderNav class="d-none d-md-flex">
         <CNavItem>
-          <CNavLink href="/dashboard"> Dashboard </CNavLink>
+          <CNavLink href="/dashboard"> {{ $t('nav.dashboard') }} </CNavLink>
         </CNavItem>
       </CHeaderNav>
       <CHeaderNav class="ms-auto">
@@ -46,6 +53,10 @@ onMounted(() => {
         <li class="nav-item py-1">
           <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
         </li>
+        <LanguageSwitcher />
+        <li class="nav-item py-1">
+          <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+        </li>
         <CDropdown variant="nav-item" placement="bottom-end">
           <CDropdownToggle :caret="false">
             <CIcon v-if="colorMode === 'dark'" icon="cil-moon" size="lg" />
@@ -58,27 +69,27 @@ onMounted(() => {
               class="d-flex align-items-center"
               component="button"
               type="button"
-              @click="setColorMode('light')"
+              @click="handleThemeChange('light')"
             >
-              <CIcon class="me-2" icon="cil-sun" size="lg" /> Light
+              <CIcon class="me-2" icon="cil-sun" size="lg" /> {{ $t('settings.ui.themeLight') }}
             </CDropdownItem>
             <CDropdownItem
               :active="colorMode === 'dark'"
               class="d-flex align-items-center"
               component="button"
               type="button"
-              @click="setColorMode('dark')"
+              @click="handleThemeChange('dark')"
             >
-              <CIcon class="me-2" icon="cil-moon" size="lg" /> Dark
+              <CIcon class="me-2" icon="cil-moon" size="lg" /> {{ $t('settings.ui.themeDark') }}
             </CDropdownItem>
             <CDropdownItem
               :active="colorMode === 'auto'"
               class="d-flex align-items-center"
               component="button"
               type="button"
-              @click="setColorMode('auto')"
+              @click="handleThemeChange('auto')"
             >
-              <CIcon class="me-2" icon="cil-contrast" size="lg" /> Auto
+              <CIcon class="me-2" icon="cil-contrast" size="lg" /> {{ $t('settings.ui.themeAuto') }}
             </CDropdownItem>
           </CDropdownMenu>
         </CDropdown>

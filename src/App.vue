@@ -1,13 +1,83 @@
 <script setup>
-import { onBeforeMount } from 'vue'
+import { onBeforeMount, onMounted, onUnmounted } from 'vue'
 import { useColorModes } from '@coreui/vue'
 
 import { useThemeStore } from '@/stores/theme.js'
+import BuildingStorage from '@/stores/BuildingStorage'
+import { ApiBuilding } from '@/api/ApiBuilding'
+import { useConfigStorage } from '@/stores/ConfigStorage.js'
+import { useConfigSyncService } from '@/services/ConfigSyncService.js'
+import { useAutoSyncService } from '@/services/AutoSyncService.js'
 
 const { isColorModeSet, setColorMode } = useColorModes(
   'coreui-free-vue-admin-template-theme',
 )
 const currentTheme = useThemeStore()
+
+// Preload Gebäude beim App-Start
+const preloadBuildings = async () => {
+  try {
+    const apiBuilding = new ApiBuilding()
+    const response = await apiBuilding.list({ timeout: 30000 })
+
+    if (response.items && response.items.length > 0) {
+      BuildingStorage.saveBuildings(response.items)
+      localStorage.setItem('buildings_timestamp', Date.now().toString())
+      console.log('✅ Gebäude erfolgreich vorgeladen:', response.items.length)
+    }
+  } catch (error) {
+    // Fehler beim Preload sind nicht kritisch
+    console.warn('⚠️ Gebäude-Preload fehlgeschlagen:', error.message)
+  }
+}
+
+// Config-Synchronisation beim App-Start
+const syncConfigOnStartup = async () => {
+  try {
+    const configStorage = useConfigStorage()
+    const config = configStorage.loadConfig()
+
+    // Prüfe ob syncOnStartup aktiviert ist
+    if (config?.sync?.syncOnStartup && navigator.onLine) {
+      console.log('🔄 Config-Synchronisation beim Start aktiviert')
+      const configSync = useConfigSyncService()
+
+      // Prüfe ob es ausstehende Änderungen gibt
+      if (configSync.hasPending()) {
+        console.log('📤 Synchronisiere ausstehende Config-Änderungen...')
+        const result = await configSync.syncPending()
+
+        if (result.success) {
+          console.log(`✅ Config-Synchronisation erfolgreich: ${result.synced} Items`)
+        } else {
+          console.warn('⚠️ Config-Synchronisation teilweise fehlgeschlagen:', result)
+        }
+      } else {
+        console.log('✅ Keine ausstehenden Config-Änderungen')
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Fehler bei Config-Synchronisation beim Start:', error)
+  }
+}
+
+// Auto-Sync Service starten
+const autoSyncService = useAutoSyncService()
+
+const startAutoSync = () => {
+  try {
+    const configStorage = useConfigStorage()
+    const config = configStorage.loadConfig()
+
+    // Prüfe ob autoSync aktiviert ist
+    if (config?.sync?.autoSync && config?.sync?.syncInterval > 0) {
+      console.log(`🔄 Starte automatische Synchronisation (Intervall: ${config.sync.syncInterval} Min.)`)
+      autoSyncService.start(config.sync.syncInterval)
+    }
+  } catch (error) {
+    console.warn('⚠️ Fehler beim Starten der automatischen Synchronisation:', error)
+  }
+}
 
 onBeforeMount(() => {
   const urlParams = new URLSearchParams(window.location.href.split('?')[1])
@@ -27,6 +97,22 @@ onBeforeMount(() => {
   }
 
   setColorMode(currentTheme.theme)
+
+  // Starte Preloading im Hintergrund (non-blocking)
+  preloadBuildings()
+})
+
+onMounted(() => {
+  // Config-Synchronisation beim Start (nach dem Mount)
+  syncConfigOnStartup()
+
+  // Starte automatische Synchronisation
+  startAutoSync()
+})
+
+onUnmounted(() => {
+  // Stoppe automatische Synchronisation beim Beenden
+  autoSyncService.stop()
 })
 </script>
 

@@ -1,43 +1,48 @@
 <template>
   <div class="flushing-manager">
-    <!-- Header mit Navigation -->
-    <CRow class="mb-4">
-      <CCol>
-        <CCard>
-          <CCardHeader>
-            <h4>Leerstandsspülungen</h4>
-            <div class="d-flex align-items-center mt-2">
-              <CButton
-                color="primary"
-                size="sm"
-                @click="loadApartments"
-                :disabled="loading"
-              >
-                <CIcon name="cilReload" class="me-1" />
-                Aktualisieren
-              </CButton>
-              <CFormCheck
-                v-model="autoNavigate"
-                class="ms-3"
-                label="Automatisch zur nächsten ungespülten Wohnung springen"
-              />
-            </div>
-          </CCardHeader>
-        </CCard>
-      </CCol>
-    </CRow>
+    <!-- Header mit Navigation in Card -->
+    <CCard class="mb-4">
+      <CCardBody>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2>{{ $t('flushing.title') }}</h2>
+            <p class="text-muted mb-0">{{ $t('flushing.subtitle') }}</p>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <CButton
+              color="primary"
+              @click="loadApartments"
+              :disabled="loading"
+            >
+              <CIcon name="cilReload" class="me-2" />
+              {{ $t('common.refresh') }}
+            </CButton>
+          </div>
+        </div>
+      </CCardBody>
+    </CCard>
+
+    <!-- Auto-Navigate Option -->
+    <CCard class="mb-4">
+      <CCardBody>
+        <CFormCheck
+          v-model="autoNavigate"
+          :label="$t('flushing.autoNavigate')"
+        />
+      </CCardBody>
+    </CCard>
 
     <!-- Apartment Liste -->
     <CRow class="mb-4">
       <CCol>
         <CCard>
           <CCardHeader>
-            <h5>Wohnungen</h5>
+            <h5>{{ $t('nav.apartments') }}</h5>
           </CCardHeader>
           <CCardBody>
             <div v-if="loading" class="text-center">
               <CSpinner />
-              <p class="mt-2">Lade Wohnungen...</p>
+              <p class="mt-2">{{ $t('apartments.loading') }}</p>
             </div>
             <div v-else-if="error" class="alert alert-danger">
               {{ error }}
@@ -57,20 +62,20 @@
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
                     <strong>{{ apartment.number }}</strong>
-                    <span class="text-muted ms-2">Etage {{ apartment.floor }}</span>
+                    <span class="text-muted ms-2">{{ $t('flushing.floor') }} {{ apartment.floor }}</span>
                     <CBadge
                       v-if="!apartment.enabled"
                       color="secondary"
                       class="ms-2"
                     >
-                      Deaktiviert
+                      {{ $t('flushing.disabled') }}
                     </CBadge>
                     <CBadge
                       v-else-if="needsFlush(apartment)"
                       color="warning"
                       class="ms-2"
                     >
-                      Spülung fällig
+                      {{ $t('apartments.needsFlushing') }}
                     </CBadge>
                     <CBadge
                       v-else
@@ -82,7 +87,7 @@
                   </div>
                   <div class="text-end">
                     <small class="text-muted">
-                      Letzte Spülung: {{ formatLastFlush(apartment) }}
+                      {{ $t('flushing.lastFlush') }}: {{ formatLastFlush(apartment) }}
                     </small>
                   </div>
                 </div>
@@ -98,12 +103,12 @@
       <CCol>
         <CCard>
           <CCardHeader>
-            <h5>Spülung für Wohnung {{ currentApartment.number }}</h5>
+            <h5>{{ $t('flushing.flushControl') }} {{ $t('flushing.apartment') }} {{ currentApartment.number }}</h5>
           </CCardHeader>
           <CCardBody>
             <div v-if="!isFlushingActive" class="text-center">
               <p class="mb-3">
-                Mindestspüldauer: {{ currentApartment.min_flush_duration }} Sekunden
+                {{ $t('flushing.minDuration') }}: {{ currentApartment.min_flush_duration }} {{ $t('flushing.seconds') }}
               </p>
               <CButton
                 color="success"
@@ -112,7 +117,7 @@
                 :disabled="flushingLoading"
               >
                 <CIcon name="cilPlayArrow" class="me-2" />
-                Spülung starten
+                {{ $t('flushing.startFlush') }}
               </CButton>
             </div>
             <div v-else class="text-center">
@@ -143,12 +148,12 @@
                   </svg>
                   <div class="countdown-text">
                     <div class="countdown-number">{{ remainingTime }}</div>
-                    <div class="countdown-label">Sekunden</div>
+                    <div class="countdown-label">{{ $t('flushing.seconds') }}</div>
                   </div>
                 </div>
               </div>
               <p class="mb-3">
-                Spülung läuft seit {{ Math.floor((Date.now() - flushStartTime) / 1000) }} Sekunden
+                {{ $t('flushing.flushRunning', { seconds: Math.floor((Date.now() - flushStartTime) / 1000) }) }}
               </p>
               <CButton
                 color="danger"
@@ -157,14 +162,14 @@
                 :disabled="flushingLoading || remainingTime > 0"
               >
                 <CIcon name="cilStop" class="me-2" />
-                Spülung beenden
+                {{ $t('flushing.stopFlush') }}
               </CButton>
               <p class="mt-2 text-muted small">
                 <span v-if="remainingTime > 0">
-                  Mindestspüldauer noch nicht erreicht
+                  {{ $t('flushing.minDurationNotReached') }}
                 </span>
                 <span v-else>
-                  Mindestspüldauer erreicht - Spülung kann beendet werden
+                  {{ $t('flushing.minDurationReached') }}
                 </span>
               </p>
             </div>
@@ -178,12 +183,12 @@
       <CCol>
         <CCard>
           <CCardHeader>
-            <h5>GPS Status</h5>
+            <h5>{{ $t('flushing.gpsStatus') }}</h5>
           </CCardHeader>
           <CCardBody>
             <div v-if="gpsLoading" class="text-center">
               <CSpinner size="sm" />
-              <span class="ms-2">GPS Position wird ermittelt...</span>
+              <span class="ms-2">{{ $t('flushing.gpsLoading') }}</span>
             </div>
             <div v-else-if="gpsError" class="alert alert-warning">
               <CIcon name="cilLocationPin" class="me-2" />
@@ -192,7 +197,7 @@
             <div v-else-if="currentPosition" class="d-flex align-items-center">
               <CIcon name="cilLocationPin" class="me-2 text-success" />
               <span>
-                Position: {{ currentPosition.latitude.toFixed(6) }}, {{ currentPosition.longitude.toFixed(6) }}
+                {{ $t('flushing.position') }}: {{ currentPosition.latitude.toFixed(6) }}, {{ currentPosition.longitude.toFixed(6) }}
                 <span v-if="currentPosition.accuracy" class="text-muted ms-2">
                   (±{{ Math.round(currentPosition.accuracy) }}m)
                 </span>
@@ -207,6 +212,7 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { formatDateTime } from '@/utils/dateFormatter.js'
 import { useApiApartment } from '../../api/ApiApartment.js'
 import { useApiRecords } from '../../api/ApiRecords.js'
 import { currentUser } from '../../stores/GlobalUser.js'
@@ -297,11 +303,7 @@ export default {
 
     const formatLastFlush = (apartment) => {
       if (!apartment.last_flush_date) return 'Nie'
-      const date = new Date(apartment.last_flush_date)
-      return date.toLocaleDateString('de-DE') + ' ' + date.toLocaleTimeString('de-DE', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      return formatDateTime(apartment.last_flush_date)
     }
 
     const selectApartment = (apartment) => {

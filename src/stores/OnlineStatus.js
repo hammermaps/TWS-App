@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import healthClient from '../api/ApiHealth.js'
 import { useOfflineDataPreloader } from '../services/OfflineDataPreloader.js'
 import { useConfigSyncService } from '../services/ConfigSyncService.js'
+import { useConfigStorage } from './ConfigStorage.js'
 
 export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // State
@@ -16,7 +17,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   const isCheckingConnection = ref(false)
   const dataPreloader = useOfflineDataPreloader() // Preloader für Offline-Daten
   const configSyncService = useConfigSyncService() // Config Sync Service
-  
+
   // Lazy-Loading für OfflineFlushSyncService (Import erfolgt bei Bedarf)
   // HINWEIS: Dies ist sicher, da Pinia Stores Singletons sind.
   // Der Service wird nur einmal geladen und über alle Store-Instanzen geteilt.
@@ -121,7 +122,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
           // Synchronisiere ausstehende Konfigurationsänderungen
           syncConfigChanges()
-          
+
           // Synchronisiere ausstehende Offline-Spülungen
           syncFlushData()
         }
@@ -165,9 +166,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     try {
       const flushSyncService = await getFlushSyncService()
       console.log('🔄 Starte Flush-Synchronisation...')
-      
+
       const result = await flushSyncService.attemptSync()
-      
+
       if (result) {
         if (result.success) {
           console.log(`✅ ${result.successCount} Spülungen synchronisiert`)
@@ -240,10 +241,10 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
       // Preloading starten wenn Daten veraltet sind oder nicht existieren
       triggerPreloadIfNeeded()
-      
+
       // Config-Synchronisation starten
       syncConfigChanges()
-      
+
       // Flush-Synchronisation starten
       syncFlushData()
     }
@@ -275,18 +276,24 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       return
     }
 
-    // Prüfe ob Preloading nötig ist
-    if (!dataPreloader.isDataPreloaded() || dataPreloader.shouldRefreshData()) {
-      console.log('🔄 Starte automatisches Preloading...')
-      notifyUser('Lade Daten für Offline-Modus...', 'info')
+    // Prüfe ob Preloading nötig ist (Daten älter als 24h oder nicht vorhanden)
+    if (!dataPreloader.isDataPreloaded() || dataPreloader.shouldRefreshData(24)) {
+      const stats = dataPreloader.getPreloadStats()
+      if (stats.preloaded && stats.hoursSinceLastPreload >= 24) {
+        console.log(`🔄 Offline-Daten sind ${stats.hoursSinceLastPreload}h alt - starte automatische Aktualisierung...`)
+        notifyUser(`Daten werden aktualisiert (${stats.hoursSinceLastPreload}h alt)...`, 'info')
+      } else {
+        console.log('🔄 Starte automatisches Preloading...')
+        notifyUser('Lade Daten für Offline-Modus...', 'info')
+      }
 
       const success = await dataPreloader.preloadAllData()
 
       if (success) {
-        const stats = dataPreloader.getPreloadStats()
-        console.log('✅ Preloading erfolgreich:', stats)
+        const updatedStats = dataPreloader.getPreloadStats()
+        console.log('✅ Preloading erfolgreich:', updatedStats)
         notifyUser(
-          `Offline-Daten geladen: ${stats.buildingsCount} Gebäude, ${stats.apartmentsCount} Apartments`,
+          `Offline-Daten geladen: ${updatedStats.buildingsCount} Gebäude, ${updatedStats.apartmentsCount} Apartments`,
           'success'
         )
       } else {
@@ -294,7 +301,8 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         notifyUser('Fehler beim Laden der Offline-Daten', 'warning')
       }
     } else {
-      console.log('✓ Offline-Daten sind aktuell')
+      const stats = dataPreloader.getPreloadStats()
+      console.log(`✓ Offline-Daten sind aktuell (${stats.hoursSinceLastPreload}h alt)`)
     }
   }
 
@@ -307,16 +315,25 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       return
     }
 
+    // Prüfe ob autoSync aktiviert ist
+    const configStorage = useConfigStorage()
+    const config = configStorage.loadConfig()
+
+    if (!config?.sync?.autoSync) {
+      console.log('⏸️ Config-Sync übersprungen - autoSync deaktiviert')
+      return
+    }
+
     if (!configSyncService.hasPending()) {
       console.log('✓ Keine ausstehenden Konfigurationsänderungen')
       return
     }
 
-    console.log('🔄 Synchronisiere Konfigurationsänderungen...')
-    
+    console.log('🔄 Synchronisiere Konfigurationsänderungen (autoSync)...')
+
     try {
       const result = await configSyncService.syncPending()
-      
+
       if (result.success) {
         console.log(`✅ ${result.synced} Konfigurationsänderungen synchronisiert`)
         if (result.synced > 0) {

@@ -1,5 +1,6 @@
 .dashboard {
   min-height: 100vh;
+  padding-left: 9px;
 }
 
 .text-center .border {

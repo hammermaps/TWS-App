@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
+import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 
 // Konfigurationsobjekt
 export class ConfigItem {
@@ -19,15 +20,16 @@ export class ApiRequest {
         method = "GET",
         body = null,
         headers = {},
-        timeout = 5000,
-        retries = 2,
+        timeout = null,
+        retries = null,
     }) {
         this.endpoint = endpoint
         this.method = method
         this.body = body
         this.headers = headers
-        this.timeout = timeout
-        this.retries = retries
+        // Verwende Konfigurationswerte mit Fallback
+        this.timeout = getApiTimeout(timeout)
+        this.retries = getMaxRetries(retries)
     }
 }
 
@@ -123,7 +125,7 @@ export class ApiConfig {
      * GET /config/get - Aktuelle Konfiguration abrufen
      */
     async get(options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const request = new ApiRequest({
             endpoint: "/config/get",
@@ -140,7 +142,7 @@ export class ApiConfig {
      * POST /config/set - Konfigurationswerte setzen
      */
     async set(configData = {}, options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const request = new ApiRequest({
             endpoint: "/config/set",
@@ -158,7 +160,7 @@ export class ApiConfig {
      * DELETE /config/reset - Konfiguration auf Standardwerte zurücksetzen
      */
     async reset(options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const request = new ApiRequest({
             endpoint: "/config/reset",
@@ -175,7 +177,7 @@ export class ApiConfig {
      * PUT /config/remove - Konfigurationswerte gezielt entfernen
      */
     async remove(keys = [], options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const request = new ApiRequest({
             endpoint: "/config/remove",

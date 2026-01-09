@@ -1,6 +1,7 @@
 // ApiHealth.js - Health Status API Client mit Axios
 import axios from 'axios'
 import { cookieManager, parseCookiesFromResponse } from '../stores/CookieManager.js'
+import { getApiTimeout } from '../utils/ApiConfigHelper.js'
 
 /**
  * Memory Usage Informationen
@@ -225,7 +226,7 @@ export class ApiHealthClient {
     // Axios-Instanz mit Cookie-Unterstützung konfigurieren
     this.client = axios.create({
       baseURL: this.baseUrl,
-      timeout: 10000,
+      timeout: getApiTimeout(null), // Verwende Konfigurationswert mit Fallback
       withCredentials: true, // Wichtig für Cookie-Übertragung
       headers: {
         'Content-Type': 'application/json'

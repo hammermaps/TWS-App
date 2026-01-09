@@ -120,7 +120,6 @@ const getLastPingInfo = computed(() => {
               :id="'manual-offline-toggle'"
               v-model="onlineStatusStore.manualOfflineMode"
               switch
-              size="lg"
               @change="toggleOnlineStatus"
               class="flex-shrink-0"
             />

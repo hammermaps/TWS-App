@@ -65,3 +65,39 @@ body {
     --cui-footer-bg: var(--cui-body-bg);
   }
 }
+
+// Custom container with vertical padding
+.container-p-y {
+  padding-bottom: 1.5rem !important;
+}
+
+// Zebra-Streifen für alle Tabellen (alternierend 2-farbig)
+// Light Mode - Weiß und Hellgrau
+:not([data-coreui-theme="dark"]) {
+  tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+  }
+
+  tbody tr:hover {
+    background-color: #e9ecef !important;
+  }
+}
+
+// Dark Mode - Angepasstes Dunkelgrau
+[data-coreui-theme="dark"] {
+  tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: transparent;
+  }
+
+  tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+}

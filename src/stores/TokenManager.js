@@ -78,6 +78,7 @@ const handleInvalidToken = async () => {
 // Token-Prüfung bei Seitenaufruf (einmalig pro Route)
 const checkTokenOnPageLoad = async (routeName) => {
   if (!authToken.value || !isAuthenticated.value) {
+    console.warn('⚠️ checkTokenOnPageLoad: Kein Token oder nicht authentifiziert')
     return { valid: false, reason: 'Nicht authentifiziert' }
   }
 
@@ -113,9 +114,9 @@ const checkTokenOnPageLoad = async (routeName) => {
     const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:4040'
     const { validateToken } = useUser(baseUrl)
 
-    // Timeout für Server-Anfrage setzen (3 Sekunden)
+    // Timeout für Server-Anfrage setzen (5 Sekunden - erhöht von 3)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Server-Timeout')), 3000)
+      setTimeout(() => reject(new Error('Server-Timeout')), 5000)
     })
 
     const result = await Promise.race([
@@ -128,6 +129,7 @@ const checkTokenOnPageLoad = async (routeName) => {
 
     if (!result.valid) {
       console.warn('❌ Token bei Seitenaufruf ungültig - Benutzer wird abgemeldet')
+      console.warn('🔍 Validierungsergebnis:', result)
       await handleInvalidToken()
       return { valid: false, reason: result.error || 'Token ungültig' }
     } else {
@@ -137,21 +139,25 @@ const checkTokenOnPageLoad = async (routeName) => {
     }
   } catch (error) {
     console.error('❌ Fehler bei Seitenaufruf-Token-Prüfung:', error)
+    console.error('🔍 Error details:', { name: error.name, message: error.message, stack: error.stack?.substring(0, 200) })
 
     // Bei Netzwerkfehlern (Server nicht erreichbar) nicht abmelden
     if (error.message.includes('fetch') ||
         error.message.includes('Network') ||
         error.message.includes('Server-Timeout') ||
-        error.name === 'TypeError') {
-      console.log('🌐 Server nicht erreichbar: Token-Prüfung übersprungen, vertraue lokalem Token')
+        error.message.includes('AbortError') ||
+        error.name === 'TypeError' ||
+        error.name === 'AbortError') {
+      console.log('🌐 Server nicht erreichbar oder Request abgebrochen: Token-Prüfung übersprungen, vertraue lokalem Token')
       registerActivity()
       // Markiere als "geprüft" für diese Session (aber kürzer gültig)
       sessionStorage.setItem(lastCheckKey, (Date.now() - 60000).toString()) // 1 Minute früher
       return { valid: true, reason: 'Server nicht erreichbar: Lokales Token vertraut' }
     }
 
-    // Bei anderen Fehlern weiterhin fehlschlagen
-    return { valid: false, reason: error.message }
+    // Bei anderen Fehlern weiterhin fehlschlagen, aber NICHT abmelden bei unerwarteten Fehlern
+    console.warn('⚠️ Unerwarteter Fehler bei Token-Prüfung, vertraue lokalem Token')
+    return { valid: true, reason: `Fehler bei Validierung (${error.message}), behalte Token` }
   } finally {
     isCheckingToken.value = false
   }
@@ -218,20 +224,24 @@ const performTokenCheck = async () => {
     }
   } catch (error) {
     console.error('❌ Fehler bei Token-Prüfung:', error)
+    console.error('🔍 Error details:', { name: error.name, message: error.message })
     lastTokenCheck.value = new Date()
 
     // Bei Netzwerkfehlern (Server nicht erreichbar) nicht abmelden
     if (error.message.includes('fetch') ||
         error.message.includes('Network') ||
         error.message.includes('Server-Timeout') ||
-        error.name === 'TypeError') {
-      console.log('🌐 Server nicht erreichbar: Automatische Token-Prüfung übersprungen, behalte Token')
+        error.message.includes('AbortError') ||
+        error.name === 'TypeError' ||
+        error.name === 'AbortError') {
+      console.log('🌐 Server nicht erreichbar oder Request abgebrochen: Automatische Token-Prüfung übersprungen, behalte Token')
       registerActivity()
       return { valid: true, reason: 'Server nicht erreichbar: Token behalten' }
     }
 
-    // Bei anderen Fehlern weiterhin fehlschlagen
-    return { valid: false, reason: error.message }
+    // Bei anderen Fehlern weiterhin fehlschlagen, aber nur bei kritischen Fehlern abmelden
+    console.warn('⚠️ Unerwarteter Fehler bei automatischer Token-Prüfung, behalte Token')
+    return { valid: true, reason: `Fehler bei Validierung (${error.message}), Token behalten` }
   } finally {
     isCheckingToken.value = false
   }

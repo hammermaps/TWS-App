@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
+import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 
 // Einzelnes Gebäude-Element
 export class BuildingItem {
@@ -44,15 +45,16 @@ export class ApiRequest {
         method = "GET",
         body = null,
         headers = {},
-        timeout = 5000,
-        retries = 2,
+        timeout = null,
+        retries = null,
     }) {
         this.endpoint = endpoint
         this.method = method
         this.body = body
         this.headers = headers
-        this.timeout = timeout
-        this.retries = retries
+        // Verwende Konfigurationswerte mit Fallback
+        this.timeout = getApiTimeout(timeout)
+        this.retries = getMaxRetries(retries)
     }
 }
 
@@ -153,14 +155,17 @@ export class ApiBuilding {
         } catch (error) {
             clearTimeout(timeoutId)
 
-            if (attempt < request.retries && !controller.signal.aborted) {
+            // Bei AbortError (Timeout) keine Retries, nur bei echten Netzwerkfehlern
+            const isTimeout = error.name === 'AbortError'
+
+            if (!isTimeout && attempt < request.retries) {
                 await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
                 return this.send(request, attempt + 1)
             }
 
             return new ApiResponse({
                 success: false,
-                error: error.name === 'AbortError' ? 'Request timeout' : (error.message || 'Netzwerkfehler'),
+                error: isTimeout ? 'Request timeout - Server antwortet nicht rechtzeitig' : (error.message || 'Netzwerkfehler'),
                 data: null
             })
         }
@@ -170,7 +175,7 @@ export class ApiBuilding {
      * GET /buildings/list - Alle Gebäude auflisten
      */
     async list(options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options // Timeout auf 120 Sekunden erhöht
 
         const request = new ApiRequest({
             endpoint: "/buildings/list",
@@ -195,7 +200,7 @@ export class ApiBuilding {
      * GET /buildings/{id} - Gebäude nach ID abrufen
      */
     async getById(id, options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options // Timeout auf 15 Sekunden erhöht
 
         const request = new ApiRequest({
             endpoint: `/buildings/${encodeURIComponent(id)}`,
@@ -222,7 +227,7 @@ export class ApiBuilding {
      * POST /buildings/create - Neues Gebäude erstellen
      */
     async create(data = {}, options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const request = new ApiRequest({
             endpoint: "/buildings/create",
@@ -247,7 +252,7 @@ export class ApiBuilding {
      * POST /buildings/{id} - Gebäude aktualisieren
      */
     async update(id, partial = {}, options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const request = new ApiRequest({
             endpoint: `/buildings/${encodeURIComponent(id)}`,
@@ -272,7 +277,7 @@ export class ApiBuilding {
      * DELETE /buildings/{id} - Gebäude löschen
      */
     async remove(id, options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const request = new ApiRequest({
             endpoint: `/buildings/${encodeURIComponent(id)}`,
@@ -289,7 +294,7 @@ export class ApiBuilding {
      * POST /buildings/sync - Gebäude synchronisieren
      */
     async sync(array = [], options = {}) {
-        const { timeout = 5000, headers = {} } = options
+        const { timeout = null, headers = {} } = options
 
         const body = Array.isArray(array) ? array.map(it => toPlainBuilding(it, { allowPartial: false })) : []
 

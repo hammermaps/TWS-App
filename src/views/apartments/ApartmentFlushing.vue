@@ -1,96 +1,100 @@
 <template>
   <div class="apartment-flushing">
-    <!-- Header mit Navigation -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h2>Spülung - Apartment {{ apartmentNumber || apartmentId }}</h2>
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <router-link to="/buildings" class="text-decoration-none">
-                Gebäude
-              </router-link>
-            </li>
-            <li class="breadcrumb-item">
-              <router-link
-                :to="{
-                  name: 'BuildingApartments',
-                  params: { id: buildingId },
-                  query: { buildingName }
-                }"
-                class="text-decoration-none"
+    <!-- Header mit Navigation in Card -->
+    <CCard class="mb-4">
+      <CCardBody>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2>{{ $t('flushing.apartmentFlushing', { number: apartmentNumber || apartmentId }) }}</h2>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                  <router-link to="/buildings" class="text-decoration-none">
+                    {{ $t('nav.buildings') }}
+                  </router-link>
+                </li>
+                <li class="breadcrumb-item">
+                  <router-link
+                    :to="{
+                      name: 'BuildingApartments',
+                      params: { id: buildingId },
+                      query: { buildingName }
+                    }"
+                    class="text-decoration-none"
+                  >
+                    {{ buildingName || `${$t('buildings.name')} #${buildingId}` }}
+                  </router-link>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                  {{ $t('flushing.apartment') }} {{ apartmentNumber || apartmentId }}
+                </li>
+              </ol>
+            </nav>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <!-- Offline/Sync Status -->
+            <div v-if="syncStatus && syncStatus.unsyncedCount > 0" class="me-3">
+              <CBadge
+                :color="syncStatus.isOnline ? 'warning' : 'danger'"
+                class="d-flex align-items-center gap-1"
               >
-                {{ buildingName || `Gebäude #${buildingId}` }}
-              </router-link>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">
-              Apartment {{ apartmentNumber || apartmentId }}
-            </li>
-          </ol>
-        </nav>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <!-- Offline/Sync Status -->
-        <div v-if="syncStatus && syncStatus.unsyncedCount > 0" class="me-3">
-          <CBadge
-            :color="syncStatus.isOnline ? 'warning' : 'danger'"
-            class="d-flex align-items-center gap-1"
-          >
-            <CIcon :icon="syncStatus.isOnline ? 'cil-cloud-upload' : 'cil-wifi-off'" size="sm" />
-            {{ syncStatus.unsyncedCount }} unsynced
-          </CBadge>
+                <CIcon :icon="syncStatus.isOnline ? 'cil-cloud-upload' : 'cil-wifi-off'" size="sm" />
+                {{ syncStatus.unsyncedCount }} {{ $t('flushing.unsynced') }}
+              </CBadge>
+            </div>
+
+            <!-- Offline Indicator -->
+            <div v-if="!isOnline" class="me-3">
+              <CBadge color="secondary" class="d-flex align-items-center gap-1">
+                <CIcon icon="cil-wifi-off" size="sm" />
+                {{ $t('flushing.offlineMode') }}
+              </CBadge>
+            </div>
+
+            <CFormCheck
+              v-model="autoNavigate"
+              :label="$t('flushing.autoNavigate')"
+              class="me-3"
+            />
+
+            <!-- Sync Button (nur wenn offline Items vorhanden) -->
+            <CButton
+              v-if="syncStatus && syncStatus.unsyncedCount > 0 && isOnline"
+              color="info"
+              variant="outline"
+              size="sm"
+              @click="forceSyncFlushes"
+              :disabled="syncStatus.isSyncing"
+              class="me-2"
+            >
+              <CIcon icon="cil-reload" :class="{ 'fa-spin': syncStatus.isSyncing }" />
+              {{ $t('flushing.sync') }}
+            </CButton>
+
+            <CButton color="secondary" variant="outline" @click="goBack">
+              <CIcon icon="cil-arrow-left" class="me-2" />
+              {{ $t('flushing.back') }}
+            </CButton>
+          </div>
         </div>
-
-        <!-- Offline Indicator -->
-        <div v-if="!isOnline" class="me-3">
-          <CBadge color="secondary" class="d-flex align-items-center gap-1">
-            <CIcon icon="cil-wifi-off" size="sm" />
-            Offline-Modus
-          </CBadge>
-        </div>
-
-        <CFormCheck
-          v-model="autoNavigate"
-          label="Zur nächsten Wohnung springen"
-          class="me-3"
-        />
-
-        <!-- Sync Button (nur wenn offline Items vorhanden) -->
-        <CButton
-          v-if="syncStatus && syncStatus.unsyncedCount > 0 && isOnline"
-          color="info"
-          variant="outline"
-          size="sm"
-          @click="forceSyncFlushes"
-          :disabled="syncStatus.isSyncing"
-          class="me-2"
-        >
-          <CIcon icon="cil-reload" :class="{ 'fa-spin': syncStatus.isSyncing }" />
-          Sync
-        </CButton>
-
-        <CButton color="secondary" variant="outline" @click="goBack">
-          <CIcon icon="cil-arrow-left" class="me-2" />
-          Zurück
-        </CButton>
-      </div>
-    </div>
+      </CCardBody>
+    </CCard>
 
     <!-- Offline Alert -->
     <CAlert v-if="!isOnline" color="warning" :visible="true" class="mb-4">
       <CIcon icon="cil-wifi-off" class="me-2" />
-      <strong>Offline-Modus:</strong> Spülungen werden lokal gespeichert und automatisch synchronisiert, sobald eine Internetverbindung verfügbar ist.
+      <strong>{{ $t('flushing.offlineMode') }}:</strong> {{ $t('flushing.offlineAlert') }}
     </CAlert>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center">
       <CSpinner color="primary" />
-      <p class="mt-2">Lade Apartment-Daten...</p>
+      <p class="mt-2">{{ $t('flushing.loadingApartment') }}</p>
     </div>
 
     <!-- Error State -->
     <CAlert v-if="error" color="danger" :visible="true">
-      <strong>Fehler:</strong> {{ error }}
+      <strong>{{ $t('common.error') }}:</strong> {{ error }}
     </CAlert>
 
     <!-- Main Content -->
@@ -101,18 +105,18 @@
           <CCardHeader>
             <h5>
               <CIcon icon="cil-drop" class="me-2" />
-              Spül-Steuerung
+              {{ $t('flushing.flushControl') }}
             </h5>
           </CCardHeader>
           <CCardBody class="text-center">
             <div v-if="!currentApartment.enabled" class="alert alert-warning">
               <CIcon icon="cil-warning" class="me-2" />
-              Dieses Apartment ist deaktiviert und kann nicht gespült werden.
+              {{ $t('flushing.apartmentDisabled') }}
             </div>
 
             <div v-else>
               <p class="mb-4">
-                <strong>Mindestspüldauer:</strong> {{ currentApartment.min_flush_duration }} Sekunden
+                <strong>{{ $t('flushing.minDuration') }}:</strong> {{ currentApartment.min_flush_duration }} {{ $t('flushing.seconds') }}
               </p>
 
               <!-- Spül-Kreis mit integriertem Start/Stop Button -->
@@ -159,10 +163,10 @@
                         class="mb-2"
                       />
                       <div class="fw-bold">
-                        {{ isFlushingActive ? 'STOPP' : 'START' }}
+                        {{ isFlushingActive ? $t('flushing.stop') : $t('flushing.start') }}
                       </div>
                       <div v-if="isFlushingActive" class="small">
-                        {{ remainingTime > 0 ? `${remainingTime}s` : 'Stopp möglich' }}
+                        {{ remainingTime > 0 ? `${remainingTime}s` : $t('flushing.stopPossible') }}
                       </div>
                     </div>
                   </CButton>
@@ -181,7 +185,7 @@
 
                 <div v-if="isFlushingActive" class="mt-2">
                   <small class="text-muted">
-                    Läuft seit {{ formatDuration(elapsedTime) }}
+                    {{ $t('flushing.runningSince', { duration: formatDuration(elapsedTime) }) }}
                   </small>
                 </div>
               </div>
@@ -190,7 +194,7 @@
               <div v-if="showOfflineSuccess" class="mt-3">
                 <CAlert color="info" :visible="true">
                   <CIcon icon="cil-check-circle" class="me-2" />
-                  Spülung offline gespeichert. Wird automatisch synchronisiert.
+                  {{ $t('flushing.offlineSaved') }}
                 </CAlert>
               </div>
             </div>
@@ -204,59 +208,59 @@
           <CCardHeader>
             <h5>
               <CIcon icon="cil-home" class="me-2" />
-              Apartment-Details
+              {{ $t('flushing.apartmentDetails') }}
             </h5>
           </CCardHeader>
           <CCardBody>
             <div class="apartment-details">
               <div class="detail-row">
-                <strong>Apartment:</strong>
+                <strong>{{ $t('flushing.apartment') }}:</strong>
                 <span>{{ currentApartment.number }}</span>
               </div>
               <div class="detail-row">
-                <strong>Etage:</strong>
+                <strong>{{ $t('flushing.floor') }}:</strong>
                 <span>{{ currentApartment.floor || 'N/A' }}</span>
               </div>
               <div class="detail-row">
-                <strong>Status:</strong>
+                <strong>{{ $t('common.status') }}:</strong>
                 <CBadge :color="currentApartment.enabled ? 'success' : 'danger'">
-                  {{ currentApartment.enabled ? 'Aktiv' : 'Deaktiviert' }}
+                  {{ currentApartment.enabled ? $t('flushing.active') : $t('flushing.disabled') }}
                 </CBadge>
               </div>
               <div class="detail-row">
-                <strong>Mindestspüldauer:</strong>
+                <strong>{{ $t('flushing.minDuration') }}:</strong>
                 <span>{{ currentApartment.min_flush_duration }}s</span>
               </div>
               <div class="detail-row">
-                <strong>Letzte Spülung:</strong>
+                <strong>{{ $t('flushing.lastFlush') }}:</strong>
                 <span v-if="currentApartment.last_flush_date">
                   {{ formatDate(currentApartment.last_flush_date) }}
                   <small class="text-muted d-block">
                     {{ formatTimeAgo(currentApartment.last_flush_date) }}
                   </small>
                 </span>
-                <span v-else class="text-muted">Noch nie</span>
+                <span v-else class="text-muted">{{ $t('flushing.never') }}</span>
               </div>
               <div class="detail-row">
-                <strong>Nächste Spülung:</strong>
+                <strong>{{ $t('flushing.nextFlush') }}:</strong>
                 <span v-if="currentApartment.next_flush_due">
                   {{ formatDate(currentApartment.next_flush_due) }}
                   <small :class="getNextFlushClass(currentApartment.next_flush_due)" class="d-block">
                     {{ formatTimeToNext(currentApartment.next_flush_due) }}
                   </small>
                 </span>
-                <span v-else class="text-muted">Nicht geplant</span>
+                <span v-else class="text-muted">{{ $t('flushing.notPlanned') }}</span>
               </div>
             </div>
 
             <!-- Navigation zu nächstem Apartment -->
             <div v-if="nextApartment" class="mt-4 pt-3 border-top">
-              <h6 class="text-muted mb-3">Nächstes Apartment:</h6>
+              <h6 class="text-muted mb-3">{{ $t('flushing.nextApartment') }}:</h6>
               <div class="d-flex justify-content-between align-items-center">
                 <div>
                   <strong>{{ nextApartment.number }}</strong>
                   <small class="text-muted d-block">
-                    Etage {{ nextApartment.floor || 'N/A' }}
+                    {{ $t('flushing.floor') }} {{ nextApartment.floor || 'N/A' }}
                   </small>
                 </div>
                 <CButton
@@ -266,7 +270,7 @@
                   :disabled="isFlushingActive"
                 >
                   <CIcon icon="cil-arrow-right" class="me-2" />
-                  Nächstes
+                  {{ $t('flushing.next') }}
                 </CButton>
               </div>
             </div>
@@ -282,9 +286,9 @@
           <CCardHeader>
             <h5>
               <CIcon icon="cil-history" class="me-2" />
-              Letzte Spülungen
+              {{ $t('flushing.recentFlushes') }}
               <small v-if="offlineFlushes.length > 0" class="text-muted">
-                ({{ offlineFlushes.length }} offline)
+                ({{ offlineFlushes.length }} {{ $t('offline.title').toLowerCase() }})
               </small>
             </h5>
           </CCardHeader>
@@ -292,15 +296,15 @@
             <CTable hover responsive>
               <CTableHead>
                 <CTableRow>
-                  <CTableHeaderCell>Datum</CTableHeaderCell>
-                  <CTableHeaderCell>Dauer</CTableHeaderCell>
-                  <CTableHeaderCell>Status</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.date') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('common.duration') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('common.status') }}</CTableHeaderCell>
                   <CTableHeaderCell>Sync</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
                 <!-- Offline-Spülungen -->
-                <CTableRow v-for="flush in offlineFlushes" :key="flush.id" class="table-secondary">
+                <CTableRow v-for="flush in offlineFlushes" :key="flush.id">
                   <CTableDataCell>
                     {{ formatDate(flush.endTime) }}
                     <small class="text-muted d-block">Offline erstellt</small>
@@ -346,7 +350,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { formatDate } from '@/utils/dateFormatter.js'
 import { useRoute, useRouter } from 'vue-router'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
 import { useOfflineFlushStorage } from '@/stores/OfflineFlushStorage.js'
@@ -545,9 +550,39 @@ const stopFlushing = async () => {
 
         // Apartment-Daten aktualisieren
         if (result.data && result.data.apartment) {
+          // Server hat aktualisierte Apartment-Daten zurückgegeben
           currentApartment.value = result.data.apartment
           apartmentStorage.storage.addOrUpdateApartment(buildingId.value, result.data.apartment)
+          console.log('✅ Apartment-Daten vom Server aktualisiert')
+        } else {
+          // Server hat keine aktualisierten Daten zurückgegeben - manuell aktualisieren
+          console.log('ℹ️ Aktualisiere Apartment-Daten manuell nach Spülung')
+          currentApartment.value.last_flush_date = flushData.endTime
+          currentApartment.value.last_flush_duration = flushData.duration
+
+          // Berechne nächste Spülung (Annahme: 72 Stunden nach letzter Spülung)
+          const nextFlushDate = new Date(flushData.endTime)
+          nextFlushDate.setHours(nextFlushDate.getHours() + 72)
+          currentApartment.value.next_flush_due = nextFlushDate.toISOString()
+
+          // Speichere aktualisierte Daten im Storage
+          apartmentStorage.storage.addOrUpdateApartment(buildingId.value, currentApartment.value)
+          console.log('✅ Apartment-Daten lokal aktualisiert')
         }
+
+        // Füge neue Spülung zur Historie hinzu
+        const newFlush = {
+          id: result.data?.id || Date.now(),
+          date: flushData.endTime,
+          duration: flushData.duration,
+          success: true
+        }
+        recentFlushes.value.unshift(newFlush) // Am Anfang der Liste hinzufügen
+        // Begrenze auf die letzten 10 Einträge
+        if (recentFlushes.value.length > 10) {
+          recentFlushes.value = recentFlushes.value.slice(0, 10)
+        }
+        console.log('✅ Spülung zur Historie hinzugefügt')
 
         await handleNavigationAfterFlush()
       }
@@ -592,11 +627,26 @@ const stopFlushing = async () => {
 }
 
 const handleNavigationAfterFlush = async () => {
+  console.log('🔍 Prüfe Auto-Navigation:', {
+    autoNavigate: autoNavigate.value,
+    hasNextApartment: !!nextApartment.value,
+    nextApartmentNumber: nextApartment.value?.number,
+    nextApartmentId: nextApartment.value?.id
+  })
+
   if (autoNavigate.value && nextApartment.value) {
-    console.log('🚀 Navigiere zum nächsten Apartment:', nextApartment.value.number)
+    console.log('🚀 Auto-Navigation aktiviert - Navigiere in 2 Sekunden zum nächsten Apartment:', nextApartment.value.number)
     setTimeout(() => {
+      console.log('⏭️ Führe Navigation aus zu Apartment:', nextApartment.value.number)
       goToNextApartment()
     }, 2000)
+  } else {
+    if (!autoNavigate.value) {
+      console.log('⏸️ Auto-Navigation ist deaktiviert')
+    }
+    if (!nextApartment.value) {
+      console.log('⏸️ Kein nächstes Apartment verfügbar')
+    }
   }
 }
 
@@ -618,7 +668,17 @@ const forceSyncFlushes = async () => {
 
 // Navigation zu nächstem Apartment
 const goToNextApartment = () => {
-  if (!nextApartment.value) return
+  if (!nextApartment.value) {
+    console.warn('⚠️ Keine Navigation möglich - nextApartment ist null')
+    return
+  }
+
+  console.log('🎯 Navigiere zu:', {
+    apartmentNumber: nextApartment.value.number,
+    apartmentId: nextApartment.value.id,
+    buildingId: buildingId.value,
+    buildingName: buildingName.value
+  })
 
   router.push({
     name: 'ApartmentFlushing',
@@ -630,6 +690,10 @@ const goToNextApartment = () => {
       buildingName: buildingName.value,
       apartmentNumber: nextApartment.value.number
     }
+  }).then(() => {
+    console.log('✅ Navigation erfolgreich abgeschlossen')
+  }).catch((err) => {
+    console.error('❌ Navigation fehlgeschlagen:', err)
   })
 }
 
@@ -676,12 +740,12 @@ onMounted(async () => {
     localStorage.setItem('wls_auto_navigate_apartments', JSON.stringify(newValue))
     console.log('💾 Auto-Navigation gespeichert:', newValue)
   })
-  
+
   // Watch auf isFullyOnline für UI-Updates
   const stopOnlineWatch = watch(() => onlineStatusStore.isFullyOnline, (newIsOnline) => {
     console.log('🔄 Online-Status geändert:', newIsOnline)
     updateSyncStatus()
-    
+
     // Wenn wieder online, Sync anstoßen
     if (newIsOnline) {
       setTimeout(() => {
@@ -711,7 +775,7 @@ onMounted(async () => {
     if (statusInterval) {
       clearInterval(statusInterval)
     }
-    
+
     // Stoppe die Watchers
     stopAutoNavWatch()
     stopOnlineWatch()
@@ -775,20 +839,6 @@ const formatDuration = (seconds) => {
   return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`
 }
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'Unbekannt'
-  try {
-    return new Date(dateString).toLocaleDateString('de-DE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch {
-    return 'Ungültiges Datum'
-  }
-}
 
 const formatTimeAgo = (dateString) => {
   if (!dateString) return ''

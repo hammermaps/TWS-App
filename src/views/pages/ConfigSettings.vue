@@ -1,19 +1,20 @@
 <template>
-  <CRow>
-    <CCol :lg="10" :xl="8">
-      <!-- Konfiguration Header -->
+  <CRow style="padding-left: 9px;">
+    <CCol :lg="12">
+      <!-- Konfiguration Header in Card -->
       <CCard class="mb-4">
-        <CCardHeader>
-          <h4>
-            <CIcon icon="cilSettings" class="me-2" />
-            Konfiguration
-          </h4>
-        </CCardHeader>
         <CCardBody>
-          <p class="text-medium-emphasis">
-            Verwalten Sie hier die Anwendungskonfiguration. Administratoren können die globale Konfiguration ändern,
-            die als Standard für alle Benutzer dient. Benutzer können eigene Werte definieren, die die globalen Einstellungen überschreiben.
-          </p>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2>
+                <CIcon icon="cilSettings" class="me-2" />
+                {{ $t('settings.title') }}
+              </h2>
+              <p class="text-muted mb-0">
+                {{ $t('settings.subtitle') }}
+              </p>
+            </div>
+          </div>
         </CCardBody>
       </CCard>
 
@@ -45,109 +46,47 @@
         :visible="true"
       >
         <CIcon icon="cilWarning" class="me-2" />
-        Sie sind offline. Änderungen werden lokal gespeichert und synchronisiert, sobald Sie wieder online sind.
+        {{ $t('offline.dataWillSync') }}
       </CAlert>
 
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-4">
         <CSpinner color="primary" />
-        <p class="mt-2 text-medium-emphasis">Lade Konfiguration...</p>
+        <p class="mt-2 text-medium-emphasis">{{ $t('settings.loading') }}</p>
       </div>
 
       <!-- Configuration Sections -->
       <div v-else>
-        <!-- VDI 6023 Konfiguration -->
-        <CCard class="mb-4">
-          <CCardHeader>
-            <div class="d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">
-                <CIcon icon="cilWater" class="me-2" />
-                VDI 6023 Spülungseinstellungen
-              </h5>
-              <CBadge v-if="isAdmin" color="primary">Global</CBadge>
-            </div>
-          </CCardHeader>
-          <CCardBody>
-            <CRow class="mb-3">
-              <CCol :md="6">
-                <CFormLabel>Mindestdurchfluss (l/min)</CFormLabel>
-                <CFormInput
-                  v-model.number="configForm.vdi6023.minFlowRate"
-                  type="number"
-                  step="0.1"
-                  :disabled="!canEditGlobal"
-                  placeholder="z.B. 3.0"
-                />
-                <CFormText>Minimaler Durchfluss für ordnungsgemäße Spülung</CFormText>
-              </CCol>
-              <CCol :md="6">
-                <CFormLabel>Spüldauer (Minuten)</CFormLabel>
-                <CFormInput
-                  v-model.number="configForm.vdi6023.flushDuration"
-                  type="number"
-                  :disabled="!canEditGlobal"
-                  placeholder="z.B. 3"
-                />
-                <CFormText>Standarddauer einer Spülung</CFormText>
-              </CCol>
-            </CRow>
-            <CRow>
-              <CCol :md="6">
-                <CFormLabel>Temperatur Kaltwasser Max. (°C)</CFormLabel>
-                <CFormInput
-                  v-model.number="configForm.vdi6023.coldWaterMaxTemp"
-                  type="number"
-                  step="0.1"
-                  :disabled="!canEditGlobal"
-                  placeholder="z.B. 25.0"
-                />
-                <CFormText>Maximale Kaltwassertemperatur</CFormText>
-              </CCol>
-              <CCol :md="6">
-                <CFormLabel>Temperatur Warmwasser Min. (°C)</CFormLabel>
-                <CFormInput
-                  v-model.number="configForm.vdi6023.hotWaterMinTemp"
-                  type="number"
-                  step="0.1"
-                  :disabled="!canEditGlobal"
-                  placeholder="z.B. 55.0"
-                />
-                <CFormText>Minimale Warmwassertemperatur</CFormText>
-              </CCol>
-            </CRow>
-          </CCardBody>
-        </CCard>
-
         <!-- Server Konfiguration (Admin only) -->
         <CCard v-if="isAdmin" class="mb-4">
           <CCardHeader>
             <div class="d-flex justify-content-between align-items-center">
               <h5 class="mb-0">
                 <CIcon icon="cilServer" class="me-2" />
-                Server-Einstellungen
+                {{ $t('settings.server.title') }}
               </h5>
-              <CBadge color="danger">Nur Admin</CBadge>
+              <CBadge color="danger">{{ $t('settings.adminOnly') }}</CBadge>
             </div>
           </CCardHeader>
           <CCardBody>
             <CRow class="mb-3">
               <CCol :md="6">
-                <CFormLabel>API Timeout (ms)</CFormLabel>
+                <CFormLabel>{{ $t('settings.server.apiTimeout') }}</CFormLabel>
                 <CFormInput
                   v-model.number="configForm.server.apiTimeout"
                   type="number"
                   placeholder="z.B. 5000"
                 />
-                <CFormText>Standard-Timeout für API-Anfragen</CFormText>
+                <CFormText>{{ $t('settings.server.apiTimeoutHelp') }}</CFormText>
               </CCol>
               <CCol :md="6">
-                <CFormLabel>Max. Retry Versuche</CFormLabel>
+                <CFormLabel>{{ $t('settings.server.maxRetries') }}</CFormLabel>
                 <CFormInput
                   v-model.number="configForm.server.maxRetries"
                   type="number"
                   placeholder="z.B. 3"
                 />
-                <CFormText>Maximale Anzahl von Wiederholungen bei Fehlern</CFormText>
+                <CFormText>{{ $t('settings.server.maxRetriesHelp') }}</CFormText>
               </CCol>
             </CRow>
           </CCardBody>
@@ -158,85 +97,35 @@
           <CCardHeader>
             <h5 class="mb-0">
               <CIcon icon="cilColorPalette" class="me-2" />
-              Benutzeroberfläche
+              {{ $t('settings.ui.title') }}
             </h5>
           </CCardHeader>
           <CCardBody>
             <CRow class="mb-3">
               <CCol :md="6">
-                <CFormLabel>Design-Theme</CFormLabel>
+                <CFormLabel>{{ $t('settings.ui.theme') }}</CFormLabel>
                 <CFormSelect v-model="configForm.ui.theme">
-                  <option value="auto">Automatisch (System)</option>
-                  <option value="light">Hell</option>
-                  <option value="dark">Dunkel</option>
+                  <option value="auto">{{ $t('settings.ui.themeAuto') }}</option>
+                  <option value="light">{{ $t('settings.ui.themeLight') }}</option>
+                  <option value="dark">{{ $t('settings.ui.themeDark') }}</option>
                 </CFormSelect>
               </CCol>
               <CCol :md="6">
-                <CFormLabel>Sprache</CFormLabel>
+                <CFormLabel>{{ $t('settings.ui.language') }}</CFormLabel>
                 <CFormSelect v-model="configForm.ui.language">
-                  <option value="de">Deutsch</option>
-                  <option value="en">English</option>
+                  <option value="de">{{ $t('settings.ui.languageGerman') }}</option>
+                  <option value="en">{{ $t('settings.ui.languageEnglish') }}</option>
                 </CFormSelect>
               </CCol>
             </CRow>
             <CRow>
               <CCol :md="6">
-                <CFormLabel>Datums-Format</CFormLabel>
+                <CFormLabel>{{ $t('settings.ui.dateFormat') }}</CFormLabel>
                 <CFormSelect v-model="configForm.ui.dateFormat">
                   <option value="DD.MM.YYYY">DD.MM.YYYY</option>
                   <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                   <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                 </CFormSelect>
-              </CCol>
-              <CCol :md="6">
-                <CFormCheck
-                  v-model="configForm.ui.compactMode"
-                  label="Kompaktmodus aktivieren"
-                  class="mt-4"
-                />
-              </CCol>
-            </CRow>
-          </CCardBody>
-        </CCard>
-
-        <!-- Benachrichtigungen -->
-        <CCard class="mb-4">
-          <CCardHeader>
-            <h5 class="mb-0">
-              <CIcon icon="cilBell" class="me-2" />
-              Benachrichtigungen
-            </h5>
-          </CCardHeader>
-          <CCardBody>
-            <CRow class="mb-3">
-              <CCol :md="6">
-                <CFormCheck
-                  v-model="configForm.notifications.enabled"
-                  label="Benachrichtigungen aktivieren"
-                />
-              </CCol>
-              <CCol :md="6">
-                <CFormCheck
-                  v-model="configForm.notifications.sound"
-                  label="Benachrichtigungston"
-                  :disabled="!configForm.notifications.enabled"
-                />
-              </CCol>
-            </CRow>
-            <CRow>
-              <CCol :md="6">
-                <CFormCheck
-                  v-model="configForm.notifications.flushReminders"
-                  label="Spülungs-Erinnerungen"
-                  :disabled="!configForm.notifications.enabled"
-                />
-              </CCol>
-              <CCol :md="6">
-                <CFormCheck
-                  v-model="configForm.notifications.syncStatus"
-                  label="Sync-Status Benachrichtigungen"
-                  :disabled="!configForm.notifications.enabled"
-                />
               </CCol>
             </CRow>
           </CCardBody>
@@ -247,7 +136,7 @@
           <CCardHeader>
             <h5 class="mb-0">
               <CIcon icon="cilSync" class="me-2" />
-              Synchronisation
+              {{ $t('settings.sync.title') }}
             </h5>
           </CCardHeader>
           <CCardBody>
@@ -255,12 +144,12 @@
               <CCol :md="6">
                 <CFormCheck
                   v-model="configForm.sync.autoSync"
-                  label="Automatische Synchronisation"
+                  :label="$t('settings.sync.autoSync')"
                 />
-                <CFormText>Daten automatisch synchronisieren, wenn online</CFormText>
+                <CFormText>{{ $t('settings.sync.autoSyncHelp') }}</CFormText>
               </CCol>
               <CCol :md="6">
-                <CFormLabel>Sync-Intervall (Minuten)</CFormLabel>
+                <CFormLabel>{{ $t('settings.sync.syncInterval') }}</CFormLabel>
                 <CFormInput
                   v-model.number="configForm.sync.syncInterval"
                   type="number"
@@ -273,13 +162,7 @@
               <CCol :md="6">
                 <CFormCheck
                   v-model="configForm.sync.syncOnStartup"
-                  label="Beim Start synchronisieren"
-                />
-              </CCol>
-              <CCol :md="6">
-                <CFormCheck
-                  v-model="configForm.sync.wifiOnly"
-                  label="Nur über WLAN synchronisieren"
+                  :label="$t('settings.sync.syncOnStartup')"
                 />
               </CCol>
             </CRow>
@@ -299,7 +182,7 @@
                 >
                   <CSpinner v-if="saving" size="sm" class="me-1" />
                   <CIcon v-else icon="cilSave" class="me-1" />
-                  Speichern
+                  {{ $t('settings.save') }}
                 </CButton>
                 <CButton
                   color="secondary"
@@ -309,7 +192,7 @@
                   class="me-2"
                 >
                   <CIcon icon="cilReload" class="me-1" />
-                  Neu laden
+                  {{ $t('settings.reload') }}
                 </CButton>
                 <CButton
                   v-if="isAdmin"
@@ -319,11 +202,11 @@
                   :disabled="saving"
                 >
                   <CIcon icon="cilTrash" class="me-1" />
-                  Zurücksetzen
+                  {{ $t('settings.reset') }}
                 </CButton>
               </div>
               <div v-if="lastUpdate" class="text-medium-emphasis small">
-                Letzte Aktualisierung: {{ lastUpdateFormatted }}
+                {{ $t('settings.lastUpdate') }}: {{ lastUpdateFormatted }}
               </div>
             </div>
           </CCardBody>
@@ -334,10 +217,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useApiConfig } from '@/api/ApiConfig.js'
 import { useConfigStorage } from '@/stores/ConfigStorage.js'
 import { useConfigSyncService } from '@/services/ConfigSyncService.js'
+import { useAutoSyncService } from '@/services/AutoSyncService.js'
+import { useThemeSync } from '@/services/ThemeService.js'
+import { useLanguageService } from '@/services/LanguageService.js'
 import { isAdmin } from '@/stores/GlobalUser.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import CIcon from '@coreui/icons-vue'
@@ -361,7 +248,11 @@ import {
 const apiConfig = useApiConfig()
 const configStorageComposable = useConfigStorage()
 const configSyncService = useConfigSyncService()
+const autoSyncService = useAutoSyncService()
 const onlineStatusStore = useOnlineStatusStore()
+const { changeTheme, loadAndApplyTheme } = useThemeSync()
+const languageService = useLanguageService()
+const { t } = useI18n()
 
 // State
 const loading = ref(false)
@@ -372,33 +263,19 @@ const lastUpdate = ref(null)
 
 // Default configuration structure
 const defaultConfig = {
-  vdi6023: {
-    minFlowRate: 3.0,
-    flushDuration: 3,
-    coldWaterMaxTemp: 25.0,
-    hotWaterMinTemp: 55.0
-  },
   server: {
-    apiTimeout: 5000,
+    apiTimeout: 15000,
     maxRetries: 3
   },
   ui: {
     theme: 'auto',
     language: 'de',
     dateFormat: 'DD.MM.YYYY',
-    compactMode: false
-  },
-  notifications: {
-    enabled: true,
-    sound: true,
-    flushReminders: true,
-    syncStatus: true
   },
   sync: {
     autoSync: true,
     syncInterval: 15,
     syncOnStartup: true,
-    wifiOnly: false
   }
 }
 
@@ -469,7 +346,7 @@ const saveConfiguration = async () => {
         // Also save to local storage
         configStorageComposable.saveConfig(configForm.value)
         lastUpdate.value = new Date()
-        successMessage.value = 'Konfiguration erfolgreich gespeichert!'
+        successMessage.value = t('settings.savedSuccess')
         console.log('✅ Konfiguration auf Server gespeichert')
       } else {
         throw new Error('Fehler beim Speichern auf dem Server')
@@ -479,7 +356,7 @@ const saveConfiguration = async () => {
       configStorageComposable.saveConfig(configForm.value)
       configSyncService.addToQueue(configForm.value)
       lastUpdate.value = new Date()
-      successMessage.value = 'Konfiguration lokal gespeichert. Wird synchronisiert, sobald Sie online sind.'
+      successMessage.value = t('settings.savedOffline')
       console.log('📦 Konfiguration lokal gespeichert und zur Sync-Queue hinzugefügt (Offline)')
     }
   } catch (error) {
@@ -492,11 +369,11 @@ const saveConfiguration = async () => {
 
 const resetConfiguration = async () => {
   if (!isAdmin.value) {
-    errorMessage.value = 'Nur Administratoren können die Konfiguration zurücksetzen'
+    errorMessage.value = t('settings.resetOnlineOnly')
     return
   }
 
-  if (!confirm('Möchten Sie die Konfiguration wirklich auf die Standardwerte zurücksetzen?')) {
+  if (!confirm(t('settings.resetConfirm'))) {
     return
   }
 
@@ -508,13 +385,13 @@ const resetConfiguration = async () => {
     if (isOnline.value) {
       await apiConfig.reset()
       await loadConfiguration()
-      successMessage.value = 'Konfiguration wurde auf Standardwerte zurückgesetzt'
+      successMessage.value = t('settings.resetSuccess')
     } else {
-      errorMessage.value = 'Zurücksetzen ist nur online möglich'
+      errorMessage.value = t('settings.resetOnlineOnly')
     }
   } catch (error) {
     console.error('❌ Fehler beim Zurücksetzen:', error)
-    errorMessage.value = `Fehler beim Zurücksetzen: ${error.message}`
+    errorMessage.value = `${t('errors.general')}: ${error.message}`
   } finally {
     saving.value = false
   }
@@ -535,6 +412,69 @@ const mergeWithDefaults = (loaded, defaults) => {
   }
   return result
 }
+
+// Watch für Theme-Änderungen - sofort anwenden und synchronisieren
+watch(() => configForm.value.ui.theme, async (newTheme, oldTheme) => {
+  if (newTheme && newTheme !== oldTheme && oldTheme !== undefined) {
+    console.log('🎨 Theme in Settings geändert:', oldTheme, '→', newTheme)
+    // Wende Theme sofort an und synchronisiere zum Server
+    await changeTheme(newTheme)
+    const themeName = newTheme === 'auto' ? t('settings.ui.themeAuto') :
+                      newTheme === 'light' ? t('settings.ui.themeLight') :
+                      t('settings.ui.themeDark')
+    successMessage.value = t('settings.themeChanged')
+
+    // Verstecke Erfolgs-Nachricht nach 3 Sekunden
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+  }
+})
+
+// Watch für Sprach-Änderungen - sofort anwenden und synchronisieren
+watch(() => configForm.value.ui.language, async (newLanguage, oldLanguage) => {
+  if (newLanguage && newLanguage !== oldLanguage && oldLanguage !== undefined) {
+    console.log('🌐 Sprache in Settings geändert:', oldLanguage, '→', newLanguage)
+    // Wende Sprache sofort an (ohne Server-Sync, da das beim Save passiert)
+    const success = await languageService.setLanguage(newLanguage, false)
+    if (success) {
+      const langName = newLanguage === 'de' ? t('settings.ui.languageGerman') : t('settings.ui.languageEnglish')
+      successMessage.value = `${t('settings.ui.language')}: ${langName}`
+
+      // Verstecke Erfolgs-Nachricht nach 3 Sekunden
+      setTimeout(() => {
+        if (successMessage.value.includes('Sprache')) {
+          successMessage.value = ''
+        }
+      }, 3000)
+    }
+  }
+})
+
+// Watch für Sync-Einstellungen - AutoSync neu starten bei Änderung
+watch(() => configForm.value.sync.autoSync, (newValue, oldValue) => {
+  if (oldValue !== undefined && newValue !== oldValue) {
+    console.log('🔄 AutoSync Einstellung geändert:', newValue)
+    if (newValue && configForm.value.sync.syncInterval > 0) {
+      autoSyncService.start(configForm.value.sync.syncInterval)
+      console.log('✅ AutoSync aktiviert')
+    } else {
+      autoSyncService.stop()
+      console.log('⏹️ AutoSync deaktiviert')
+    }
+  }
+})
+
+watch(() => configForm.value.sync.syncInterval, (newInterval, oldInterval) => {
+  if (oldInterval !== undefined && newInterval !== oldInterval) {
+    console.log('🔄 Sync-Intervall geändert:', oldInterval, '→', newInterval)
+    // Wenn AutoSync aktiv ist, Intervall aktualisieren
+    if (configForm.value.sync.autoSync && newInterval > 0) {
+      autoSyncService.updateInterval(newInterval)
+      console.log('✅ Sync-Intervall aktualisiert')
+    }
+  }
+})
 
 // Lifecycle
 onMounted(() => {

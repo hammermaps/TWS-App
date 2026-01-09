@@ -94,24 +94,21 @@ export class OfflineDataPreloader {
       console.log('🏢 Lade Apartments für alle Gebäude...')
 
       let totalApartmentsLoaded = 0
-      const apartmentLoadPromises = []
+      const apartmentCounts = []
 
+      // ✅ Sequenzielles Laden statt parallel, um Timeout-Probleme zu vermeiden
       for (const building of buildings) {
         this.preloadProgress.value.currentBuilding = building.name
 
-        // Paralleles Laden für bessere Performance
-        const loadPromise = this.loadApartmentsForBuilding(building.id, building.name)
-          .then(count => {
-            totalApartmentsLoaded += count
-            this.preloadProgress.value.apartments = totalApartmentsLoaded
-            return count
-          })
+        const count = await this.loadApartmentsForBuilding(building.id, building.name)
+        apartmentCounts.push(count)
+        totalApartmentsLoaded += count
+        this.preloadProgress.value.apartments = totalApartmentsLoaded
 
-        apartmentLoadPromises.push(loadPromise)
+        // Kleine Pause zwischen den Requests, um Server nicht zu überlasten
+        await new Promise(resolve => setTimeout(resolve, 300))
       }
 
-      // Warte auf alle Apartment-Ladevorgänge
-      const apartmentCounts = await Promise.all(apartmentLoadPromises)
       this.preloadProgress.value.totalApartments = totalApartmentsLoaded
 
       console.log(`✅ Insgesamt ${totalApartmentsLoaded} Apartments geladen`)
@@ -154,8 +151,8 @@ export class OfflineDataPreloader {
       console.log(`  📦 Lade Apartments für Gebäude: ${buildingName} (ID: ${buildingId})`)
 
       const apartmentsResponse = await this.apartmentApi.list({
-        building_id: buildingId,
-        timeout: 10000 // Längerer Timeout für Preloading
+        building_id: buildingId
+        // Timeout wird aus der Konfiguration gelesen (ApiConfigHelper)
       })
 
       if (apartmentsResponse.success && apartmentsResponse.items) {

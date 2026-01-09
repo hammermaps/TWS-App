@@ -1,58 +1,62 @@
 <template>
   <div class="dashboard">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h2>Dashboard</h2>
-        <p class="text-muted mb-0">Übersicht über die Arbeitsstatistiken</p>
-      </div>
-      <div class="d-flex gap-2">
-        <CButton
-          color="primary"
-          @click="loadWorkStats"
-          :disabled="!statisticsAvailable">
-          <CIcon icon="cil-reload" class="me-2" />
-          Aktualisieren
-        </CButton>
-        <CDropdown>
-          <CDropdownToggle
-            color="info"
-            variant="outline"
-            :disabled="!statisticsAvailable">
-            <CIcon icon="cil-cloud-download" class="me-2" />
-            Export {{ selectedMonthFormatted }}
-          </CDropdownToggle>
-          <CDropdownMenu>
-            <CDropdownHeader>Monat auswählen:</CDropdownHeader>
-            <CDropdownItem
-              v-for="month in availableMonths"
-              :key="month.value"
-              @click="selectedMonth = month.value"
-              :active="selectedMonth === month.value">
-              <CIcon
-                :icon="selectedMonth === month.value ? 'cil-check' : 'cil-calendar'"
-                class="me-2"
-              />
-              {{ month.label }}
-            </CDropdownItem>
-            <CDropdownDivider />
-            <CDropdownItem @click="exportToPrint">
-              <CIcon icon="cil-print" class="me-2" />
-              Druckansicht öffnen
-            </CDropdownItem>
-            <CDropdownItem @click="exportToCSV">
-              <CIcon icon="cil-spreadsheet" class="me-2" />
-              Als CSV herunterladen
-            </CDropdownItem>
-            <CDropdownDivider />
-            <CDropdownItem @click="exportCurrentMonth" disabled>
-              <CIcon icon="cil-data-transfer-down" class="me-2" />
-              Raw-Daten (Debug)
-            </CDropdownItem>
-          </CDropdownMenu>
-        </CDropdown>
-      </div>
-    </div>
+    <!-- Header in Card -->
+    <CCard class="mb-4">
+      <CCardBody>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2>{{ $t('dashboard.title') }}</h2>
+            <p class="text-muted mb-0">{{ $t('dashboard.subtitle') }}</p>
+          </div>
+          <div class="d-flex gap-2">
+            <CButton
+              color="primary"
+              @click="loadWorkStats"
+              :disabled="!statisticsAvailable">
+              <CIcon icon="cil-reload" class="me-2" />
+              {{ $t('common.refresh') }}
+            </CButton>
+            <CDropdown>
+              <CDropdownToggle
+                color="info"
+                variant="outline"
+                :disabled="!statisticsAvailable">
+                <CIcon icon="cil-cloud-download" class="me-2" />
+                {{ $t('dashboard.export') }} {{ selectedMonthFormatted }}
+              </CDropdownToggle>
+              <CDropdownMenu>
+                <CDropdownHeader>{{ $t('dashboard.selectMonth') }}:</CDropdownHeader>
+                <CDropdownItem
+                  v-for="month in availableMonths"
+                  :key="month.value"
+                  @click="selectedMonth = month.value"
+                  :active="selectedMonth === month.value">
+                  <CIcon
+                    :icon="selectedMonth === month.value ? 'cil-check' : 'cil-calendar'"
+                    class="me-2"
+                  />
+                  {{ month.label }}
+                </CDropdownItem>
+                <CDropdownDivider />
+                <CDropdownItem @click="exportToPrint">
+                  <CIcon icon="cil-print" class="me-2" />
+                  {{ $t('dashboard.print') }}
+                </CDropdownItem>
+                <CDropdownItem @click="exportToCSV">
+                  <CIcon icon="cil-spreadsheet" class="me-2" />
+                  {{ $t('dashboard.exportCSV') }}
+                </CDropdownItem>
+                <CDropdownDivider />
+                <CDropdownItem @click="exportCurrentMonth" disabled>
+                  <CIcon icon="cil-data-transfer-down" class="me-2" />
+                  Raw-Daten (Debug)
+                </CDropdownItem>
+              </CDropdownMenu>
+            </CDropdown>
+          </div>
+        </div>
+      </CCardBody>
+    </CCard>
 
     <!-- Offline-Modus Warnung -->
     <CAlert
@@ -61,17 +65,17 @@
       class="d-flex align-items-center mb-4">
       <CIcon icon="cil-warning" size="lg" class="me-3" />
       <div>
-        <strong>Offline-Modus aktiv</strong>
+        <strong>{{ $t('offline.title') }}</strong>
         <p class="mb-0 mt-1">
-          Statistiken und Export-Funktionen sind nur im Online-Modus verfügbar.
+          {{ $t('dashboard.statisticsOnlineOnly') }}
           <span v-if="!onlineStatusStore.isOnline">
-            Keine Netzwerkverbindung erkannt.
+            {{ $t('offline.network') }}
           </span>
           <span v-else-if="!onlineStatusStore.isServerReachable">
-            Server ist nicht erreichbar.
+            {{ $t('offline.server') }}
           </span>
           <span v-else-if="onlineStatusStore.manualOfflineMode">
-            Sie haben manuell in den Offline-Modus gewechselt.
+            {{ $t('offline.manual') }}
           </span>
         </p>
       </div>
@@ -83,49 +87,49 @@
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-5">
       <CSpinner color="primary" />
-      <p class="mt-2">Lade Statistiken...</p>
+      <p class="mt-2">{{ $t('common.loading') }}</p>
     </div>
 
     <!-- Error State -->
     <CAlert v-if="error" color="danger" :visible="true">
-      <strong>Fehler:</strong> {{ error }}
+      <strong>{{ $t('common.error') }}:</strong> {{ error }}
     </CAlert>
 
     <!-- Main Statistics Cards -->
     <CRow v-if="!loading && !error && workStats && statisticsAvailable" class="mb-4">
       <CCol md="3">
-        <CCard class="text-center">
-          <CCardBody>
+        <CCard class="text-center h-100" style="min-height: 180px;">
+          <CCardBody class="d-flex flex-column justify-content-center">
             <CIcon icon="cil-task" size="3xl" class="text-primary mb-3" />
             <h3 class="text-primary">{{ workStats.total_entries }}</h3>
-            <p class="text-muted mb-0">Gesamt Einträge</p>
+            <p class="text-muted mb-0">{{ $t('common.total') }} {{ $t('dashboard.entries') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
       <CCol md="3">
-        <CCard class="text-center">
-          <CCardBody>
+        <CCard class="text-center h-100" style="min-height: 180px;">
+          <CCardBody class="d-flex flex-column justify-content-center">
             <CIcon icon="cil-clock" size="3xl" class="text-success mb-3" />
             <h3 class="text-success">{{ workStats.total_duration_formatted }}</h3>
-            <p class="text-muted mb-0">Gesamtdauer</p>
+            <p class="text-muted mb-0">{{ $t('common.duration') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
       <CCol md="3">
-        <CCard class="text-center">
-          <CCardBody>
+        <CCard class="text-center h-100" style="min-height: 180px;">
+          <CCardBody class="d-flex flex-column justify-content-center">
             <CIcon icon="cil-calendar" size="3xl" class="text-warning mb-3" />
             <h3 class="text-warning">{{ workStats.total_days_worked }}</h3>
-            <p class="text-muted mb-0">Arbeitstage</p>
+            <p class="text-muted mb-0">{{ $t('dashboard.totalDays') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
       <CCol md="3">
-        <CCard class="text-center">
-          <CCardBody>
+        <CCard class="text-center h-100" style="min-height: 180px;">
+          <CCardBody class="d-flex flex-column justify-content-center">
             <CIcon icon="cil-speedometer" size="3xl" class="text-info mb-3" />
             <h3 class="text-info">{{ averageEntriesPerDay }}</h3>
-            <p class="text-muted mb-0">Ø Einträge/Tag</p>
+            <p class="text-muted mb-0">{{ $t('dashboard.avgPerDay') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
@@ -133,30 +137,30 @@
 
     <!-- Secondary Statistics Cards -->
     <CRow v-if="!loading && !error && workStats && workStats.averages && statisticsAvailable" class="mb-4">
-      <CCol md="4">
-        <CCard class="text-center">
-          <CCardBody>
+      <CCol md="4" class="mb-3">
+        <CCard class="text-center h-100">
+          <CCardBody class="d-flex flex-column">
             <CIcon icon="cil-timer" size="xl" class="text-primary mb-2" />
             <h4 class="text-primary">{{ workStats.averages.avg_duration_per_entry_formatted }}</h4>
-            <p class="text-muted mb-0">Ø Dauer pro Eintrag</p>
+            <p class="text-muted mb-0 mt-auto">{{ $t('dashboard.avgDurationPerEntry') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
-      <CCol md="4">
-        <CCard class="text-center">
-          <CCardBody>
+      <CCol md="4" class="mb-3">
+        <CCard class="text-center h-100">
+          <CCardBody class="d-flex flex-column">
             <CIcon icon="cil-calendar-check" size="xl" class="text-success mb-2" />
             <h4 class="text-success">{{ workStats.averages.avg_duration_per_day_formatted }}</h4>
-            <p class="text-muted mb-0">Ø Arbeitszeit/Tag</p>
+            <p class="text-muted mb-0 mt-auto">{{ $t('dashboard.avgWorkTimePerDay') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
-      <CCol md="4">
-        <CCard class="text-center">
-          <CCardBody>
+      <CCol md="4" class="mb-3">
+        <CCard class="text-center h-100">
+          <CCardBody class="d-flex flex-column">
             <CIcon icon="cil-history" size="xl" class="text-warning mb-2" />
             <h4 class="text-warning">{{ workStats.averages.avg_work_span_per_day_formatted }}</h4>
-            <p class="text-muted mb-0">Ø Arbeitsspanne/Tag</p>
+            <p class="text-muted mb-0 mt-auto">{{ $t('dashboard.avgWorkSpanPerDay') }}</p>
           </CCardBody>
         </CCard>
       </CCol>
@@ -169,7 +173,7 @@
           <CCardHeader>
             <h5 class="mb-0">
               <CIcon icon="cil-gauge" class="me-2" />
-              Effizienz-Metriken
+              {{ $t('dashboard.efficiencyMetrics') }}
             </h5>
           </CCardHeader>
           <CCardBody>
@@ -177,25 +181,25 @@
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-success">{{ workStats.efficiency_metrics.shortest_duration_formatted || '-' }}</h4>
-                  <p class="text-muted mb-0">Kürzeste Dauer</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.shortestDuration') }}</p>
                 </div>
               </CCol>
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-danger">{{ workStats.efficiency_metrics.longest_duration_formatted || '-' }}</h4>
-                  <p class="text-muted mb-0">Längste Dauer</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.longestDuration') }}</p>
                 </div>
               </CCol>
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-primary">{{ workStats.efficiency_metrics.median_duration_formatted || '-' }}</h4>
-                  <p class="text-muted mb-0">Median Dauer</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.medianDuration') }}</p>
                 </div>
               </CCol>
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-warning">{{ averageEntriesPerDay }}</h4>
-                  <p class="text-muted mb-0">Ø Einträge/Tag</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.avgPerDay') }}</p>
                 </div>
               </CCol>
             </CRow>
@@ -211,7 +215,7 @@
           <CCardHeader>
             <h5 class="mb-0">
               <CIcon icon="cil-location-pin" class="me-2" />
-              GPS-Statistiken
+              {{ $t('dashboard.gpsStatistics') }}
             </h5>
           </CCardHeader>
           <CCardBody>
@@ -219,25 +223,25 @@
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-success">{{ workStats.gps_statistics.total_gps_entries }}</h4>
-                  <p class="text-muted mb-0">GPS Einträge</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.gpsEntries') }}</p>
                 </div>
               </CCol>
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-info">{{ workStats.gps_statistics.avg_accuracy }}m</h4>
-                  <p class="text-muted mb-0">Ø Genauigkeit</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.avgAccuracy') }}</p>
                 </div>
               </CCol>
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-success">{{ workStats.gps_statistics.best_accuracy }}m</h4>
-                  <p class="text-muted mb-0">Beste Genauigkeit</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.bestAccuracy') }}</p>
                 </div>
               </CCol>
               <CCol md="3">
                 <div class="text-center p-3 border rounded">
                   <h4 class="text-warning">{{ workStats.gps_statistics.worst_accuracy }}m</h4>
-                  <p class="text-muted mb-0">Schlechteste Genauigkeit</p>
+                  <p class="text-muted mb-0">{{ $t('dashboard.worstAccuracy') }}</p>
                 </div>
               </CCol>
             </CRow>
@@ -254,17 +258,17 @@
           <CCardHeader>
             <h5 class="mb-0">
               <CIcon icon="cil-list" class="me-2" />
-              Tägliche Details (letzte 10 Tage)
+              {{ $t('dashboard.dailyDetails') }}
             </h5>
           </CCardHeader>
           <CCardBody class="p-0">
             <CTable hover responsive>
               <CTableHead>
                 <CTableRow>
-                  <CTableHeaderCell>Datum</CTableHeaderCell>
-                  <CTableHeaderCell>Einträge</CTableHeaderCell>
-                  <CTableHeaderCell>Dauer</CTableHeaderCell>
-                  <CTableHeaderCell>Zeitspanne</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.date') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.entries') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('common.duration') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.timeSpan') }}</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
@@ -286,17 +290,17 @@
           <CCardHeader>
             <h5 class="mb-0">
               <CIcon icon="cil-home" class="me-2" />
-              Apartment-Statistiken
+              {{ $t('dashboard.apartmentStatistics') }}
             </h5>
           </CCardHeader>
           <CCardBody class="p-0">
             <CTable hover responsive>
               <CTableHead>
                 <CTableRow>
-                  <CTableHeaderCell>Apartment</CTableHeaderCell>
-                  <CTableHeaderCell>Einträge</CTableHeaderCell>
-                  <CTableHeaderCell>Gesamtdauer</CTableHeaderCell>
-                  <CTableHeaderCell>Ø Dauer</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.apartment') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.entries') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.totalDuration') }}</CTableHeaderCell>
+                  <CTableHeaderCell>{{ $t('dashboard.avgDuration') }}</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
@@ -318,18 +322,19 @@
     <!-- Empty State -->
     <div v-if="!loading && !error && !workStats" class="text-center py-5">
       <CIcon icon="cil-chart" size="4xl" class="text-muted mb-3" />
-      <h4 class="text-muted">Keine Statistiken verfügbar</h4>
-      <p class="text-muted">Es sind noch keine Arbeitsstatistiken vorhanden.</p>
+      <h4 class="text-muted">{{ $t('dashboard.noStatisticsAvailable') }}</h4>
+      <p class="text-muted">{{ $t('dashboard.noStatisticsYet') }}</p>
       <CButton color="primary" @click="loadWorkStats">
         <CIcon icon="cil-reload" class="me-2" />
-        Statistiken laden
+        {{ $t('dashboard.loadStatistics') }}
       </CButton>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, computed, ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { formatDate, formatMonthYear } from '@/utils/dateFormatter.js'
 import { useApiStats } from '@/api/ApiStats.js'
 import { getCurrentUser } from '@/stores/GlobalUser.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
@@ -385,7 +390,7 @@ const currentUserId = computed(() => {
 })
 
 const currentMonth = computed(() => {
-  return new Date().toLocaleDateString('de-DE', { year: 'numeric', month: 'long' })
+  return formatMonthYear(new Date())
 })
 
 // Monatsauswahl für die letzten 12 Monate
@@ -394,7 +399,7 @@ const availableMonths = computed(() => {
   for (let i = 0; i < 12; i++) {
     const date = new Date()
     date.setMonth(date.getMonth() - i)
-    const monthLabel = date.toLocaleDateString('de-DE', { year: 'numeric', month: 'long' })
+    const monthLabel = formatMonthYear(date)
     months.push({ value: date.toISOString().slice(0, 7), label: monthLabel })
   }
   return months.reverse()
@@ -503,18 +508,6 @@ async function exportCurrentMonth() {
   await exportSelectedMonth()
 }
 
-// Datum formatieren
-function formatDate(dateString) {
-  try {
-    return new Date(dateString).toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  } catch (error) {
-    return dateString
-  }
-}
 
 // Initial laden beim Mount
 onMounted(() => {

@@ -1,6 +1,6 @@
 <template>
   <OnlineRequiredWrapper>
-    <CRow>
+    <CRow style="padding-left: 9px;">
       <CCol :md="8">
         <!-- Profil bearbeiten -->
         <CCard class="mb-4">

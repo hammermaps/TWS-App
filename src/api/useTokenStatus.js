@@ -10,7 +10,7 @@ import { getToken } from '../stores/GlobalToken.js'
  */
 export function useTokenStatus() {
   // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-  const apiBaseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:4040'
+  const apiBaseUrl = import.meta.env.DEV ? '/api' : 'https://wls.dk-automation.de'
   const { isAuthenticated, currentUser } = useUser(apiBaseUrl)
   const apiUser = new ApiUser(apiBaseUrl)
 

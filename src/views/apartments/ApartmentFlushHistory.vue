@@ -1,26 +1,26 @@
 <template>
   <div class="apartment-flush-history">
-    <!-- Header -->
-    <CRow class="mb-4">
-      <CCol>
-        <CCard>
-          <CCardHeader>
-            <div class="d-flex justify-content-between align-items-center">
-              <h4>Spülhistorie - Wohnung {{ apartment?.number || 'Unbekannt' }}</h4>
-              <CButton
-                color="primary"
-                size="sm"
-                @click="loadHistory"
-                :disabled="loading"
-              >
-                <CIcon name="cilReload" class="me-1" />
-                Aktualisieren
-              </CButton>
-            </div>
-          </CCardHeader>
-        </CCard>
-      </CCol>
-    </CRow>
+    <!-- Header in Card -->
+    <CCard class="mb-4">
+      <CCardBody>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2>Spülhistorie - Wohnung {{ apartment?.number || 'Unbekannt' }}</h2>
+            <p class="text-muted mb-0">Übersicht aller durchgeführten Spülungen</p>
+          </div>
+          <div class="d-flex gap-2">
+            <CButton
+              color="primary"
+              @click="loadHistory"
+              :disabled="loading"
+            >
+              <CIcon name="cilReload" class="me-2" />
+              Aktualisieren
+            </CButton>
+          </div>
+        </div>
+      </CCardBody>
+    </CCard>
 
     <!-- Apartment Info -->
     <CRow v-if="apartment" class="mb-4">
@@ -247,6 +247,7 @@
 <script>
 import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { formatDate, formatDateTime, formatTime } from '@/utils/dateFormatter.js'
 import { useApiApartment } from '../../api/ApiApartment.js'
 import { useApiRecords } from '../../api/ApiRecords.js'
 import { getCurrentUser } from '../../stores/GlobalUser.js'
@@ -427,24 +428,6 @@ export default {
       await Promise.all(uniqueUserIds.map(userId => loadUserName(userId)))
     }
 
-    const formatDateTime = (dateString) => {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('de-DE') + ' ' + date.toLocaleTimeString('de-DE', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }
-
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('de-DE')
-    }
-
-    const formatTime = (dateString) => {
-      return new Date(dateString).toLocaleTimeString('de-DE', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }
 
     const getDurationColor = (duration) => {
       if (!apartment.value) return 'secondary'
