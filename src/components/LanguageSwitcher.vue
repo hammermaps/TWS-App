@@ -6,7 +6,6 @@
       :caret="false"
     >
       <span class="language-flag">{{ currentFlag }}</span>
-      <span class="language-code d-none d-md-inline ms-2">{{ currentCode }}</span>
     </CDropdownToggle>
     <CDropdownMenu class="pt-0">
       <CDropdownHeader class="bg-body-secondary fw-semibold mb-2">
@@ -53,9 +52,6 @@ const currentFlag = computed(() => {
   return lang ? lang.flag : '🌐'
 })
 
-const currentCode = computed(() => {
-  return currentLanguage.value.toUpperCase()
-})
 
 const changeLanguage = async (langCode) => {
   if (langCode === currentLanguage.value) return
@@ -77,10 +73,6 @@ const changeLanguage = async (langCode) => {
   line-height: 1;
 }
 
-.language-code {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
 
 .dropdown-item {
   cursor: pointer;

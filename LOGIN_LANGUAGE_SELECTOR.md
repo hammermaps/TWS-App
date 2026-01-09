@@ -8,7 +8,7 @@ Die Login-Seite wurde um eine Sprachauswahl erweitert, die es Benutzern ermögli
 ### 1. UI-Komponente
 - **Position**: Oben rechts im Login-Formular neben dem Titel
 - **Komponente**: CoreUI Dropdown (CDropdown)
-- **Anzeige**: Flagge + Sprachcode (z.B. "🇩🇪 DE" oder "🇬🇧 EN")
+- **Anzeige**: Nur Flagge (z.B. "🇩🇪" oder "🇬🇧")
 
 ### 2. Funktionalität
 - **Verfügbare Sprachen**: 
@@ -26,7 +26,7 @@ Die Login-Seite wurde um eine Sprachauswahl erweitert, die es Benutzern ermögli
 ```vue
 <CDropdown variant="btn-group" placement="bottom-end" class="language-selector">
   <CDropdownToggle color="light" size="sm" class="border">
-    {{ currentLocale.flag }} {{ currentLocale.code.toUpperCase() }}
+    {{ currentLocale.flag }}
   </CDropdownToggle>
   <CDropdownMenu>
     <CDropdownItem

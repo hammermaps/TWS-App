@@ -15,7 +15,7 @@
                     <!-- Language Selector -->
                     <CDropdown variant="btn-group" placement="bottom-end" class="language-selector">
                       <CDropdownToggle color="light" size="sm" class="border">
-                        {{ currentLocale.flag }} {{ currentLocale.code.toUpperCase() }}
+                        {{ currentLocale.flag }}
                       </CDropdownToggle>
                       <CDropdownMenu>
                         <CDropdownItem
