@@ -1,6 +1,9 @@
 {
   "common": {
     "save": "Save",
+    "user": "User",
+    "unknown": "Unknown",
+    "never": "Never",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
@@ -42,12 +45,16 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "health": "Health Status",
+    "buildingsAndApartments": "Buildings & Apartments",
     "buildings": "Buildings",
+    "users": "Users",
     "apartments": "Apartments",
     "flushing": "Vacancy Flushing",
     "flushingManager": "Flushing Manager",
     "settings": "Settings",
     "profile": "Profile",
+    "profileEdit": "Edit Profile",
     "logout": "Logout",
     "login": "Login"
   },
@@ -176,7 +183,9 @@
     "updatedOneMinuteAgo": "updated 1 minute ago",
     "updatedHoursAgo": "updated {hours} hours ago",
     "updatedOneHourAgo": "updated 1 hour ago",
-    "apartmentsCount": "{count} Apartments"
+    "apartmentsCount": "{count} Apartments",
+    "info": "Information",
+    "noApartmentId": "No apartment ID provided"
   },
   "flushing": {
     "title": "Vacancy Flushing",
@@ -203,6 +212,11 @@
     "startTime": "Start Time",
     "endTime": "End Time",
     "tooShort": "Too Short",
+    "historyTitle": "Flush History",
+    "historySubtitle": "Overview of all performed flushes",
+    "loadingHistory": "Loading flush history...",
+    "noFlushesFound": "No flushes found",
+    "noFlushesFoundDesc": "No flushes have been performed for this apartment.",
     "statistics": "Statistics",
     "totalFlushes": "Total Flushes",
     "avgDuration": "Avg Duration",
@@ -224,7 +238,6 @@
     "recentFlushes": "Recent Flushes",
     "offlineMode": "Offline Mode",
     "offlineSaved": "Flush saved offline. Will be synchronized automatically.",
-    "offlineAlert": "Flushes are saved locally and will be synchronized automatically when an internet connection is available.",
     "apartmentDisabled": "This apartment is disabled and cannot be flushed.",
     "loadingApartment": "Loading apartment data...",
     "runningSince": "Running for {duration}",
@@ -253,6 +266,7 @@
     "todayDue": "Due today",
     "tomorrowDue": "Due tomorrow",
     "daysAgo": "{days} days ago",
+    "last12Flushes": "Last 12 flushes",
     "daysLeft": "in {days} days"
   },
   "settings": {
@@ -338,6 +352,7 @@
     "errors": "Errors",
     "manualOfflineMode": "Manual Offline Mode",
     "monitoringPaused": "Network monitoring is paused",
+    "manualModeOff": "Manual mode off",
     "autoCheckRunning": "Automatic connection check running",
     "pingDisabled": "Ping checks disabled",
     "autoMonitoringActive": "Automatic monitoring active",
@@ -352,6 +367,51 @@
     "buildingManagement": "Building management",
     "offlineAvailable": "Available offline",
     "flushingContinue": "Vacancy flushings can still be performed"
+  },
+  "offlineDataBadge": {
+    "badgeText": "Offline Data",
+    "loadingTitle": "Loading data",
+    "loading": "Loading...",
+    "loadingTooltip": "Data is being loaded in the background",
+    "current": "Current building",
+    "buildings": "Buildings",
+    "apartments": "Apartments",
+    "apartmentCount": "{count} Apartment",
+    "apartmentsCount": "{count} Apartments",
+    "noData": "No offline data",
+    "noOfflineData": "No offline data available",
+    "successTitle": "Preload completed",
+    "successStats": "{buildings} buildings, {apartments} apartments preloaded"
+  },
+  "offlinePreload": {
+    "title": "Offline Data",
+    "loadingTitle": "Loading data for offline mode...",
+    "currentBuilding": "Current building",
+    "buildings": "Buildings",
+    "apartments": "Apartments",
+    "preloadedTitle": "Offline data available",
+    "lastUpdated": "Last updated",
+    "needsRefresh": "Data is older than 24 hours. Refresh recommended.",
+    "loadedBuildings": "Loaded buildings",
+    "avgPerBuilding": "Avg per building",
+    "less": "Less",
+    "details": "Details",
+    "noDataTitle": "No offline data available",
+    "noDataDesc": "Download data to use the app offline.",
+    "loadButton": "Load offline data",
+    "onlineRequired": "An online connection is required to load data.",
+    "status": {
+      "loading": "Loading...",
+      "needsRefresh": "Refresh recommended",
+      "current": "Current",
+      "notLoaded": "Not loaded"
+    },
+    "time": {
+      "never": "Never",
+      "minutes": "{minutes} minutes ago",
+      "hours": "{hours} hours ago",
+      "days": "{days} days ago"
+    }
   },
   "errors": {
     "general": "An error occurred",
@@ -410,4 +470,3 @@
     "step4": "Wait for automatic detection"
   }
 }
-

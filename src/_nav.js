@@ -1,64 +1,64 @@
 export default [
   {
     component: 'CNavItem',
-    name: 'Dashboard',
+    name: 'nav.dashboard',
     to: '/dashboard',
     icon: 'cilSpeedometer',
     requiresOnline: false, // Dashboard funktioniert offline (gecachte Daten)
   },
   {
     component: 'CNavItem',
-    name: 'Health Status',
+    name: 'nav.health',
     to: '/health-status',
     icon: 'cilHeart',
     requiresOnline: true, // Health Status benötigt Live-Daten vom Server
   },
   {
     component: 'CNavTitle',
-    name: 'Gebäude & Wohnungen',
+    name: 'nav.buildingsAndApartments',
     requiresOnline: false,
   },
   {
     component: 'CNavItem',
-    name: 'QR-Code Scanner',
+    name: 'qrScanner.title',
     to: '/qr-scanner',
     icon: 'cilQrCode',
     requiresOnline: false, // QR-Scanner funktioniert auch offline (mit Cache)
   },
   {
     component: 'CNavItem',
-    name: 'Gebäude',
+    name: 'nav.buildings',
     to: '/buildings',
     icon: 'cilBuilding',
     requiresOnline: false, // Gebäude & Spülungen funktionieren offline
   },
   {
     component: 'CNavTitle',
-    name: 'Benutzer',
+    name: 'nav.users',
     requiresOnline: false,
   },
   {
     component: 'CNavItem',
-    name: 'Profile',
+    name: 'nav.profile',
     to: '/profile/view',
     icon: 'cilUser',
     requiresOnline: false, // Profil ansehen funktioniert offline (gecachte Daten)
   },
   {
     component: 'CNavItem',
-    name: 'Profil bearbeiten',
+    name: 'nav.profileEdit',
     to: '/profile',
     icon: 'cilSettings',
     requiresOnline: true, // Profil bearbeiten (Passwort ändern) nur online
   },
   {
     component: 'CNavTitle',
-    name: 'Einstellungen',
+    name: 'nav.settings',
     requiresOnline: false,
   },
   {
     component: 'CNavItem',
-    name: 'Konfiguration',
+    name: 'settings.title',
     to: '/settings',
     icon: 'cilCog',
     requiresOnline: false, // Konfiguration offline verfügbar (gecachte Daten)

@@ -12,7 +12,7 @@
         size="sm"
         :class="{ 'rotating-icon': isLoading }"
       />
-      <span v-if="!compact">{{ badgeText }}</span>
+      <span v-if="!compact">{{ $t('offlineDataBadge.badgeText') !== undefined ? $t('offlineDataBadge.badgeText') : badgeText }}</span>
       <CSpinner
         v-if="isLoading"
         size="sm"
@@ -31,7 +31,7 @@
         <div class="d-flex justify-content-between align-items-center mb-2">
           <strong class="text-primary">
             <CIcon icon="cil-cloud-download" size="sm" class="me-1" />
-            Offline-Daten werden geladen
+            {{ $t('offlineDataBadge.loadingTitle') }}
           </strong>
           <CButton
             size="sm"
@@ -54,14 +54,14 @@
 
         <div class="text-muted small">
           <div v-if="progressData.currentBuilding" class="mb-1">
-            <strong>Aktuell:</strong> {{ progressData.currentBuilding }}
+            <strong>{{ $t('offlineDataBadge.current') }}</strong> {{ progressData.currentBuilding }}
           </div>
           <div class="d-flex justify-content-between">
-            <span>Gebäude:</span>
+            <span>{{ $t('offlineDataBadge.buildings') }}:</span>
             <strong>{{ progressData.buildings }} / {{ progressData.totalBuildings }}</strong>
           </div>
           <div class="d-flex justify-content-between">
-            <span>Apartments:</span>
+            <span>{{ $t('offlineDataBadge.apartments') }}:</span>
             <strong>{{ progressData.apartments }}</strong>
           </div>
         </div>
@@ -72,9 +72,9 @@
         <div class="d-flex align-items-center justify-content-center py-2">
           <CIcon icon="cil-check-circle" size="xl" class="text-success me-2" />
           <div>
-            <strong class="text-success">Erfolgreich geladen!</strong>
+            <strong class="text-success">{{ $t('offlineDataBadge.successTitle') }}</strong>
             <div class="text-muted small">
-              {{ preloadStats.buildingsCount }} Gebäude, {{ preloadStats.apartmentsCount }} Apartments
+              {{ $t('offlineDataBadge.successStats', { buildings: preloadStats.buildingsCount, apartments: preloadStats.apartmentsCount }) }}
             </div>
           </div>
         </div>
@@ -84,10 +84,11 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import { computed, ref, onBeforeUnmount } from 'vue'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import { CBadge, CSpinner, CProgress, CButton } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
+import { useI18n } from 'vue-i18n'
 
 // Props
 const props = defineProps({
@@ -96,6 +97,8 @@ const props = defineProps({
     default: false
   }
 })
+
+const { t } = useI18n()
 
 // Local state
 const showProgress = ref(false)
@@ -190,32 +193,32 @@ const badgeText = computed(() => {
     if (progress?.totalBuildings > 0) {
       return `${progress.buildings}/${progress.totalBuildings}`
     }
-    return 'Lädt...'
+    return t('offlineDataBadge.loading')
   }
   if (preloadStats.value.preloaded) {
-    return `${preloadStats.value.apartmentsCount} Apartments`
+    return t('offlineDataBadge.apartmentsCount', { count: preloadStats.value.apartmentsCount })
   }
-  return 'Keine Daten'
+  return t('offlineDataBadge.noData')
 })
 
 const tooltipContent = computed(() => {
   if (isLoading.value) {
-    return 'Offline-Daten werden geladen...'
+    return t('offlineDataBadge.loadingTooltip')
   }
   if (preloadStats.value.preloaded) {
     const { buildingsCount, apartmentsCount, hoursSinceLastPreload } = preloadStats.value
-    let tooltip = `${buildingsCount} Gebäude, ${apartmentsCount} Apartments\n`
+    let tooltip = `${buildingsCount} ${t('offlineDataBadge.buildings')}, ${apartmentsCount} ${t('offlineDataBadge.apartments')}\n`
     if (hoursSinceLastPreload < 1) {
-      tooltip += 'Gerade aktualisiert'
+      tooltip += t('buildings.updatedJustNow')
     } else if (hoursSinceLastPreload < 24) {
-      tooltip += `Vor ${hoursSinceLastPreload} Stunden aktualisiert`
+      tooltip += t('buildings.updatedHoursAgo', { hours: hoursSinceLastPreload })
     } else {
       const days = Math.floor(hoursSinceLastPreload / 24)
-      tooltip += `Vor ${days} Tagen aktualisiert`
+      tooltip += t('apartments.daysAgo', { days })
     }
     return tooltip
   }
-  return 'Keine Offline-Daten verfügbar'
+  return t('offlineDataBadge.noOfflineData')
 })
 </script>
 

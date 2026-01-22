@@ -59,29 +59,6 @@
       </CCardBody>
     </CCard>
 
-    <!-- Offline-Modus Warnung -->
-    <CAlert
-      v-if="!statisticsAvailable"
-      color="warning"
-      class="d-flex align-items-center mb-4">
-      <CIcon icon="cil-warning" size="lg" class="me-3" />
-      <div>
-        <strong>{{ $t('offline.title') }}</strong>
-        <p class="mb-0 mt-1">
-          {{ $t('dashboard.statisticsOnlineOnly') }}
-          <span v-if="!onlineStatusStore.isOnline">
-            {{ $t('offline.network') }}
-          </span>
-          <span v-else-if="!onlineStatusStore.isServerReachable">
-            {{ $t('offline.server') }}
-          </span>
-          <span v-else-if="onlineStatusStore.manualOfflineMode">
-            {{ $t('offline.manual') }}
-          </span>
-        </p>
-      </div>
-    </CAlert>
-
     <!-- Offline Data Preload Card -->
     <OfflineDataPreloadCard />
 

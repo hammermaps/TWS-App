@@ -1,4 +1,5 @@
 import { defineComponent, h, onMounted, ref, resolveComponent, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute } from 'vue-router'
 
 import { cilExternalLink } from '@coreui/icons'
@@ -51,6 +52,7 @@ const AppSidebarNav = defineComponent({
     CNavTitle,
   },
   setup() {
+    const { t } = useI18n()
     const route = useRoute()
     const firstRender = ref(true)
     const apiUser = new ApiUser()
@@ -93,6 +95,20 @@ const AppSidebarNav = defineComponent({
       }
     }
 
+    const resolveName = (name) => {
+      try {
+        // Wenn name ein i18n-Key ist (z.B. enthält einen Punkt) dann übersetzen
+        if (typeof name === 'string' && name.includes('.')) {
+          const translated = t(name)
+          // t(name) gibt key zurück wenn nicht vorhanden - überprüfe das
+          if (translated && translated !== name) return translated
+        }
+      } catch (e) {
+        // ignore i18n errors und fallback
+      }
+      return name
+    }
+
     const renderItem = (item) => {
       if (item.items) {
         return h(
@@ -110,7 +126,7 @@ const AppSidebarNav = defineComponent({
                 customClassName: 'nav-icon',
                 name: item.icon,
               }),
-              item.name,
+              resolveName(item.name),
             ],
             default: () => item.items.map((child) => renderItem(child)),
           },
@@ -133,7 +149,7 @@ const AppSidebarNav = defineComponent({
                     icon: item.icon,
                   })
                 : h('span', { class: 'nav-icon' }, h('span', { class: 'nav-icon-bullet' })),
-              item.name,
+              resolveName(item.name),
               item.external && h(resolveComponent('CIcon'), {
                 class: 'ms-2',
                 icon: 'cil-external-link',
@@ -181,7 +197,7 @@ const AppSidebarNav = defineComponent({
                           name: item.icon,
                           })
                         : h('span', { class: 'nav-icon' }, h('span', { class: 'nav-icon-bullet' })),
-                      item.name,
+                      resolveName(item.name),
                       item.badge &&
                         h(
                           CBadge,
@@ -205,12 +221,12 @@ const AppSidebarNav = defineComponent({
               as: 'div',
             },
             {
-              default: () => item.name,
+              default: () => resolveName(item.name),
             },
           )
     }
 
-    // Sichere Benutzerrolle mit erweiterten Fallback
+    // Sichere Benutzerrolle with erweiterten Fallback
     const userRole = computed(() => {
       const role = currentUser.value?.role
       console.log('🔍 Aktuelle Benutzerrolle in Sidebar:', role)

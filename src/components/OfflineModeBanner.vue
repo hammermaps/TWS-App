@@ -45,6 +45,25 @@ const retryConnection = () => {
 const enableOnlineMode = () => {
   onlineStatusStore.setManualOffline(false)
 }
+
+// Neu: Toggle für manuellen Offline-Modus
+const toggleManualMode = (e) => {
+  // verhindern, dass Clicks auf Buttons/Links das toggeln auslösen
+  if (e && e.target) {
+    const tag = e.target.tagName?.toLowerCase()
+    if (['button', 'a', 'svg', 'path', 'input'].includes(tag)) return
+  }
+  onlineStatusStore.setManualOffline(!onlineStatusStore.manualOfflineMode)
+}
+
+// Neuer benannter Keydown-Handler statt Inline-Arrow (vermeidet Linter-Warnung)
+const onKeyToggle = (e) => {
+  if (!e) return
+  const key = e.key
+  if (key === 'Enter' || key === ' ') {
+    toggleManualMode(e)
+  }
+}
 </script>
 
 <template>
@@ -55,41 +74,49 @@ const enableOnlineMode = () => {
         :class="getBannerClass"
       >
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-          <!-- Left: Status Info -->
-          <div class="d-flex align-items-start flex-grow-1">
-            <div class="banner-icon-wrapper me-3">
-              <CIcon :icon="statusInfo.icon" size="xl" />
-            </div>
-            <div class="flex-grow-1">
-              <div class="d-flex align-items-center mb-1">
-                <strong class="banner-title me-2">{{ statusInfo.label }}</strong>
-                <CBadge
-                  :color="getBannerBadgeColor"
-                  class="text-uppercase"
-                  style="font-size: 0.65rem;"
-                >
-                  {{ getStatusText }}
-                </CBadge>
-              </div>
-              <div class="banner-description">
-                <span v-if="onlineStatusStore.manualOfflineMode">
-                  <CIcon icon="cil-moon" size="sm" class="me-1" />
-                  Automatische Überwachung ist deaktiviert.
-                </span>
-                <span v-else-if="statusInfo.status === 'offline-network'">
-                  <CIcon icon="cil-wifi-signal-off" size="sm" class="me-1" />
-                  Keine Netzwerkverbindung erkannt.
-                </span>
-                <span v-else-if="statusInfo.status === 'offline-server'">
-                  <CIcon icon="cil-cloud-download" size="sm" class="me-1" />
-                  Server ist nicht erreichbar.
-                </span>
-                <span class="ms-2">
-                  Leerstandspülungen können weiterhin offline durchgeführt werden.
-                </span>
-              </div>
-            </div>
-          </div>
+          <!-- Left: Status Info (jetzt klickbar zum toggeln des manuellen Offline-Modus) -->
+          <div
+            class="d-flex align-items-start flex-grow-1 clickable-status"
+            role="button"
+            tabindex="0"
+            @click.stop="toggleManualMode"
+            @keydown.stop.prevent="onKeyToggle"
+            title="Klicken um Manuellen Offline-Modus ein/auszuschalten"
+          >
+             <div class="banner-icon-wrapper me-3">
+               <CIcon :icon="statusInfo.icon" size="xl" />
+             </div>
+             <div class="flex-grow-1">
+               <div class="d-flex align-items-center mb-1">
+                 <strong class="banner-title me-2">{{ statusInfo.label }}</strong>
+                 <CBadge
+                   :color="getBannerBadgeColor"
+                   class="text-uppercase"
+                   style="font-size: 0.65rem;"
+                 >
+                   {{ getStatusText }}
+                 </CBadge>
+               </div>
+               <div class="banner-description">
+                 <span v-if="onlineStatusStore.manualOfflineMode">
+                   <!-- Mond-Icon ersetzt durch WiFi-Off Icon -->
+                   <CIcon icon="cil-wifi-signal-off" size="sm" class="me-1" />
+                   Automatische Überwachung ist deaktiviert.
+                 </span>
+                 <span v-else-if="statusInfo.status === 'offline-network'">
+                   <CIcon icon="cil-wifi-signal-off" size="sm" class="me-1" />
+                   Keine Netzwerkverbindung erkannt.
+                 </span>
+                 <span v-else-if="statusInfo.status === 'offline-server'">
+                   <CIcon icon="cil-cloud-download" size="sm" class="me-1" />
+                   Server ist nicht erreichbar.
+                 </span>
+                 <span class="ms-2">
+                   Leerstandspülungen können weiterhin offline durchgeführt werden.
+                 </span>
+               </div>
+             </div>
+           </div>
 
           <!-- Right: Action Buttons -->
           <div class="d-flex gap-2 align-items-center flex-shrink-0">
@@ -144,3 +171,14 @@ const enableOnlineMode = () => {
 </template>
 
 <style scoped src="@/styles/components/OfflineModeBanner.css"></style>
+
+<!-- Neu: Responsive CSS um Checkboxen in mobilen Ansichten auszublenden falls vorhanden -->
+<style scoped>
+.clickable-status{ cursor: pointer }
+.clickable-status:focus{ outline: 2px solid rgba(0,0,0,0.12); outline-offset: 2px }
+
+/* Verstecke Checkboxen in mobilen Ansichten innerhalb dieses Banners (falls dort Checkboxen benutzt werden) */
+@media (max-width: 576px){
+  .offline-banner input[type="checkbox"]{ display: none !important }
+}
+</style>

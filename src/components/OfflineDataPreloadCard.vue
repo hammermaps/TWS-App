@@ -1,7 +1,7 @@
 <template>
   <CCard v-if="shouldShowCard" class="mb-4">
     <CCardHeader>
-      <strong>Offline-Daten</strong>
+      <strong>{{ $t('offlinePreload.title') }}</strong>
       <CBadge
         :color="statusBadgeColor"
         class="ms-2"
@@ -14,7 +14,7 @@
       <div v-if="isPreloading">
         <div class="mb-3">
           <CIcon icon="cil-cloud-download" size="lg" class="text-primary me-2" />
-          <strong>Lade Daten für Offline-Modus...</strong>
+          <strong>{{ $t('offlinePreload.loadingTitle') }}</strong>
         </div>
 
         <CProgress
@@ -28,13 +28,13 @@
 
         <div class="text-muted small">
           <div v-if="progress.currentBuilding">
-            Aktuelles Gebäude: <strong>{{ progress.currentBuilding }}</strong>
+            {{ $t('offlinePreload.currentBuilding') }}: <strong>{{ progress.currentBuilding }}</strong>
           </div>
           <div>
-            Gebäude: {{ progress.buildings }} / {{ progress.totalBuildings }}
+            {{ $t('offlinePreload.buildings') }}: {{ progress.buildings }} / {{ progress.totalBuildings }}
           </div>
           <div>
-            Apartments: {{ progress.apartments }}
+            {{ $t('offlinePreload.apartments') }}: {{ progress.apartments }}
           </div>
         </div>
       </div>
@@ -44,21 +44,35 @@
         <div class="d-flex align-items-center mb-3">
           <CIcon icon="cil-check-circle" size="lg" class="text-success me-2" />
           <div>
-            <strong>Offline-Daten verfügbar</strong>
+            <strong>{{ $t('offlinePreload.preloadedTitle') }}</strong>
             <div class="text-muted small">
-              Zuletzt aktualisiert: {{ formatLastUpdate(preloadStats.lastPreload) }}
+              {{ $t('offlinePreload.lastUpdated') }}: {{ formatLastUpdate(preloadStats.lastPreload) }}
             </div>
           </div>
         </div>
 
         <div class="row text-center mb-3">
           <div class="col-6">
-            <div class="fs-4 fw-bold text-primary">{{ preloadStats.buildingsCount }}</div>
-            <div class="text-muted small">Gebäude</div>
+            <CCard class="p-2 text-center">
+              <div class="d-flex align-items-center justify-content-center">
+                <CIcon icon="cil-building" class="me-2 text-primary" />
+                <div>
+                  <div class="fs-4 fw-bold text-primary">{{ preloadStats.buildingsCount ?? preloadStats.buildings?.length ?? 0 }}</div>
+                  <div class="small text-muted">{{ $t('offlinePreload.buildings') }}</div>
+                </div>
+              </div>
+            </CCard>
           </div>
           <div class="col-6">
-            <div class="fs-4 fw-bold text-primary">{{ preloadStats.apartmentsCount }}</div>
-            <div class="text-muted small">Apartments</div>
+            <CCard class="p-2 text-center">
+              <div class="d-flex align-items-center justify-content-center">
+                <CIcon icon="cil-home" class="me-2 text-success" />
+                <div>
+                  <div class="fs-4 fw-bold text-success">{{ preloadStats.apartmentsCount || 0 }}</div>
+                  <div class="small text-muted">{{ $t('offlinePreload.apartments') }}</div>
+                </div>
+              </div>
+            </CCard>
           </div>
         </div>
 
@@ -70,8 +84,7 @@
         >
           <CIcon icon="cil-warning" class="me-2" />
           <small>
-            Daten sind älter als 24 Stunden.
-            Aktualisierung empfohlen.
+            {{ $t('offlinePreload.needsRefresh') }}
           </small>
         </CAlert>
 
@@ -80,7 +93,7 @@
           <div class="border-top pt-3 mt-3">
             <h6 class="mb-3">
               <CIcon icon="cil-building" class="me-2" />
-              Geladene Gebäude
+              {{ $t('offlinePreload.loadedBuildings') }}
             </h6>
 
             <!-- Gebäude-Liste als Cards -->
@@ -97,7 +110,8 @@
                   <div class="building-name">{{ building.name }}</div>
                   <div class="building-apartments">
                     <CIcon icon="cil-home" size="sm" class="me-1" />
-                    {{ building.apartmentsCount }} {{ building.apartmentsCount === 1 ? 'Apartment' : 'Apartments' }}
+                    {{ building.apartmentsCount === 1 ? $t('offlineDataBadge.apartmentCount', { count: building.apartmentsCount }) :
+                        $t('offlineDataBadge.apartmentsCount', { count: building.apartmentsCount }) }}
                   </div>
                 </div>
                 <div class="building-badge">
@@ -107,30 +121,10 @@
                 </div>
               </div>
             </div>
-
-            <!-- Statistik-Zusammenfassung -->
-            <div class="stats-summary mt-3 p-3 bg-light rounded">
-              <div class="row text-center">
-                <div class="col-4">
-                  <div class="stat-value text-primary">{{ preloadStats.buildings?.length || 0 }}</div>
-                  <div class="stat-label">Gebäude</div>
-                </div>
-                <div class="col-4">
-                  <div class="stat-value text-success">{{ preloadStats.apartmentsCount }}</div>
-                  <div class="stat-label">Apartments</div>
-                </div>
-                <div class="col-4">
-                  <div class="stat-value text-info">
-                    {{ Math.round(preloadStats.apartmentsCount / (preloadStats.buildings?.length || 1)) }}
-                  </div>
-                  <div class="stat-label">Ø pro Gebäude</div>
-                </div>
-              </div>
-            </div>
           </div>
         </CCollapse>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 mt-4">
           <CButton
             color="primary"
             size="sm"
@@ -148,7 +142,7 @@
             @click="showDetails = !showDetails"
           >
             <CIcon :icon="showDetails ? 'cil-chevron-top' : 'cil-chevron-bottom'" class="me-1" />
-            {{ showDetails ? 'Weniger' : 'Details' }}
+            {{ showDetails ? $t('offlinePreload.less') : $t('offlinePreload.details') }}
           </CButton>
         </div>
       </div>
@@ -158,9 +152,9 @@
         <div class="d-flex align-items-center mb-3">
           <CIcon icon="cil-cloud-download" size="lg" class="text-warning me-2" />
           <div>
-            <strong>Keine Offline-Daten verfügbar</strong>
+            <strong>{{ $t('offlinePreload.noDataTitle') }}</strong>
             <div class="text-muted small">
-              Laden Sie Daten herunter, um die App offline nutzen zu können.
+              {{ $t('offlinePreload.noDataDesc') }}
             </div>
           </div>
         </div>
@@ -171,7 +165,7 @@
           :disabled="!onlineStatusStore.isFullyOnline || isPreloading"
         >
           <CIcon icon="cil-cloud-download" class="me-2" />
-          Offline-Daten laden
+          {{ $t('offlinePreload.loadButton') }}
         </CButton>
 
         <CAlert
@@ -180,7 +174,7 @@
           class="mt-3 mb-0 d-flex align-items-center"
         >
           <CIcon icon="cil-info" class="me-2" />
-          <small>Zum Laden der Daten ist eine Online-Verbindung erforderlich.</small>
+          <small>{{ $t('offlinePreload.onlineRequired') }}</small>
         </CAlert>
       </div>
 
@@ -191,7 +185,7 @@
         class="mt-3 mb-0"
       >
         <CIcon icon="cil-warning" class="me-2" />
-        <strong>Fehler:</strong> {{ preloadError }}
+        <strong>{{ $t('common.error') }}:</strong> {{ preloadError }}
       </CAlert>
     </CCardBody>
   </CCard>
@@ -199,6 +193,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import {
   CCard,
@@ -220,6 +215,8 @@ const props = defineProps({
     default: false
   }
 })
+
+const { t } = useI18n()
 
 // Stores
 const onlineStatusStore = useOnlineStatusStore()
@@ -293,11 +290,11 @@ const statusBadgeColor = computed(() => {
 })
 
 const statusBadgeText = computed(() => {
-  if (isPreloading.value) return 'Wird geladen...'
+  if (isPreloading.value) return t('offlinePreload.status.loading')
   if (preloadStats.value.preloaded) {
-    return preloadStats.value.needsRefresh ? 'Aktualisierung empfohlen' : 'Aktuell'
+    return preloadStats.value.needsRefresh ? t('offlinePreload.status.needsRefresh') : t('offlinePreload.status.current')
   }
-  return 'Nicht geladen'
+  return t('offlinePreload.status.notLoaded')
 })
 
 const preloadError = computed(() => {
@@ -333,7 +330,7 @@ if (onlineStatusStore.dataPreloader) {
 }
 
 function formatLastUpdate(timestamp) {
-  if (!timestamp) return 'Nie'
+  if (!timestamp) return t('offlinePreload.time.never')
 
   const date = new Date(timestamp)
   const now = new Date()
@@ -342,12 +339,12 @@ function formatLastUpdate(timestamp) {
   const diffMins = Math.floor(diffMs / (1000 * 60))
 
   if (diffHours < 1) {
-    return `vor ${diffMins} Minuten`
+    return t('offlinePreload.time.minutes', { minutes: diffMins })
   } else if (diffHours < 24) {
-    return `vor ${diffHours} Stunden`
+    return t('offlinePreload.time.hours', { hours: diffHours })
   } else {
     const diffDays = Math.floor(diffHours / 24)
-    return `vor ${diffDays} Tagen`
+    return t('offlinePreload.time.days', { days: diffDays })
   }
 }
 

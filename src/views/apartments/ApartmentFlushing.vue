@@ -80,12 +80,6 @@
       </CCardBody>
     </CCard>
 
-    <!-- Offline Alert -->
-    <CAlert v-if="!isOnline" color="warning" :visible="true" class="mb-4">
-      <CIcon icon="cil-wifi-off" class="me-2" />
-      <strong>{{ $t('flushing.offlineMode') }}:</strong> {{ $t('flushing.offlineAlert') }}
-    </CAlert>
-
     <!-- Loading State -->
     <div v-if="loading" class="text-center">
       <CSpinner color="primary" />
@@ -243,10 +237,10 @@
               </div>
               <div class="detail-row">
                 <strong>{{ $t('flushing.nextFlush') }}:</strong>
-                <span v-if="currentApartment.next_flush_due">
-                  {{ formatDate(currentApartment.next_flush_due) }}
-                  <small :class="getNextFlushClass(currentApartment.next_flush_due)" class="d-block">
-                    {{ formatTimeToNext(currentApartment.next_flush_due) }}
+                <span v-if="currentApartment.next_flush_due || currentApartment.last_flush_date">
+                  {{ formatDate(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date)) }}
+                  <small :class="getNextFlushClass(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date))" class="d-block">
+                    {{ formatTimeToNext(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date)) }}
                   </small>
                 </span>
                 <span v-else class="text-muted">{{ $t('flushing.notPlanned') }}</span>
@@ -477,11 +471,11 @@ const loadApartmentData = async () => {
     const apartments = apartmentStorage.storage.getApartmentsForBuilding(buildingId.value)
     allApartments.value = apartments
 
-    console.log('✅ Apartment geladen:', apartmentId.value, 'Min-Duration:', apartments.find(apt => apt.id == apartmentId.value)?.min_flush_duration)
+    console.log('✅ Apartment geladen:', apartmentId.value, 'Min-Duration:', apartments.find(apt => String(apt.id) === String(apartmentId.value))?.min_flush_duration)
     console.log('📋 Alle Apartments im Gebäude:', apartments.length)
     console.log('🔍 Nächstes Apartment verfügbar:', !!nextApartment.value)
 
-    const apartment = apartments.find(apt => apt.id == apartmentId.value)
+    const apartment = apartments.find(apt => String(apt.id) === String(apartmentId.value))
     if (apartment) {
       currentApartment.value = apartment
 
@@ -554,26 +548,50 @@ const stopFlushing = async () => {
       if (result.success) {
         console.log('✅ Spül-Record online gespeichert')
 
-        // Apartment-Daten aktualisieren
-        if (result.data && result.data.apartment) {
-          // Server hat aktualisierte Apartment-Daten zurückgegeben
-          currentApartment.value = result.data.apartment
-          apartmentStorage.storage.addOrUpdateApartment(buildingId.value, result.data.apartment)
-          console.log('✅ Apartment-Daten vom Server aktualisiert')
-        } else {
-          // Server hat keine aktualisierten Daten zurückgegeben - manuell aktualisieren
-          console.log('ℹ️ Aktualisiere Apartment-Daten manuell nach Spülung')
-          currentApartment.value.last_flush_date = flushData.endTime
-          currentApartment.value.last_flush_duration = flushData.duration
+        // Vereinheitlichte Aktualisierung: Baue ein aktualisiertes Apartment-Objekt
+        const serverApartment = result.data && result.data.apartment ? result.data.apartment : null
+        // Beginne mit Server-Apartment (falls vorhanden), sonst mit aktuellem Apartment als Basis
+        const updatedApartment = serverApartment ? { ...serverApartment } : { ...(currentApartment.value || {}) }
 
-          // Berechne nächste Spülung (Annahme: 72 Stunden nach letzter Spülung)
-          const nextFlushDate = new Date(flushData.endTime)
-          nextFlushDate.setHours(nextFlushDate.getHours() + 72)
-          currentApartment.value.next_flush_due = nextFlushDate.toISOString()
+        // Setze immer die lokal bekannten Werte aus flushData, damit UI sofort konsistent ist
+        updatedApartment.last_flush_date = flushData.endTime
+        updatedApartment.last_flush_duration = flushData.duration
 
-          // Speichere aktualisierte Daten im Storage
+        // Berechne nächste Spülung (Annahme: 72 Stunden nach letzter Spülung)
+        const nextFlushDate = new Date(flushData.endTime)
+        nextFlushDate.setHours(nextFlushDate.getHours() + 72)
+        updatedApartment.next_flush_due = nextFlushDate.toISOString()
+
+        // Reaktive Zuweisung - setze zusätzlich next_flush_due zwingend aus last_flush_date +72h
+        // (manchmal liefert der Server veraltete next_flush_due, deshalb erzwingen wir die Konsistenz lokal)
+        const forcedNext = new Date(updatedApartment.last_flush_date)
+        forcedNext.setHours(forcedNext.getHours() + 72)
+        updatedApartment.next_flush_due = forcedNext.toISOString()
+
+        currentApartment.value = { ...updatedApartment }
+
+        // Persistiere im Apartment-Storage
+        try {
           apartmentStorage.storage.addOrUpdateApartment(buildingId.value, currentApartment.value)
-          console.log('✅ Apartment-Daten lokal aktualisiert')
+        } catch (e) {
+          console.warn('⚠️ Fehler beim Speichern des aktualisierten Apartments in Storage:', e)
+        }
+
+        // Aktuallisiere allApartments Array falls geladen
+        try {
+          const idx = allApartments.value.findIndex(a => a.id === currentApartment.value.id)
+          if (idx !== -1) {
+            allApartments.value.splice(idx, 1, { ...allApartments.value[idx], ...currentApartment.value })
+          }
+        } catch (e) {
+          console.warn('⚠️ Fehler beim Aktualisieren des allApartments Arrays:', e)
+        }
+
+        // Emit event für zentrale Komponenten (z.B. Header Badges)
+        try {
+          emit('apartment-updated', { apartmentId: apartmentId.value, update: currentApartment.value })
+        } catch (e) {
+          console.warn('⚠️ Fehler beim Emittieren des apartment-updated Events:', e)
         }
 
         // Füge neue Spülung zur Historie hinzu
@@ -583,11 +601,12 @@ const stopFlushing = async () => {
           duration: flushData.duration,
           success: true
         }
-        recentFlushes.value.unshift(newFlush) // Am Anfang der Liste hinzufügen
+        recentFlushes.value.unshift(newFlush)
         // Begrenze auf die letzten 10 Einträge
         if (recentFlushes.value.length > 10) {
           recentFlushes.value = recentFlushes.value.slice(0, 10)
         }
+
         console.log('✅ Spülung zur Historie hinzugefügt')
 
         await handleNavigationAfterFlush()
@@ -906,6 +925,42 @@ const formatTimeAgo = (dateString) => {
     return ''
   }
 }
+
+// Liefert das Datum, das für "Nächste Spülung" angezeigt werden soll.
+// Falls nextDue fehlt oder vor lastFlush liegt, berechne lastFlush + 72h.
+const getNextFlushToShow = (nextDue, lastFlush) => {
+  try {
+    // Wenn wir eine lastFlush haben, berechne standardmäßig lastFlush + 72h
+    let fallback = null
+    if (lastFlush) {
+      const lf = new Date(lastFlush)
+      if (!isNaN(lf.getTime())) {
+        fallback = new Date(lf)
+        fallback.setHours(fallback.getHours() + 72)
+      }
+    }
+
+    // Wenn nextDue gültig ist und später liegt als fallback, verwende es.
+    if (nextDue) {
+      const nd = new Date(nextDue)
+      if (!isNaN(nd.getTime())) {
+        if (fallback) {
+          if (nd.getTime() > fallback.getTime()) return nd.toISOString()
+          // falls server nextDue früher oder gleich fallback ist, nutze fallback
+          return fallback.toISOString()
+        }
+        // Kein fallback vorhanden -> verwende serverwert
+        return nd.toISOString()
+      }
+    }
+
+    // Kein gültiges nextDue -> nutze fallback oder null
+    return fallback ? fallback.toISOString() : null
+  } catch (e) {
+    return null
+  }
+}
+
 
 const formatTimeToNext = (dateString) => {
   if (!dateString) return ''

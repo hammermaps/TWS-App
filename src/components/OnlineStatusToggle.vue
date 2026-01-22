@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   CDropdown,
   CDropdownToggle,
@@ -7,7 +8,6 @@ import {
   CDropdownHeader,
   CDropdownDivider,
   CBadge,
-  CFormCheck,
   CButton
 } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
@@ -18,8 +18,37 @@ const onlineStatusStore = useOnlineStatusStore()
 const statusInfo = computed(() => onlineStatusStore.connectionStatus)
 const isManualMode = computed(() => onlineStatusStore.manualOfflineMode)
 
+// i18n - sichere Fallbacks falls Keys fehlen
+const { t } = useI18n()
+const manualModeText = computed(() => {
+  if (isManualMode.value) {
+    const v = t('online.manualModeOn')
+    return v === 'online.manualModeOn' || !v ? t('online.monitoringPaused') : v
+  }
+  const off = t('online.manualModeOff')
+  return off === 'online.manualModeOff' || !off ? t('online.autoCheckRunning') : off
+})
+
 const toggleOnlineStatus = () => {
   onlineStatusStore.setManualOffline(!onlineStatusStore.manualOfflineMode)
+}
+
+// Neuer Keydown-Handler für Tastatur-Unterstützung (Enter / Space)
+const onKeyToggle = (e) => {
+  if (!e) return
+  const key = e.key
+  if (key === 'Enter' || key === ' ') {
+    toggleOnlineStatus()
+  }
+}
+
+// Click-Handler auf der gesamten Card; ignoriert Klicks auf Buttons/Links/SVGs/Inputs
+const onManualBoxClick = (e) => {
+  if (e && e.target) {
+    const tag = e.target.tagName?.toLowerCase()
+    if (['button', 'a', 'svg', 'path', 'input'].includes(tag)) return
+  }
+  toggleOnlineStatus()
 }
 
 const getCheckingIndicator = computed(() => {
@@ -83,15 +112,17 @@ const getLastPingInfo = computed(() => {
               {{ onlineStatusStore.isOnline ? $t('online.online') : $t('offline.title') }}
             </span>
           </div>
-          <div class="d-flex justify-content-between mb-1">
+
+          <!-- Server: nur anzeigen, wenn NICHT manueller Offline-Modus -->
+          <div v-if="!isManualMode" class="d-flex justify-content-between mb-1">
             <span>{{ $t('online.server') }}:</span>
             <span :class="onlineStatusStore.isServerReachable ? 'text-success' : 'text-danger'">
               {{ onlineStatusStore.isServerReachable ? $t('online.reachable') : $t('online.unreachable') }}
             </span>
           </div>
 
-          <!-- Letzter Ping -->
-          <div v-if="getLastPingInfo" class="d-flex justify-content-between mb-1">
+          <!-- Letzter Ping: nur anzeigen, wenn NICHT manueller Offline-Modus -->
+          <div v-if="getLastPingInfo && !isManualMode" class="d-flex justify-content-between mb-1">
             <span>{{ $t('online.lastPing') }}:</span>
             <span>{{ $t('online.agoSeconds', { seconds: getLastPingInfo.seconds }) }}</span>
           </div>
@@ -108,7 +139,15 @@ const getLastPingInfo = computed(() => {
 
       <!-- Manual Toggle -->
       <div class="px-3 py-2">
-        <div class="manual-toggle-box p-2 rounded-3">
+        <div
+          class="manual-toggle-box p-2 rounded-3"
+          role="switch"
+          :aria-checked="isManualMode"
+          :aria-label="manualModeText"
+          tabindex="0"
+          @click.stop="onManualBoxClick"
+          @keydown.stop.prevent="onKeyToggle"
+        >
           <div class="d-flex align-items-center justify-content-between">
             <div class="flex-grow-1 me-2">
               <div class="fw-semibold mb-1" style="font-size: 0.9rem;">{{ $t('online.manualOfflineMode') }}</div>
@@ -116,41 +155,32 @@ const getLastPingInfo = computed(() => {
                 {{ isManualMode ? $t('online.monitoringPaused') : $t('online.autoCheckRunning') }}
               </div>
             </div>
-            <CFormCheck
+            <!-- Inner switch visual only: keine Klick-Handler mehr -->
+            <div
               :id="'manual-offline-toggle'"
-              v-model="onlineStatusStore.manualOfflineMode"
-              switch
-              @change="toggleOnlineStatus"
-              class="flex-shrink-0"
-            />
-          </div>
-
-          <!-- Status Badge -->
-          <div class="d-flex align-items-center mt-2 pt-2 border-top" :class="isManualMode ? 'border-secondary-subtle' : 'border-primary-subtle'">
-            <CIcon
-              :icon="isManualMode ? 'cil-moon' : 'cil-chart-line'"
-              size="sm"
-              class="me-2"
-              :class="isManualMode ? 'text-secondary' : 'text-primary'"
-            />
-            <small class="fw-medium" :class="isManualMode ? 'text-secondary' : 'text-primary'" style="font-size: 0.75rem;">
-              {{ isManualMode ? $t('online.pingDisabled') : $t('online.autoMonitoringActive') }}
-            </small>
+              class="manual-toggle-switch flex-shrink-0 d-flex align-items-center"
+            >
+              <div class="me-2">
+                <CIcon :icon="isManualMode ? 'cil-wifi-signal-off' : 'cil-wifi-signal-4'" />
+              </div>
+              <!-- Icon only here to avoid long texts pushing outside the card -->
+              <div class="d-none d-sm-block"><!-- placeholder for spacing on larger screens --></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <CDropdownDivider />
 
-      <!-- Manual Ping Button -->
-      <div class="px-3 py-2">
+      <!-- Manual Ping Button: wird komplett ausgeblendet wenn manueller Offline-Modus aktiv ist -->
+      <div class="px-3 py-2" v-if="!isManualMode">
+        <CDropdownDivider />
         <CButton
           color="primary"
           variant="outline"
           size="sm"
           class="w-100"
           @click.prevent="onlineStatusStore.pingServer()"
-          :disabled="isManualMode || getCheckingIndicator"
+          :disabled="getCheckingIndicator"
         >
           <CIcon
             :icon="getCheckingIndicator ? 'cil-sync' : 'cil-reload'"
@@ -159,9 +189,6 @@ const getLastPingInfo = computed(() => {
           />
           {{ getCheckingIndicator ? $t('online.checking') : $t('online.checkNow') }}
         </CButton>
-        <small v-if="isManualMode" class="text-body-secondary d-block mt-2 text-center">
-          {{ $t('online.disabledInManualMode') }}
-        </small>
       </div>
 
       <!-- Info über eingeschränkte Features -->
@@ -200,3 +227,15 @@ const getLastPingInfo = computed(() => {
 
 <style scoped src="@/styles/components/OnlineStatusToggle.css"></style>
 
+<!-- Kleine Hilfs-Styles für die klickbare Umschaltung -->
+<style scoped>
+.manual-toggle-switch{ cursor: pointer }
+.manual-toggle-switch:focus{ outline: 2px solid rgba(0,0,0,0.08); outline-offset: 2px }
+/* Ensure the manual mode text wraps inside the card */
+.manual-mode-text{ white-space: normal; word-break: break-word }
+
+/* Verstecke native Checkboxen falls noch irgendwo vorhanden in kleinen Ansichten */
+@media (max-width: 576px){
+  .manual-toggle-switch input[type="checkbox"]{ display: none !important }
+}
+</style>

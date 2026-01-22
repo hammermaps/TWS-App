@@ -1,6 +1,9 @@
 {
   "common": {
     "save": "Speichern",
+    "user": "Benutzer",
+    "unknown": "Unbekannt",
+    "never": "Nie",
     "cancel": "Abbrechen",
     "delete": "Löschen",
     "edit": "Bearbeiten",
@@ -42,12 +45,16 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "health": "Health Status",
+    "buildingsAndApartments": "Gebäude & Wohnungen",
     "buildings": "Gebäude",
+    "users": "Benutzer",
     "apartments": "Wohnungen",
     "flushing": "Leerstandsspülungen",
     "flushingManager": "Spülmanager",
     "settings": "Einstellungen",
     "profile": "Profil",
+    "profileEdit": "Profil bearbeiten",
     "logout": "Abmelden",
     "login": "Anmelden"
   },
@@ -176,7 +183,9 @@
     "updatedOneMinuteAgo": "vor 1 Minute aktualisiert",
     "updatedHoursAgo": "vor {hours} Stunden aktualisiert",
     "updatedOneHourAgo": "vor 1 Stunde aktualisiert",
-    "apartmentsCount": "{count} Wohnungen"
+    "apartmentsCount": "{count} Wohnungen",
+    "info": "Information",
+    "noApartmentId": "Keine Wohnungs-ID angegeben"
   },
   "flushing": {
     "title": "Leerstandsspülungen",
@@ -203,6 +212,11 @@
     "startTime": "Startzeit",
     "endTime": "Endzeit",
     "tooShort": "Zu kurz",
+    "historyTitle": "Spülhistorie",
+    "historySubtitle": "Übersicht aller durchgeführten Spülungen",
+    "loadingHistory": "Lade Spülhistorie...",
+    "noFlushesFound": "Keine Spülungen gefunden",
+    "noFlushesFoundDesc": "Für diese Wohnung wurden noch keine Spülungen durchgeführt.",
     "statistics": "Statistiken",
     "totalFlushes": "Gesamt Spülungen",
     "avgDuration": "Ø Spüldauer",
@@ -224,7 +238,6 @@
     "recentFlushes": "Letzte Spülungen",
     "offlineMode": "Offline-Modus",
     "offlineSaved": "Spülung offline gespeichert. Wird automatisch synchronisiert.",
-    "offlineAlert": "Spülungen werden lokal gespeichert und automatisch synchronisiert, sobald eine Internetverbindung verfügbar ist.",
     "apartmentDisabled": "Diese Wohnung ist deaktiviert und kann nicht gespült werden.",
     "loadingApartment": "Lade Wohnungs-Daten...",
     "runningSince": "Läuft seit {duration}",
@@ -253,6 +266,7 @@
     "todayDue": "Heute fällig",
     "tomorrowDue": "Morgen fällig",
     "daysAgo": "vor {days} Tagen",
+    "last12Flushes": "Letzte 12 Spülungen",
     "daysLeft": "in {days} Tagen"
   },
   "settings": {
@@ -338,6 +352,7 @@
     "errors": "Fehler",
     "manualOfflineMode": "Manueller Offline-Modus",
     "monitoringPaused": "Netzwerküberwachung ist pausiert",
+    "manualModeOff": "Manueller Modus deaktiviert",
     "autoCheckRunning": "Automatische Verbindungsprüfung läuft",
     "pingDisabled": "Ping-Prüfungen deaktiviert",
     "autoMonitoringActive": "Automatische Überwachung aktiv",
@@ -352,6 +367,51 @@
     "buildingManagement": "Gebäudeverwaltung",
     "offlineAvailable": "Offline verfügbar",
     "flushingContinue": "Leerstandspülungen können weiterhin durchgeführt werden"
+  },
+  "offlineDataBadge": {
+    "badgeText": "Offline-Daten",
+    "loadingTitle": "Daten werden geladen",
+    "loading": "Lädt...",
+    "loadingTooltip": "Daten werden im Hintergrund geladen",
+    "current": "Aktuelles Gebäude",
+    "buildings": "Gebäude",
+    "apartments": "Wohnungen",
+    "apartmentCount": "{count} Wohnung",
+    "apartmentsCount": "{count} Wohnungen",
+    "noData": "Keine Offline-Daten",
+    "noOfflineData": "Keine Offline-Daten verfügbar",
+    "successTitle": "Vorabladen abgeschlossen",
+    "successStats": "{buildings} Gebäude, {apartments} Wohnungen vorabgeladen"
+  },
+  "offlinePreload": {
+    "title": "Offline-Daten",
+    "loadingTitle": "Lade Daten für Offline-Modus...",
+    "currentBuilding": "Aktuelles Gebäude",
+    "buildings": "Gebäude",
+    "apartments": "Wohnungen",
+    "preloadedTitle": "Offline-Daten verfügbar",
+    "lastUpdated": "Zuletzt aktualisiert",
+    "needsRefresh": "Daten sind älter als 24 Stunden. Aktualisierung empfohlen.",
+    "loadedBuildings": "Geladene Gebäude",
+    "avgPerBuilding": "Ø pro Gebäude",
+    "less": "Weniger",
+    "details": "Details",
+    "noDataTitle": "Keine Offline-Daten verfügbar",
+    "noDataDesc": "Laden Sie Daten herunter, um die App offline nutzen zu können.",
+    "loadButton": "Offline-Daten laden",
+    "onlineRequired": "Zum Laden der Daten ist eine Online-Verbindung erforderlich.",
+    "status": {
+      "loading": "Wird geladen...",
+      "needsRefresh": "Aktualisierung empfohlen",
+      "current": "Aktuell",
+      "notLoaded": "Nicht geladen"
+    },
+    "time": {
+      "never": "Nie",
+      "minutes": "vor {minutes} Minuten",
+      "hours": "vor {hours} Stunden",
+      "days": "vor {days} Tagen"
+    }
   },
   "errors": {
     "general": "Ein Fehler ist aufgetreten",

@@ -5,8 +5,8 @@
       <CCardBody>
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h2>Spülhistorie - Wohnung {{ apartment?.number || 'Unbekannt' }}</h2>
-            <p class="text-muted mb-0">Übersicht aller durchgeführten Spülungen</p>
+            <h2>{{ $t('flushing.historyTitle') }} - {{ $t('apartments.apartment') }} {{ apartment?.number || $t('common.unknown') }}</h2>
+            <p class="text-muted mb-0">{{ $t('flushing.historySubtitle') }}</p>
           </div>
           <div class="d-flex gap-2">
             <CButton
@@ -15,7 +15,7 @@
               :disabled="loading"
             >
               <CIcon name="cilReload" class="me-2" />
-              Aktualisieren
+              {{ $t('common.refresh') }}
             </CButton>
           </div>
         </div>
@@ -27,43 +27,43 @@
       <CCol md="6">
         <CCard class="h-100">
           <CCardHeader>
-            <h5>Wohnungsinformationen</h5>
+            <h5>{{ $t('apartments.apartment') }} {{ $t('apartments.info') }}</h5>
           </CCardHeader>
           <CCardBody>
             <CRow>
               <CCol sm="6">
-                <strong>Nummer:</strong> {{ apartment.number }}
+                <strong>{{ $t('apartments.number') }}:</strong> {{ apartment.number }}
               </CCol>
               <CCol sm="6">
-                <strong>Etage:</strong> {{ apartment.floor }}
+                <strong>{{ $t('apartments.floor') }}:</strong> {{ apartment.floor }}
               </CCol>
             </CRow>
             <CRow class="mt-2">
               <CCol sm="6">
-                <strong>Mindestspüldauer:</strong> {{ apartment.min_flush_duration }}s
+                <strong>{{ $t('apartments.minFlushDuration') }}:</strong> {{ apartment.min_flush_duration }}s
               </CCol>
               <CCol sm="6">
-                <strong>Status:</strong>
+                <strong>{{ $t('common.status') }}:</strong>
                 <CBadge :color="apartment.enabled ? 'success' : 'secondary'">
-                  {{ apartment.enabled ? 'Aktiv' : 'Deaktiviert' }}
+                  {{ apartment.enabled ? $t('apartments.enabled') : $t('apartments.disabled') }}
                 </CBadge>
               </CCol>
             </CRow>
             <CRow class="mt-2">
               <CCol sm="6">
-                <strong>Letzte Spülung:</strong>
+                <strong>{{ $t('apartments.lastFlush') }}:</strong>
                 <span v-if="apartment.last_flush_date">
                   {{ formatDateTime(apartment.last_flush_date) }}
                 </span>
-                <span v-else class="text-muted">Nie</span>
+                <span v-else class="text-muted">{{ $t('apartments.never') }}</span>
               </CCol>
               <CCol sm="6">
-                <strong>Nächste Spülung:</strong>
+                <strong>{{ $t('apartments.nextFlush') }}:</strong>
                 <span v-if="apartment.next_flush_due" :class="isOverdue ? 'text-danger' : 'text-success'">
                   {{ formatDateTime(apartment.next_flush_due) }}
-                  <CBadge v-if="isOverdue" color="danger" class="ms-1">Überfällig</CBadge>
+                  <CBadge v-if="isOverdue" color="danger" class="ms-1">{{ $t('apartments.overdue') }}</CBadge>
                 </span>
-                <span v-else class="text-muted">Nicht geplant</span>
+                <span v-else class="text-muted">{{ $t('apartments.notPlanned') }}</span>
               </CCol>
             </CRow>
           </CCardBody>
@@ -72,20 +72,20 @@
       <CCol md="6">
         <CCard class="h-100">
           <CCardHeader>
-            <h5>Statistiken</h5>
+            <h5>{{ $t('flushing.statistics') }}</h5>
           </CCardHeader>
           <CCardBody>
             <CRow v-if="stats">
               <CCol sm="6">
                 <div class="text-center">
                   <div class="fs-4 fw-bold text-primary">{{ stats.totalFlushes }}</div>
-                  <div class="text-muted small">Gesamt Spülungen</div>
+                  <div class="text-muted small">{{ $t('flushing.totalFlushes') }}</div>
                 </div>
               </CCol>
               <CCol sm="6">
                 <div class="text-center">
                   <div class="fs-4 fw-bold text-info">{{ stats.avgDuration }}s</div>
-                  <div class="text-muted small">Ø Spüldauer</div>
+                  <div class="text-muted small">{{ $t('flushing.avgDuration') }}</div>
                 </div>
               </CCol>
             </CRow>
@@ -93,13 +93,13 @@
               <CCol sm="6">
                 <div class="text-center">
                   <div class="fs-4 fw-bold text-success">{{ stats.lastMonth }}</div>
-                  <div class="text-muted small">Letzter Monat</div>
+                  <div class="text-muted small">{{ $t('flushing.lastMonth') }}</div>
                 </div>
               </CCol>
               <CCol sm="6">
                 <div class="text-center">
                   <div class="fs-4 fw-bold text-warning">{{ stats.thisMonth }}</div>
-                  <div class="text-muted small">Dieser Monat</div>
+                  <div class="text-muted small">{{ $t('flushing.thisMonth') }}</div>
                 </div>
               </CCol>
             </CRow>
@@ -113,12 +113,12 @@
       <CCol>
         <CCard>
           <CCardHeader>
-            <h5>Letzte 12 Spülungen</h5>
+            <h5>{{ $t('flushing.last12Flushes') }}</h5>
           </CCardHeader>
           <CCardBody>
             <div v-if="loading" class="text-center py-4">
               <CSpinner />
-              <p class="mt-2 text-muted">Lade Spülhistorie...</p>
+              <div class="text-muted small">{{ $t('flushing.loadingHistory') }}</div>
             </div>
             <div v-else-if="error" class="alert alert-danger">
               <CIcon name="cilWarning" class="me-2" />
@@ -126,19 +126,19 @@
             </div>
             <div v-else-if="flushHistory.length === 0" class="text-center py-4">
               <CIcon name="cilInfo" size="xl" class="text-muted mb-3" />
-              <h5 class="text-muted">Keine Spülungen gefunden</h5>
-              <p class="text-muted">Für diese Wohnung wurden noch keine Spülungen durchgeführt.</p>
+              <h5 class="text-muted">{{ $t('flushing.noFlushesFound') }}</h5>
+              <p class="text-muted">{{ $t('flushing.noFlushesFoundDesc') }}</p>
             </div>
             <div v-else>
               <!-- Tabelle für größere Bildschirme -->
               <CTable class="d-none d-md-table" responsive striped hover>
                 <CTableHead>
                   <CTableRow>
-                    <CTableHeaderCell>Datum/Zeit</CTableHeaderCell>
-                    <CTableHeaderCell>Dauer</CTableHeaderCell>
-                    <CTableHeaderCell>Benutzer</CTableHeaderCell>
-                    <CTableHeaderCell>GPS Position</CTableHeaderCell>
-                    <CTableHeaderCell>Status</CTableHeaderCell>
+                    <CTableHeaderCell>{{ $t('common.date') }}</CTableHeaderCell>
+                    <CTableHeaderCell>{{ $t('common.duration') }}</CTableHeaderCell>
+                    <CTableHeaderCell>{{ $t('common.user') }}</CTableHeaderCell>
+                    <CTableHeaderCell>{{ $t('flushing.position') }}</CTableHeaderCell>
+                    <CTableHeaderCell>{{ $t('common.status') }}</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
@@ -157,12 +157,12 @@
                       </CBadge>
                       <div v-if="apartment && record.duration < apartment.min_flush_duration" class="text-warning small mt-1">
                         <CIcon name="cilWarning" size="sm" />
-                        Unter Mindestdauer
+                        {{ $t('flushing.tooShort') }}
                       </div>
                     </CTableDataCell>
                     <CTableDataCell>
                       <span v-if="record.user_id">{{ getUserName(record.user_id) }}</span>
-                      <span v-else class="text-muted">Unbekannt</span>
+                      <span v-else class="text-muted">{{ $t('common.unknown') }}</span>
                     </CTableDataCell>
                     <CTableDataCell>
                       <div v-if="record.latitude && record.longitude">
@@ -174,13 +174,13 @@
                           Genauigkeit: ±{{ Math.round(record.location_accuracy) }}m
                         </div>
                       </div>
-                      <span v-else class="text-muted small">Keine GPS-Daten</span>
+                      <span v-else class="text-muted small">{{ $t('flushing.noGPSData') }}</span>
                     </CTableDataCell>
                     <CTableDataCell>
                       <CBadge
                         :color="apartment && record.duration >= apartment.min_flush_duration ? 'success' : 'danger'"
                       >
-                        {{ apartment && record.duration >= apartment.min_flush_duration ? 'OK' : 'Zu kurz' }}
+                        {{ apartment && record.duration >= apartment.min_flush_duration ? 'OK' : $t('flushing.tooShort') }}
                       </CBadge>
                     </CTableDataCell>
                   </CTableRow>
@@ -209,22 +209,22 @@
 
                     <div class="row">
                       <div class="col-6">
-                        <small class="text-muted">Benutzer:</small><br>
+                        <small class="text-muted">{{ $t('common.user') }}:</small><br>
                         <span v-if="record.user_id">{{ getUserName(record.user_id) }}</span>
-                        <span v-else class="text-muted">Unbekannt</span>
+                        <span v-else class="text-muted">{{ $t('common.unknown') }}</span>
                       </div>
                       <div class="col-6">
-                        <small class="text-muted">Status:</small><br>
+                        <small class="text-muted">{{ $t('common.status') }}:</small><br>
                         <CBadge
                           :color="apartment && record.duration >= apartment.min_flush_duration ? 'success' : 'danger'"
                         >
-                          {{ apartment && record.duration >= apartment.min_flush_duration ? 'OK' : 'Zu kurz' }}
+                          {{ apartment && record.duration >= apartment.min_flush_duration ? 'OK' : $t('flushing.tooShort') }}
                         </CBadge>
                       </div>
                     </div>
 
                     <div v-if="record.latitude && record.longitude" class="mt-2">
-                      <small class="text-muted">GPS:</small><br>
+                      <small class="text-muted">{{ $t('flushing.position') }}:</small><br>
                       <span class="small">
                         <CIcon name="cilLocationPin" class="me-1" />
                         {{ record.latitude.toFixed(4) }}, {{ record.longitude.toFixed(4) }}
@@ -251,6 +251,7 @@ import { formatDate, formatDateTime, formatTime } from '@/utils/dateFormatter.js
 import { useApiApartment } from '../../api/ApiApartment.js'
 import { useApiRecords } from '../../api/ApiRecords.js'
 import { getCurrentUser } from '../../stores/GlobalUser.js'
+import { useI18n } from 'vue-i18n'
 import {
   CRow,
   CCol,
@@ -290,6 +291,7 @@ export default {
   },
   setup() {
     const route = useRoute()
+    const { t } = useI18n()
 
     // API Composables
     const { getApartment, loading: apartmentLoading } = useApiApartment()
@@ -441,7 +443,7 @@ export default {
         error.value = null
         const apartmentId = route.params.id
         if (!apartmentId) {
-          error.value = 'Keine Wohnungs-ID angegeben'
+          error.value = t('apartments.noApartmentId')
           return
         }
 
@@ -449,11 +451,11 @@ export default {
         if (result) {
           apartment.value = result
         } else {
-          error.value = 'Wohnung nicht gefunden'
+          error.value = t('flushing.apartmentNotFound')
         }
       } catch (err) {
         console.error('Fehler beim Laden der Wohnung:', err)
-        error.value = err.message || 'Fehler beim Laden der Wohnung'
+        error.value = err.message || t('errors.general')
       }
     }
 

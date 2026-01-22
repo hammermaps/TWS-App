@@ -82,6 +82,7 @@ onMounted(() => {
         </li>
         <CDropdown variant="nav-item" placement="bottom-end">
           <CDropdownToggle :caret="false">
+            <!-- Icons für Theme: Zeige Mond bei dunklem Theme, Sonne bei hellem Theme -->
             <CIcon v-if="colorMode === 'dark'" icon="cil-moon" size="lg" />
             <CIcon v-else-if="colorMode === 'light'" icon="cil-sun" size="lg" />
             <CIcon v-else icon="cil-contrast" size="lg" />
@@ -94,6 +95,7 @@ onMounted(() => {
               type="button"
               @click="handleThemeChange('light')"
             >
+              <!-- Theme-Icons im Menü ebenfalls anpassen -->
               <CIcon class="me-2" icon="cil-sun" size="lg" /> {{ $t('settings.ui.themeLight') }}
             </CDropdownItem>
             <CDropdownItem
