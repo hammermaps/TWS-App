@@ -8,6 +8,7 @@ import { ApiBuilding } from '@/api/ApiBuilding'
 import { useConfigStorage } from '@/stores/ConfigStorage.js'
 import { useConfigSyncService } from '@/services/ConfigSyncService.js'
 import { useAutoSyncService } from '@/services/AutoSyncService.js'
+import { getToken } from '@/stores/GlobalToken.js' // <-- Token-Check import
 
 const { isColorModeSet, setColorMode } = useColorModes(
   'coreui-free-vue-admin-template-theme',
@@ -98,8 +99,16 @@ onBeforeMount(() => {
 
   setColorMode(currentTheme.theme)
 
-  // Starte Preloading im Hintergrund (non-blocking)
-  preloadBuildings()
+  // Starte Preloading im Hintergrund (non-blocking) nur wenn ein Token vorhanden ist
+  try {
+    if (getToken()) {
+      preloadBuildings()
+    } else {
+      console.log('⏭️ Gebäude-Preload übersprungen: kein gültiges Login (Token fehlt)')
+    }
+  } catch (e) {
+    console.warn('⚠️ Fehler beim Prüfen des Token-Status vor Preload:', e)
+  }
 })
 
 onMounted(() => {

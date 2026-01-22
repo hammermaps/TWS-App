@@ -5,14 +5,15 @@ import { getToken, clearToken } from '../stores/GlobalToken.js'
 import { clearUser, updateSessionTime, updateUserData } from '../stores/GlobalUser.js'
 import { ApiUser } from './ApiUser.js'
 import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 /**
  * Vue Composable für automatische Token-Validierung
  * Prüft alle 5 Minuten ob das Token noch gültig ist
  */
 export function useTokenValidator() {
-  // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-  const apiBaseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:4040'
+  // Verwende zentrale API-Konfiguration
+  const apiBaseUrl = getApiBaseUrl()
   const router = useRouter()
   const apiUser = new ApiUser(apiBaseUrl)
   const onlineStatusStore = useOnlineStatusStore()

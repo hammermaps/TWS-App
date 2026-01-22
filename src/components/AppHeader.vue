@@ -1,12 +1,12 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, defineAsyncComponent } from 'vue'
 import { useThemeSync } from '@/services/ThemeService.js'
 
 import AppHeaderDropdownAccnt from '@/components/AppHeaderDropdownAccnt.vue'
 import OnlineStatusToggle from '@/components/OnlineStatusToggle.vue'
 import OfflineDataBadge from '@/components/OfflineDataBadge.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
-import QRCodeScanner from '@/components/QRCodeScanner.vue'
+const QRCodeScanner = defineAsyncComponent(() => import('@/components/QRCodeScanner.vue'))
 import { useSidebarStore } from '@/stores/sidebar.js'
 
 const headerClassNames = ref('mb-4 p-0')

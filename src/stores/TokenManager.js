@@ -5,6 +5,7 @@ import { clearUser } from './GlobalUser.js'
 import { useUser } from '../api/useUser.js'
 import { cookieManager } from './CookieManager.js'
 import { useOnlineStatusStore } from './OnlineStatus.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 // Token Check Interval (5 Minuten = 300000ms)
 const TOKEN_CHECK_INTERVAL = 5 * 60 * 1000
@@ -111,7 +112,7 @@ const checkTokenOnPageLoad = async (routeName) => {
       return { valid: true, reason: 'Offline-Modus: Lokales Token vertraut, Login aktiv' }
     }
 
-    const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:4040'
+    const baseUrl = getApiBaseUrl()
     const { validateToken } = useUser(baseUrl)
 
     // Timeout für Server-Anfrage setzen (5 Sekunden - erhöht von 3)
@@ -198,7 +199,7 @@ const performTokenCheck = async () => {
       return { valid: true, reason: 'Offline-Modus: Token-Prüfung übersprungen, Login aktiv' }
     }
 
-    const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:4040'
+    const baseUrl = getApiBaseUrl()
     const { validateToken } = useUser(baseUrl)
 
     // Timeout für Server-Anfrage setzen (5 Sekunden bei automatischer Prüfung)

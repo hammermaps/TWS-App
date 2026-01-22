@@ -211,18 +211,18 @@ Tools:
 
 Für detaillierte Informationen:
 
-1. **[LOGO_DESIGN_DOCUMENTATION.md](./LOGO_DESIGN_DOCUMENTATION.md)**
+1. **[LOGO_DESIGN_DOCUMENTATION.md](LOGO_DESIGN_DOCUMENTATION.md)**
    - Vollständige Design-Spezifikationen
    - Farbpalette und Symbolik
    - Technische Details
    - Export-Anleitungen
 
-2. **[SIDEBAR_BRAND_DOCUMENTATION.md](./SIDEBAR_BRAND_DOCUMENTATION.md)**
+2. **[SIDEBAR_BRAND_DOCUMENTATION.md](SIDEBAR_BRAND_DOCUMENTATION.md)**
    - AppSidebarBrand Komponente
    - Props und Verwendung
    - Integration in AppSidebar
 
-3. **[LOGO_QUICK_START.md](./LOGO_QUICK_START.md)**
+3. **[LOGO_QUICK_START.md](LOGO_QUICK_START.md)**
    - Schneller Einstieg
    - Häufige Anpassungen
    - Troubleshooting

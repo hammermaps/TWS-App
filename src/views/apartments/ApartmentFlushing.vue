@@ -380,6 +380,9 @@ import {
 } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
 
+// Event emitter für externe Komponenten
+const emit = defineEmits(['apartment-updated'])
+
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -599,19 +602,38 @@ const stopFlushing = async () => {
         flushData
       )
 
-      // Lokale Apartment-Aktualisierung
-      const apartmentUpdate = offlineStorage.updateApartmentAfterOfflineFlush(
-        apartmentId.value,
-        buildingId.value,
-        flushData
-      )
+      // Sofortige lokale Aktualisierung des Apartment-Objekts damit UI die neue nächste Spülung zeigt
+      try {
+        const apartmentUpdate = offlineStorage.updateApartmentAfterOfflineFlush(apartmentId.value, buildingId.value, offlineFlush)
+        // Merge in currentApartment.value (reactive) so Ansicht sofort aktualisiert
+        if (currentApartment.value && typeof currentApartment.value === 'object') {
+          Object.assign(currentApartment.value, apartmentUpdate)
+        }
 
-      // Apartment lokal aktualisieren
-      Object.assign(currentApartment.value, apartmentUpdate)
-      apartmentStorage.storage.addOrUpdateApartment(buildingId.value, currentApartment.value)
+        // Persistiere die Änderung im Apartment-Storage
+        try {
+          apartmentStorage.storage.addOrUpdateApartment(buildingId.value, currentApartment.value)
+        } catch (e) {
+          console.warn('⚠️ Fehler beim Speichern des aktualisierten Apartments in Storage:', e)
+        }
 
-      // Offline-Spülungen neu laden
-      loadOfflineFlushes()
+        // Aktualisiere auch das allApartments-Array (falls geladen), damit Übersichten sofort aktualisiert werden
+        try {
+          const idx = allApartments.value.findIndex(a => a.id === currentApartment.value.id)
+          if (idx !== -1) {
+            // Ersetze das Objekt reaktiv
+            allApartments.value.splice(idx, 1, { ...allApartments.value[idx], ...currentApartment.value })
+          }
+        } catch (e) {
+          console.warn('⚠️ Fehler beim Aktualisieren des allApartments Arrays:', e)
+        }
+
+        // Emit event für zentrale Komponenten (z.B. Apartments-Overview, Header Badges)
+        // so diese die geladenen Statistiken / Karten aktualisieren können
+        emit('apartment-updated', { apartmentId: apartmentId.value, update: apartmentUpdate })
+      } catch (err) {
+        console.error('Fehler bei lokaler Apartment-Aktualisierung nach Offline-Save:', err)
+      }
 
       // Success-Message anzeigen
       showOfflineSuccess.value = true

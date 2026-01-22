@@ -84,7 +84,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import { CBadge, CSpinner, CProgress, CButton } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
@@ -100,6 +100,7 @@ const props = defineProps({
 // Local state
 const showProgress = ref(false)
 const showSuccess = ref(false)
+const localRefreshKey = ref(0)
 
 // Stores
 const onlineStatusStore = useOnlineStatusStore()
@@ -110,22 +111,32 @@ const isLoading = computed(() => {
   return onlineStatusStore.dataPreloader.isPreloading?.value ?? false
 })
 
-// Watcher um Progress automatisch zu öffnen wenn Laden beginnt
-watch(isLoading, (newValue, oldValue) => {
-  if (newValue && !oldValue) {
-    // Laden hat gerade begonnen
-    showProgress.value = true
+// Listen to global preload events so the UI updates immediately after preload finishes/cleared
+function onPreloadComplete(e) {
+  console.log('🔔 Event wls:preload:complete empfangen', e.detail)
+  localRefreshKey.value++
+  showSuccess.value = true
+  setTimeout(() => {
     showSuccess.value = false
-  } else if (!newValue && oldValue) {
-    // Laden ist beendet
-    showSuccess.value = true
-    setTimeout(() => {
-      showSuccess.value = false
-      showProgress.value = false
-    }, 3000) // Zeige noch 3 Sekunden nach Abschluss
-  }
+    showProgress.value = false
+  }, 3000)
+}
+
+function onPreloadCleared() {
+  console.log('🔔 Event wls:preload:cleared empfangen')
+  localRefreshKey.value++
+}
+
+window.addEventListener('wls:preload:complete', onPreloadComplete)
+window.addEventListener('wls:preload:cleared', onPreloadCleared)
+
+// cleanup on unmount
+onBeforeUnmount(() => {
+  window.removeEventListener('wls:preload:complete', onPreloadComplete)
+  window.removeEventListener('wls:preload:cleared', onPreloadCleared)
 })
 
+// Ensure computed properties reference localRefreshKey so they update when events fire
 const progressData = computed(() => {
   if (!onlineStatusStore.dataPreloader) {
     return { buildings: 0, totalBuildings: 0, apartments: 0, currentBuilding: null }
@@ -145,8 +156,16 @@ const progressPercent = computed(() => {
 })
 
 const preloadStats = computed(() => {
-  if (!onlineStatusStore.dataPreloader) return { preloaded: false }
-  return onlineStatusStore.dataPreloader?.getPreloadStats() ?? { preloaded: false }
+  // referenziere localRefreshKey für reaktive Aktualisierung
+  localRefreshKey.value
+  try {
+    if (!onlineStatusStore.dataPreloader) return { preloaded: false }
+    const stats = onlineStatusStore.dataPreloader.getPreloadStats()
+    return stats ?? { preloaded: false }
+  } catch (err) {
+    console.warn('⚠️ Fehler beim Lesen der Preload-Statistiken:', err)
+    return { preloaded: false }
+  }
 })
 
 const badgeColor = computed(() => {
@@ -201,4 +220,3 @@ const tooltipContent = computed(() => {
 </script>
 
 <style scoped src="@/styles/components/OfflineDataBadge.css"></style>
-

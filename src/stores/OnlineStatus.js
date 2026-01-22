@@ -4,6 +4,7 @@ import healthClient from '../api/ApiHealth.js'
 import { useOfflineDataPreloader } from '../services/OfflineDataPreloader.js'
 import { useConfigSyncService } from '../services/ConfigSyncService.js'
 import { useConfigStorage } from './ConfigStorage.js'
+import { getToken } from '@/stores/GlobalToken.js' // <-- Token-Check import
 
 export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // State
@@ -239,7 +240,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       console.log('📶 Manueller Online-Modus aktiviert')
       notifyUser('Online-Modus aktiviert', 'info')
 
-      // Preloading starten wenn Daten veraltet sind oder nicht existieren
+      // Preloading starten wenn nötig oder möglich
       triggerPreloadIfNeeded()
 
       // Config-Synchronisation starten
@@ -268,6 +269,18 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   async function triggerPreloadIfNeeded() {
     if (!isFullyOnline.value) {
       console.log('⏸️ Preloading übersprungen - nicht online')
+      return
+    }
+
+    // Prüfe ob ein Token vorhanden ist (nur vorladen wenn angemeldet)
+    try {
+      const token = getToken()
+      if (!token) {
+        console.log('⏭️ Preloading übersprungen: kein gültiges Login (Token fehlt)')
+        return
+      }
+    } catch (e) {
+      console.warn('⚠️ Fehler beim Prüfen des Token-Status vor Preload:', e)
       return
     }
 
@@ -355,6 +368,19 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   async function forcePreload() {
     if (!isFullyOnline.value) {
       notifyUser('Preloading nur im Online-Modus möglich', 'warning')
+      return false
+    }
+
+    // Zusätzliche Prüfung: Nur angemeldete Nutzer dürfen Preloading manuell anstoßen
+    try {
+      const token = getToken()
+      if (!token) {
+        notifyUser('Preloading erfordert ein aktives Login', 'warning')
+        return false
+      }
+    } catch (e) {
+      console.warn('⚠️ Fehler beim Prüfen des Token-Status vor manuellem Preload:', e)
+      notifyUser('Preloading konnte nicht gestartet werden', 'error')
       return false
     }
 

@@ -1,14 +1,15 @@
 // useHealth.js - Vue Composable für Health Status API
 import { ref } from 'vue'
 import { ApiHealthClient } from './ApiHealth.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 /**
  * Vue Composable für Health Status
  * @param {string} baseUrl - Base URL für den API-Client
  */
 export function useHealth(baseUrl = null) {
-  // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-  const apiBaseUrl = baseUrl || (import.meta.env.DEV ? '/api' : 'http://localhost:4040')
+  // Verwende zentrale API-Konfiguration
+  const apiBaseUrl = baseUrl || getApiBaseUrl()
 
   const loading = ref(false)
   const error = ref(null)

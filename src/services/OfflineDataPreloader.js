@@ -115,7 +115,9 @@ export class OfflineDataPreloader {
       console.log('🎉 Preloading abgeschlossen!')
 
       this.preloadProgress.value.status = 'success'
-      this.lastPreloadTime.value = new Date().toISOString()
+      if (this.lastPreloadTime) {
+        this.lastPreloadTime.value = new Date().toISOString()
+      }
 
       // Speichere Preload-Metadaten
       this.savePreloadMetadata({
@@ -181,7 +183,17 @@ export class OfflineDataPreloader {
   savePreloadMetadata(metadata) {
     try {
       localStorage.setItem('wls_preload_metadata', JSON.stringify(metadata))
+      // Aktualisiere reaktiven Zeitstempel damit UIs neu gerendert werden
+      if (metadata && metadata.timestamp && this.lastPreloadTime) {
+        this.lastPreloadTime.value = metadata.timestamp
+      }
       console.log('💾 Preload-Metadaten gespeichert')
+      try {
+        // Emit event so UI components can react immediately
+        window.dispatchEvent(new CustomEvent('wls:preload:complete', { detail: metadata }))
+      } catch (e) {
+        console.warn('⚠️ Konnte Preload-Event nicht dispatchen:', e)
+      }
     } catch (error) {
       console.error('❌ Fehler beim Speichern der Preload-Metadaten:', error)
     }
@@ -230,6 +242,12 @@ export class OfflineDataPreloader {
    * Gibt Statistiken über vorgeladene Daten zurück
    */
   getPreloadStats() {
+    // Wichtig: lese hier einen reaktiven Wert, damit Aufrufer (Components / Computed) reaktiv aktualisiert werden
+    // wenn sich das Preload-Datum ändert. Ohne diesen Zugriff wird getPreloadStats als rein nicht-reaktiv
+    // behandelt und UI-Computeds, die nur dieses Ergebnis verwenden, werden nicht neu ausgewertet.
+    // optional chaining: wenn lastPreloadTime mal null sein sollte, vermeiden wir einen Crash
+    void (this.lastPreloadTime?.value)
+
     const metadata = this.getPreloadMetadata()
 
     if (!metadata) {
@@ -263,7 +281,24 @@ export class OfflineDataPreloader {
       this.apartmentStorage.storage.clearAll()
       configStorage.clearConfig()
       localStorage.removeItem('wls_preload_metadata')
+      // Reset reaktive Werte
+      this.preloadProgress.value = {
+        buildings: 0,
+        apartments: 0,
+        totalBuildings: 0,
+        totalApartments: 0,
+        currentBuilding: null,
+        config: false,
+        status: 'idle'
+      }
+      this.preloadError.value = null
+      if (this.lastPreloadTime) this.lastPreloadTime.value = null
       console.log('🗑️ Alle vorgeladenen Daten gelöscht')
+      try {
+        window.dispatchEvent(new CustomEvent('wls:preload:cleared'))
+      } catch (e) {
+        console.warn('⚠️ Konnte preload cleared event nicht dispatchen:', e)
+      }
       return true
     } catch (error) {
       console.error('❌ Fehler beim Löschen der vorgeladenen Daten:', error)
@@ -284,4 +319,3 @@ export function useOfflineDataPreloader() {
   }
   return preloaderInstance
 }
-

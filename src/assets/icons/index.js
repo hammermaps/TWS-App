@@ -28,14 +28,18 @@ import { cifUs, cifBr, cifIn, cifFr, cifEs, cifPl } from '@coreui/icons'
 import {
   cilArrowBottom,
   cilArrowRight,
+  cilArrowLeft,
   cilArrowTop,
   cilBan,
   cilBasket,
   cilBell,
   cilCalculator,
   cilCalendar,
+  cilCalendarCheck,
   cilCloudDownload,
+  cilCloudUpload,
   cilChartPie,
+  cilChart,
   cilCheck,
   cilChevronBottom,
   cilChevronTop,
@@ -53,6 +57,9 @@ import {
   cilGlobeAlt,
   cilGrid,
   cilFile,
+  cilFolder,
+  cilStorage,
+  cilSpreadsheet,
   cilJustifyCenter,
   cilLaptop,
   cilLayers,
@@ -62,6 +69,8 @@ import {
   cilLockLocked,
   cilMagnifyingGlass,
   cilMediaPlay,
+  cilMediaStop,
+  cilDataTransferDown,
   cilMenu,
   cilMoon,
   cilNotes,
@@ -73,6 +82,10 @@ import {
   cilShieldAlt,
   cilSpeech,
   cilSpeedometer,
+  cilHeart,
+  cilQrCode,
+  cilBuilding,
+  cilCog,
   cilStar,
   cilSun,
   cilTask,
@@ -94,6 +107,11 @@ import {
   cilWifiSignal4,
   cilSync,
   cilWarning,
+  cilCamera,
+  cilHome,
+  cilPrint,
+  cilTrash,
+  cilAvTimer,
 } from '@coreui/icons'
 
 export const iconsSet = Object.assign(
@@ -101,14 +119,18 @@ export const iconsSet = Object.assign(
   {
     cilArrowBottom,
     cilArrowRight,
+    cilArrowLeft,
     cilArrowTop,
     cilBan,
     cilBasket,
     cilBell,
     cilCalculator,
     cilCalendar,
+    cilCalendarCheck,
     cilCloudDownload,
+    cilCloudUpload,
     cilChartPie,
+    cilChart,
     cilCheck,
     cilChevronBottom,
     cilChevronTop,
@@ -126,6 +148,9 @@ export const iconsSet = Object.assign(
     cilGlobeAlt,
     cilGrid,
     cilFile,
+    cilFolder,
+    cilStorage,
+    cilSpreadsheet,
     cilJustifyCenter,
     cilLaptop,
     cilLayers,
@@ -135,6 +160,8 @@ export const iconsSet = Object.assign(
     cilLockLocked,
     cilMagnifyingGlass,
     cilMediaPlay,
+    cilMediaStop,
+    cilDataTransferDown,
     cilMenu,
     cilMoon,
     cilNotes,
@@ -146,6 +173,9 @@ export const iconsSet = Object.assign(
     cilShieldAlt,
     cilSpeech,
     cilSpeedometer,
+    cilHeart,
+    cilBuilding,
+    cilCog,
     cilStar,
     cilSun,
     cilTask,
@@ -155,6 +185,7 @@ export const iconsSet = Object.assign(
     cilXCircle,
     cilAccountLogout,
     cilChartLine,
+    cilQrCode,
     cilClock,
     cilFingerprint,
     cilHistory,
@@ -167,6 +198,11 @@ export const iconsSet = Object.assign(
     cilWifiSignal4,
     cilSync,
     cilWarning,
+    cilCamera,
+    cilHome,
+    cilPrint,
+    cilTrash,
+    cilAvTimer,
   },
   {
     cifUs,
@@ -203,3 +239,15 @@ export const iconsSet = Object.assign(
     cibCcAmex,
   },
 )
+
+// Aliases for icon-names used in templates but different in coreui package
+// e.g. template uses "cil-play-arrow" -> camel cilPlayArrow, map it to cilMediaPlay
+iconsSet.cilPlayArrow = iconsSet.cilMediaPlay
+iconsSet.cilStop = iconsSet.cilMediaStop
+iconsSet.cilTimer = iconsSet.cilAvTimer
+iconsSet.cilGauge = iconsSet.cilSpeedometer
+iconsSet.cilCloudCheck = iconsSet.cilCloudUpload
+iconsSet.cilWifiOff = iconsSet.cilWifiSignalOff
+
+export default iconsSet
+

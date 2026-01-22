@@ -1,9 +1,10 @@
 // CORS-Test und Debug-Utility
 // Testet die CORS-Konfiguration und API-Verbindung
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 export class CorsDebugger {
   constructor() {
-    this.baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:4040'
+    this.baseUrl = getApiBaseUrl()
   }
 
   /**

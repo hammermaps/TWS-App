@@ -130,13 +130,13 @@ const AppSidebarNav = defineComponent({
               item.icon
                 ? h(resolveComponent('CIcon'), {
                     customClassName: 'nav-icon',
-                    name: item.icon,
+                    icon: item.icon,
                   })
                 : h('span', { class: 'nav-icon' }, h('span', { class: 'nav-icon-bullet' })),
               item.name,
               item.external && h(resolveComponent('CIcon'), {
                 class: 'ms-2',
-                name: 'cil-external-link',
+                icon: 'cil-external-link',
                 size: 'sm'
               }),
               item.badge &&
@@ -178,7 +178,7 @@ const AppSidebarNav = defineComponent({
                       item.icon
                         ? h(resolveComponent('CIcon'), {
                             customClassName: 'nav-icon',
-                            name: item.icon,
+                          name: item.icon,
                           })
                         : h('span', { class: 'nav-icon' }, h('span', { class: 'nav-icon-bullet' })),
                       item.name,

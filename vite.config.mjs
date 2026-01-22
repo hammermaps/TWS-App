@@ -59,17 +59,42 @@ export default defineConfig({
           }
         ]
       },
+      // Workbox / navigation fallback: serve index.html for SPA navigation requests
       workbox: {
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.php',
+        // exclude API and static resource paths from navigation fallback
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/stats\//,
+          /^\/workbox-.*\.js$/,
+          /\/.+\.[a-zA-Z0-9]{1,5}$/ // files with extensions (images, css, js)
+        ],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/wls\.dk-automation\.de\/api\/.*/i,
+            urlPattern: /^\/api\/.*$/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 // 24 Stunden
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Cache same-origin /stats routes as well (server API now lives on root /stats)
+            urlPattern: /^\/stats\/.*$/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'stats-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -106,15 +131,31 @@ export default defineConfig({
           })
           proxy.on('proxyReq', (proxyReq, req, res) => {
             console.log('📤 Sending Request:', req.method, req.url)
-            // Stelle sicher, dass JSON-Headers gesetzt sind
-            if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-              proxyReq.setHeader('Content-Type', 'application/json')
-              proxyReq.setHeader('Accept', 'application/json')
-            }
+            // Stelle sicher, dass JSON-Headers für alle Requests gesetzt sind
+            proxyReq.setHeader('Content-Type', 'application/json')
+            proxyReq.setHeader('Accept', 'application/json')
+            // X-Requested-With Header für Backend-Erkennung
+            proxyReq.setHeader('X-Requested-With', 'XMLHttpRequest')
           })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             console.log('📥 Received Response:', proxyRes.statusCode, req.url)
             console.log('📋 Response Headers:', proxyRes.headers)
+          })
+        }
+      },
+      // Proxy für /stats - leitet gleiche Pfade an Backend weiter (keine Pfad-Rewrite nötig)
+      '/stats': {
+        target: 'https://wls.dk-automation.de',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('🚨 Proxy Error (stats):', err)
+          })
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            proxyReq.setHeader('Content-Type', 'application/json')
+            proxyReq.setHeader('Accept', 'application/json')
+            proxyReq.setHeader('X-Requested-With', 'XMLHttpRequest')
           })
         }
       }
@@ -122,6 +163,53 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    // Warn-Limit leicht erhöhen und manuelle Chunk-Aufteilung zur Verkleinerung großer Bundles
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id) return null
+          // Drittanbieter-Bibliotheken bündeln
+          if (id.includes('node_modules')) {
+            // Versuche Paketname aus Pfad zu extrahieren
+            const parts = id.split('node_modules/')[1].split('/')
+            let pkg = parts[0]
+            // Scoped package (@scope/name)
+            if (pkg && pkg.startsWith('@') && parts.length > 1) {
+              pkg = `${pkg}/${parts[1]}`
+            }
+
+            // Liste großer Pakete, die eigene Chunks bekommen sollen
+            const largePkgs = [
+              '@coreui', '@coreui/vue', 'coreui', 'vue', 'axios', 'workbox-window', 'chart.js'
+            ]
+
+            for (const lp of largePkgs) {
+              if (id.includes(lp)) {
+                // normalize chunk name
+                const name = lp.replace('/', '_').replace('@', '').replace(/[^a-zA-Z0-9_]/g, '')
+                return `vendor_${name}`
+              }
+            }
+
+            // Scoped names replace slashes for chunk filename
+            const pkgName = pkg.replace('/', '_').replace('@', '')
+            // Small packages zusammenfassen
+            return `vendor_${pkgName}`
+          }
+
+          // Große Views / Komponenten in eigene Chunks
+          if (id.includes('/src/views/dashboard') || id.includes('/src/views/dashboard/')) return 'dashboard'
+          if (id.includes('/src/views/apartments') || id.includes('/src/views/apartments/')) return 'apartments'
+          if (id.includes('/src/views/apartments') && id.includes('Flush')) return 'apartment-flush'
+          if (id.includes('/src/views/pages/ProfileView') || id.includes('/src/views/pages/Profile')) return 'profile'
+          if (id.includes('/src/components/QRCodeScanner') || id.includes('/src/views/QR')) return 'qrscanner'
+
+          // Fallback: keine besondere Chunk-Aufteilung
+          return null
+        }
+      }
+    }
   }
 })

@@ -155,7 +155,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { formatDateTime } from '@/utils/dateFormatter.js'
-import QRCodeScanner from '@/components/QRCodeScanner.vue'
+import { defineAsyncComponent } from 'vue'
+const QRCodeScanner = defineAsyncComponent(() => import('@/components/QRCodeScanner.vue'))
 import {
   CButton,
   CCard,

@@ -3,14 +3,15 @@ import { ref, computed, readonly } from 'vue'
 import { ApiUser } from './ApiUser.js'
 import { setToken, clearToken, getToken } from '../stores/GlobalToken.js'
 import { setUser, clearUser, setUserLoading, setUserError, UserItem } from '../stores/GlobalUser.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 /**
  * Vue Composable für User-Management
  * Verwendet die ApiUser-Klasse und stellt reaktive Zustände bereit
  */
 export function useUser(baseUrl = null) {
-  // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-  const apiBaseUrl = baseUrl || (import.meta.env.DEV ? '/api' : 'http://localhost:4040')
+  // Verwende zentrale API-Konfiguration
+  const apiBaseUrl = baseUrl || getApiBaseUrl()
 
   // API-Client-Instanz
   const apiClient = new ApiUser(apiBaseUrl)

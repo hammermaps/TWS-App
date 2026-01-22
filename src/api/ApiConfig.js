@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 // Konfigurationsobjekt
 export class ConfigItem {
@@ -53,7 +54,7 @@ export class ApiResponse {
  */
 export class ApiConfig {
     constructor(baseUrl = null) {
-        this.baseUrl = baseUrl || (import.meta.env.DEV ? '/api' : 'https://wls.dk-automation.de')
+        this.baseUrl = baseUrl || getApiBaseUrl()
     }
 
     /**
@@ -67,6 +68,7 @@ export class ApiConfig {
             const headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'Origin': 'http://localhost:3001',
                 ...request.headers,
                 ...getAuthHeaders()

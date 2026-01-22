@@ -4,6 +4,7 @@ import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { useApartmentStorage } from '../stores/ApartmentStorage.js'
 import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 // Apartment-Element mit Leerstandsspülung
 export class ApartmentItem {
@@ -118,7 +119,7 @@ function toPlainApartment(value, { allowPartial = false } = {}) {
 export class ApiApartment {
     constructor(baseUrl = null) {
         // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-        this.baseUrl = baseUrl || (import.meta.env.DEV ? '/api' : 'https://wls.dk-automation.de')
+        this.baseUrl = baseUrl || getApiBaseUrl()
     }
 
     /**
@@ -132,7 +133,8 @@ export class ApiApartment {
             const headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest', // Wichtig für Backend-Erkennung
+                'X-Requested-With': 'XMLHttpRequest',
+                'Origin': 'http://localhost:3001',
                 ...request.headers,
                 ...getAuthHeaders()
             }

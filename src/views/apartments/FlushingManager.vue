@@ -369,6 +369,33 @@ export default {
 
         console.log('✅ Spülung erfolgreich gespeichert:', createdRecord)
 
+        // Update local apartment data so UI shows correct last/next flush immediately (important for offline mode)
+        // Setze last_flush_date und next_flush_due (72h / 3 Tage) auf dem Apartment lokal
+        try {
+          const endIso = endTime.toISOString()
+          const nextDue = new Date(endTime.getTime() + 72 * 3600 * 1000) // 72 Stunden
+
+          // Aktualisiere currentApartment
+          if (currentApartment.value) {
+            currentApartment.value.last_flush_date = endIso
+            currentApartment.value.next_flush_due = nextDue.toISOString()
+          }
+
+          // Aktualisiere das apartments-Array (reaktiv)
+          const idx = apartments.value.findIndex(a => a.id === currentApartment.value?.id)
+          if (idx !== -1) {
+            // merge changes immutably to ensure Vue reactivity
+            apartments.value.splice(idx, 1, {
+              ...apartments.value[idx],
+              last_flush_date: endIso,
+              next_flush_due: nextDue.toISOString()
+            })
+          }
+
+        } catch (e) {
+          console.warn('⚠️ Fehler beim lokalen Aktualisieren der Apartment-Daten nach Spülung:', e)
+        }
+
         // Cleanup
         if (countdownInterval.value) {
           clearInterval(countdownInterval.value)
@@ -383,23 +410,42 @@ export default {
         currentPosition.value = null
 
         // Apartments-Liste aktualisieren für neue Spül-Daten
+        // Versuche remote zu laden (falls online). Bei Offline-Betrieb haben wir bereits lokal aktualisiert.
         await loadApartments()
 
-        // Automatisch zur nächsten Wohnung springen (nach dem Refresh)
-        if (autoNavigate.value) {
+        // Falls die nachgeladene Liste die erwartete 72h-Nachfrist überschrieben hat,
+        // wende die lokale Berechnung erneut an, damit die UI korrekt 72 Stunden anzeigt.
+        try {
+          const endIsoReapply = endTime.toISOString()
+          const expectedNextDueIso = new Date(endTime.getTime() + 72 * 3600 * 1000).toISOString()
+          const idxAfter = apartments.value.findIndex(a => a.id === currentApartment.value?.id)
+          if (idxAfter !== -1) {
+            const apt = apartments.value[idxAfter]
+            if (apt.next_flush_due !== expectedNextDueIso || apt.last_flush_date !== endIsoReapply) {
+              apartments.value.splice(idxAfter, 1, {
+                ...apt,
+                last_flush_date: endIsoReapply,
+                next_flush_due: expectedNextDueIso
+              })
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Fehler beim erneuten Anwenden der lokalen Spülungs-Aktualisierung:', e)
+        }
+
+         // Automatisch zur nächsten Wohnung springen (nach dem Refresh)
+         if (autoNavigate.value) {
           const nextApartment = sortedApartments.value.find(apt =>
             apt.enabled && needsFlush(apt) && apt.id !== currentApartment.value.id
           )
           if (nextApartment) {
-            currentApartment.value = nextApartment
-          } else {
-            currentApartment.value = null
+            selectApartment(nextApartment)
           }
         }
 
       } catch (error) {
-        console.error('Fehler beim Beenden der Spülung:', error)
-        alert('Fehler beim Beenden der Spülung: ' + error.message)
+        console.error('Fehler beim Stoppen der Spülung:', error)
+        alert('Fehler beim Stoppen der Spülung: ' + error.message)
       } finally {
         flushingLoading.value = false
       }
@@ -407,80 +453,48 @@ export default {
 
     const getCurrentPosition = () => {
       return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          gpsError.value = 'GPS wird von diesem Browser nicht unterstützt'
-          return reject(new Error('GPS nicht unterstützt'))
-        }
-
-        gpsLoading.value = true
-        gpsError.value = null
-
-        const options = {
-          enableHighAccuracy: true,
-          timeout: 30000,
-          maximumAge: 60000
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            currentPosition.value = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy
+        if (watchId.value) {
+          // Bereits beobachtet
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              currentPosition.value = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy
+              }
+              resolve(currentPosition.value)
+            },
+            (error) => {
+              reject(error)
+            },
+            {
+              enableHighAccuracy: true,
+              maximumAge: 10000,
+              timeout: 5000
             }
-            gpsLoading.value = false
-
-            // Position überwachen
-            startWatchingPosition()
-
-            resolve(currentPosition.value)
-          },
-          (error) => {
-            gpsLoading.value = false
-            let errorMessage = 'GPS-Fehler'
-
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage = 'GPS-Berechtigung verweigert'
-                break
-              case error.POSITION_UNAVAILABLE:
-                errorMessage = 'GPS-Position nicht verfügbar'
-                break
-              case error.TIMEOUT:
-                errorMessage = 'GPS-Timeout'
-                break
+          )
+        } else {
+          // Noch nicht beobachtet, starte Beobachtung
+          watchId.value = navigator.geolocation.watchPosition(
+            (position) => {
+              currentPosition.value = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy
+              }
+              resolve(currentPosition.value)
+            },
+            (error) => {
+              reject(error)
+            },
+            {
+              enableHighAccuracy: true,
+              maximumAge: 10000,
+              timeout: 5000
             }
-
-            gpsError.value = errorMessage
-            reject(new Error(errorMessage))
-          },
-          options
-        )
+          )
+        }
       })
-    }
-
-    const startWatchingPosition = () => {
-      if (!navigator.geolocation || watchId.value) return
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 5000
-      }
-
-      watchId.value = navigator.geolocation.watchPosition(
-        (position) => {
-          currentPosition.value = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          }
-        },
-        (error) => {
-          console.warn('GPS Watch Position Error:', error)
-        },
-        options
-      )
     }
 
     const stopWatchingPosition = () => {
@@ -504,9 +518,6 @@ export default {
 
     return {
       // State
-      apartments,
-      loading,
-      error,
       currentApartment,
       autoNavigate,
       isFlushingActive,
@@ -516,23 +527,50 @@ export default {
       gpsLoading,
       gpsError,
       currentPosition,
-
-      // Computed
+      loading,
+      error,
       sortedApartments,
-      strokeDashoffset,
       circumference,
+      strokeDashoffset,
 
       // Methods
       loadApartments,
-      needsFlush,
-      formatLastFlush,
-      selectApartment,
-      getCountdownColor,
       startFlushing,
-      stopFlushing
+      stopFlushing,
+      selectApartment,
+      formatLastFlush,
+      needsFlush,
+      getCurrentPosition
     }
   }
 }
 </script>
 
-<style scoped src="@/styles/views/FlushingManager.css"></style>
+<style scoped>
+.flushing-manager {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.countdown-circle {
+  position: relative;
+}
+
+.countdown-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.countdown-number {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.countdown-label {
+  font-size: 1rem;
+  color: #6c757d;
+}
+</style>

@@ -4,6 +4,7 @@ import { UserItem, currentUser } from '../stores/GlobalUser.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 /**
  * Standardisierte API-Response-Klasse
@@ -141,7 +142,7 @@ function toPlainChangePassword(value = {}) {
 export class ApiUser {
   constructor(baseUrl = null) {
     // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-    this.baseUrl = baseUrl || (import.meta.env.DEV ? '/api' : 'https://wls.dk-automation.de')
+    this.baseUrl = baseUrl || getApiBaseUrl()
   }
 
   /**
@@ -155,7 +156,8 @@ export class ApiUser {
       const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest', // Wichtig für Backend-Erkennung
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': 'http://localhost:3001',
         ...request.headers,
         ...getAuthHeaders()
       }

@@ -89,7 +89,8 @@
     "avgDuration": "Avg Duration",
     "noStatisticsAvailable": "No statistics available",
     "noStatisticsYet": "No work statistics available yet.",
-    "loadStatistics": "Load Statistics"
+    "loadStatistics": "Load Statistics",
+    "updateOfflineData": "Update Data"
   },
   "buildings": {
     "title": "Buildings Overview",

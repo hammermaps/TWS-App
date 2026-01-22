@@ -237,9 +237,10 @@ Token-Validierung übersprungen (Offline-Modus) - Login bleibt aktiv
 ```
 
 ### Store-Status prüfen (in Browser-Konsole)
+
 ```javascript
 // Pinia Store importieren
-const { useOnlineStatusStore } = await import('./src/stores/OnlineStatus.js')
+const {useOnlineStatusStore} = await import('./OnlineStatus.js')
 const onlineStore = useOnlineStatusStore()
 
 // Status prüfen

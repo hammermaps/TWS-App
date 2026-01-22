@@ -10,20 +10,14 @@
           </div>
           <div class="d-flex gap-2">
             <CButton
-              color="success"
-              variant="outline"
-              @click="openQRScanner">
-              <CIcon icon="cil-qr-code" class="me-2" />
-              {{ $t('qrScanner.title') }}
-            </CButton>
-            <CButton
               color="primary"
               @click="loadWorkStats"
               :disabled="!statisticsAvailable">
               <CIcon icon="cil-reload" class="me-2" />
               {{ $t('common.refresh') }}
             </CButton>
-            <CDropdown>
+            <!-- Export-Dropdown nur für Admins sichtbar -->
+            <CDropdown v-if="isAdmin">
               <CDropdownToggle
                 color="info"
                 variant="outline"
@@ -50,11 +44,11 @@
                   {{ $t('dashboard.print') }}
                 </CDropdownItem>
                 <CDropdownItem @click="exportToCSV">
-                  <CIcon icon="cil-spreadsheet" class="me-2" />
+                  <CIcon icon="cil-spreadsheet" class="me-2"  />
                   {{ $t('dashboard.exportCSV') }}
                 </CDropdownItem>
                 <CDropdownDivider />
-                <CDropdownItem @click="exportCurrentMonth" disabled>
+                <CDropdownItem @click="exportCurrentMonth">
                   <CIcon icon="cil-data-transfer-down" class="me-2" />
                   Raw-Daten (Debug)
                 </CDropdownItem>
@@ -350,10 +344,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { formatDate, formatMonthYear } from '@/utils/dateFormatter.js'
 import { useApiStats } from '@/api/ApiStats.js'
-import { getCurrentUser } from '@/stores/GlobalUser.js'
+import { getCurrentUser, isAdmin } from '@/stores/GlobalUser.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import OfflineDataPreloadCard from '@/components/OfflineDataPreloadCard.vue'
-import QRCodeScanner from '@/components/QRCodeScanner.vue'
+import { defineAsyncComponent } from 'vue'
+const QRCodeScanner = defineAsyncComponent(() => import('@/components/QRCodeScanner.vue'))
 import {
   CButton,
   CCard,
@@ -406,6 +401,9 @@ const currentUserId = computed(() => {
   const userId = localStorage.getItem('userId') || localStorage.getItem('wls_user_id')
   return userId ? parseInt(userId, 10) : null
 })
+
+// Admin-Prüfung aus dem globalen User-Store (reactive)
+// Das importierte `isAdmin` ist bereits ein reactive computed und steht dem Template direkt zur Verfügung
 
 const currentMonth = computed(() => {
   return formatMonthYear(new Date())

@@ -136,8 +136,8 @@ Verwenden Sie das kompakte Icon für:
 ## 📞 Hilfe & Unterstützung
 
 ### Dokumentation
-- [Logo Design Dokumentation](./LOGO_DESIGN_DOCUMENTATION.md)
-- [Sidebar Brand Dokumentation](./SIDEBAR_BRAND_DOCUMENTATION.md)
+- [Logo Design Dokumentation](LOGO_DESIGN_DOCUMENTATION.md)
+- [Sidebar Brand Dokumentation](SIDEBAR_BRAND_DOCUMENTATION.md)
 
 ### Probleme?
 Überprüfen Sie:

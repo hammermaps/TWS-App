@@ -138,7 +138,7 @@
             :disabled="!onlineStatusStore.isFullyOnline || isPreloading"
           >
             <CIcon icon="cil-reload" class="me-1" />
-            Daten aktualisieren
+            {{ $t('dashboard.updateOfflineData') }}
           </CButton>
 
           <CButton
@@ -198,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import {
   CCard,
@@ -226,16 +226,46 @@ const onlineStatusStore = useOnlineStatusStore()
 
 // State
 const showDetails = ref(false)
+// Local trigger to force recompute/update of computed values when preloader changes
+const localRefreshKey = ref(0)
+
+// Listen to global preload events
+function onPreloadComplete(e) {
+  console.log('🔔 Event wls:preload:complete empfangen in PreloadCard', e.detail)
+  localRefreshKey.value++
+}
+function onPreloadCleared() {
+  console.log('🔔 Event wls:preload:cleared empfangen in PreloadCard')
+  localRefreshKey.value++
+}
+window.addEventListener('wls:preload:complete', onPreloadComplete)
+window.addEventListener('wls:preload:cleared', onPreloadCleared)
+
+// cleanup on unmount
+import { onBeforeUnmount } from 'vue'
+onBeforeUnmount(() => {
+  window.removeEventListener('wls:preload:complete', onPreloadComplete)
+  window.removeEventListener('wls:preload:cleared', onPreloadCleared)
+})
 
 // Computed
 const progress = computed(() => {
+  // reference localRefreshKey to ensure recompute when events fire
+  localRefreshKey.value
   if (!onlineStatusStore.dataPreloader) return { buildings: 0, apartments: 0, totalBuildings: 0, totalApartments: 0, currentBuilding: null, status: 'idle' }
   return onlineStatusStore.dataPreloader.preloadProgress?.value ?? { buildings: 0, apartments: 0, totalBuildings: 0, totalApartments: 0, currentBuilding: null, status: 'idle' }
 })
 
 const preloadStats = computed(() => {
+  // Verwende localRefreshKey als Abhängigkeit
+  localRefreshKey.value
   if (!onlineStatusStore.dataPreloader) return { preloaded: false, message: 'Initialisierung...' }
-  return onlineStatusStore.dataPreloader?.getPreloadStats() ?? { preloaded: false, message: 'Initialisierung...' }
+  try {
+    return onlineStatusStore.dataPreloader?.getPreloadStats() ?? { preloaded: false, message: 'Initialisierung...' }
+  } catch (e) {
+    console.warn('⚠️ Fehler beim Lesen der Preload-Statistiken in PreloadCard:', e)
+    return { preloaded: false, message: 'Initialisierung...' }
+  }
 })
 
 const shouldShowCard = computed(() => {
@@ -280,7 +310,28 @@ const isPreloading = computed(() => {
   return onlineStatusStore.dataPreloader.isPreloading?.value ?? false
 })
 
-// Methods
+// Watchers: Reagiert auf Änderungen im Preloader-Service
+if (onlineStatusStore.dataPreloader) {
+  // Wenn sich der lastPreloadTime ändert, erhöhe localRefreshKey damit Computeds neu ausgewertet werden
+  watch(() => onlineStatusStore.dataPreloader.lastPreloadTime?.value, (newVal) => {
+    console.log('🔁 Preloader lastPreloadTime changed', newVal)
+    localRefreshKey.value++
+  })
+
+  // Wenn sich der preloadProgress.status verändert, triggert das eine Aktualisierung (z.B. nach Erfolg)
+  watch(() => onlineStatusStore.dataPreloader.preloadProgress?.value?.status, (newVal) => {
+    console.log('🔁 Preloader status changed', newVal)
+    // leichte Verzögerung damit gespeicherte Metadaten bereits verfügbar sind
+    setTimeout(() => { localRefreshKey.value++ }, 200)
+  })
+
+  // Watch auf isPreloading um UI-Aktualisierung sicherzustellen
+  watch(() => onlineStatusStore.dataPreloader.isPreloading?.value, (newVal) => {
+    console.log('🔁 Preloader isPreloading:', newVal)
+    localRefreshKey.value++
+  })
+}
+
 function formatLastUpdate(timestamp) {
   if (!timestamp) return 'Nie'
 
@@ -301,13 +352,20 @@ function formatLastUpdate(timestamp) {
 }
 
 async function handleLoadData() {
-  await onlineStatusStore.forcePreload()
+  const success = await onlineStatusStore.forcePreload()
+  if (success) {
+    // trigger immediate local refresh
+    localRefreshKey.value++
+  }
 }
 
 async function handleRefreshData() {
-  await onlineStatusStore.forcePreload()
+  const success = await onlineStatusStore.forcePreload()
+  if (success) {
+    // trigger immediate local refresh
+    localRefreshKey.value++
+  }
 }
 </script>
 
 <style scoped src="@/styles/components/OfflineDataPreloadCard.css"></style>
-

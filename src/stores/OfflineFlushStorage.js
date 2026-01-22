@@ -148,8 +148,8 @@ class OfflineFlushStorage {
     const apartmentUpdate = {
       id: parseInt(apartmentId),
       last_flush_date: flushData.endTime,
-      // Berechne nächste Spülung (30 Tage später als Beispiel)
-      next_flush_due: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString()
+      // Berechne nächste Spülung: 72 Stunden (3 Tage) nach dem Ende der Spülung
+      next_flush_due: new Date(new Date(flushData.endTime).getTime() + (72 * 60 * 60 * 1000)).toISOString()
     }
 
     console.log('🏠 Lokale Apartment-Aktualisierung:', apartmentUpdate)

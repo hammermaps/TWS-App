@@ -187,8 +187,8 @@ npm run android:run      # Bauen, synchronisieren und auf Gerät ausführen
 
 ### Dokumentation
 
-- **📘 Ausführliche Anleitung (Deutsch)**: [ANDROID_SETUP.md](ANDROID_SETUP.md)
-- **📗 Quick Start (English)**: [ANDROID_QUICKSTART.md](ANDROID_QUICKSTART.md)
+- **📘 Ausführliche Anleitung (Deutsch)**: [ANDROID_SETUP.md](docs/ANDROID_SETUP.md)
+- **📗 Quick Start (English)**: [ANDROID_QUICKSTART.md](docs/ANDROID_QUICKSTART.md)
 
 ### Technische Details
 
@@ -482,11 +482,11 @@ Bei Fragen oder Problemen:
 
 ## 📚 Weitere Dokumentation
 
-- [Android Setup Anleitung (Deutsch)](ANDROID_SETUP.md)
-- [Android Quick Start (English)](ANDROID_QUICKSTART.md)
-- [PWA Dokumentation](PWA_DOCUMENTATION.md)
-- [Offline-Modus Guide](OFFLINE_PRELOADING_DOCUMENTATION.md)
-- [Logo Design Guide](LOGO_README.md)
+- [Android Setup Anleitung (Deutsch)](docs/ANDROID_SETUP.md)
+- [Android Quick Start (English)](docs/ANDROID_QUICKSTART.md)
+- [PWA Dokumentation](docs/PWA_DOCUMENTATION.md)
+- [Offline-Modus Guide](docs/OFFLINE_PRELOADING_DOCUMENTATION.md)
+- [Logo Design Guide](docs/LOGO_README.md)
 - [API Controller Docs](backend-info/)
 
 ---

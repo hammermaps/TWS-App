@@ -27,7 +27,8 @@ export function useApiStats() {
 
       console.log(`🚀 Lade Arbeitsstatistiken für Benutzer ${userId}`)
 
-      const response = await fetch(`/api/stats/work/${userId}`, {
+      // Endpoint: /stats/work/{userId} (ohne /api Prefix)
+      const response = await fetch(`/stats/work/${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +77,8 @@ export function useApiStats() {
 
       console.log(`🚀 Exportiere Daten für Monat ${month}`)
 
-      const response = await fetch(`/api/stats/export/${month}`, {
+      // Endpoint: /stats/export/{month} (ohne /api Prefix)
+      const response = await fetch(`/stats/export/${month}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -95,34 +95,8 @@
                         {{ isLoading ? $t('auth.loggingIn') : $t('auth.login') }}
                       </CButton>
                     </CCol>
-                    <CCol :xs="6" class="text-end">
-                      <CButton
-                        color="link"
-                        class="px-0"
-                        @click="forgotPassword"
-                        :disabled="isLoading"
-                      >
-                        {{ $t('auth.forgotPassword') }}
-                      </CButton>
-                    </CCol>
                   </CRow>
                 </CForm>
-              </CCardBody>
-            </CCard>
-
-            <CCard class="text-white bg-primary py-5" style="width: 44%">
-              <CCardBody class="text-center">
-                <div>
-                  <h2>{{ $t('auth.register') }}</h2>
-                  <p>
-                    {{ $t('auth.registerText') }}
-                  </p>
-                  <RouterLink to="/register">
-                    <CButton color="primary" variant="outline" class="mt-3">
-                      {{ $t('auth.registerNow') }}
-                    </CButton>
-                  </RouterLink>
-                </div>
               </CCardBody>
             </CCard>
           </CCardGroup>
@@ -222,11 +196,6 @@ const handleLogin = async () => {
   } catch (err) {
     console.error('Login error:', err)
   }
-}
-
-const forgotPassword = () => {
-  // TODO: Implementierung für Passwort vergessen
-  alert(t('auth.forgotPasswordNotImplemented'))
 }
 
 // Lifecycle

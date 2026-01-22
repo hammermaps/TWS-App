@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 // Einzelnes Gebäude-Element
 export class BuildingItem {
@@ -99,7 +100,7 @@ function toPlainBuilding(value, { allowPartial = false } = {}) {
 export class ApiBuilding {
     constructor(baseUrl = null) {
         // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-        this.baseUrl = baseUrl || (import.meta.env.DEV ? '/api' : 'https://wls.dk-automation.de')
+        this.baseUrl = baseUrl || getApiBaseUrl()
     }
 
     /**
@@ -113,6 +114,7 @@ export class ApiBuilding {
             const headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'Origin': 'http://localhost:3001', // Explizit Origin setzen
                 ...request.headers,
                 ...getAuthHeaders()

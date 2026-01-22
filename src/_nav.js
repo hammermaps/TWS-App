@@ -23,10 +23,6 @@ export default [
     name: 'QR-Code Scanner',
     to: '/qr-scanner',
     icon: 'cilQrCode',
-    badge: {
-      color: 'info',
-      text: 'SCAN',
-    },
     requiresOnline: false, // QR-Scanner funktioniert auch offline (mit Cache)
   },
   {
@@ -34,10 +30,6 @@ export default [
     name: 'Gebäude',
     to: '/buildings',
     icon: 'cilBuilding',
-    badge: {
-      color: 'success',
-      text: 'SPÜLUNG',
-    },
     requiresOnline: false, // Gebäude & Spülungen funktionieren offline
   },
   {

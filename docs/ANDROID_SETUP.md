@@ -444,7 +444,7 @@ Bei Fragen oder Problemen:
 
 ## Lizenz
 
-Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](LICENSE) für Details.
+Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](../LICENSE) für Details.
 
 ---
 

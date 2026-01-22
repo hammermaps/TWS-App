@@ -128,10 +128,10 @@ npm run dev
 
 | Dokument | Beschreibung |
 |----------|--------------|
-| [📘 LOGO_DESIGN_DOCUMENTATION.md](./LOGO_DESIGN_DOCUMENTATION.md) | Vollständige Design-Spezifikationen |
-| [📗 SIDEBAR_BRAND_DOCUMENTATION.md](./SIDEBAR_BRAND_DOCUMENTATION.md) | Komponenten-Dokumentation |
-| [📙 LOGO_QUICK_START.md](./LOGO_QUICK_START.md) | Schnelleinstieg & Tipps |
-| [📕 LOGO_IMPLEMENTATION_SUMMARY.md](./LOGO_IMPLEMENTATION_SUMMARY.md) | Komplette Übersicht |
+| [📘 LOGO_DESIGN_DOCUMENTATION.md](LOGO_DESIGN_DOCUMENTATION.md) | Vollständige Design-Spezifikationen |
+| [📗 SIDEBAR_BRAND_DOCUMENTATION.md](SIDEBAR_BRAND_DOCUMENTATION.md) | Komponenten-Dokumentation |
+| [📙 LOGO_QUICK_START.md](LOGO_QUICK_START.md) | Schnelleinstieg & Tipps |
+| [📕 LOGO_IMPLEMENTATION_SUMMARY.md](LOGO_IMPLEMENTATION_SUMMARY.md) | Komplette Übersicht |
 
 ---
 
@@ -301,10 +301,10 @@ Siehe Abschnitt "Farben anpassen" oben.
 
 ## 📞 Support & Hilfe
 
-- 📘 [Design-Dokumentation](./LOGO_DESIGN_DOCUMENTATION.md)
-- 📗 [Komponenten-Dokumentation](./SIDEBAR_BRAND_DOCUMENTATION.md)
-- 📙 [Quick Start Guide](./LOGO_QUICK_START.md)
-- 📕 [Implementierungs-Übersicht](./LOGO_IMPLEMENTATION_SUMMARY.md)
+- 📘 [Design-Dokumentation](LOGO_DESIGN_DOCUMENTATION.md)
+- 📗 [Komponenten-Dokumentation](SIDEBAR_BRAND_DOCUMENTATION.md)
+- 📙 [Quick Start Guide](LOGO_QUICK_START.md)
+- 📕 [Implementierungs-Übersicht](LOGO_IMPLEMENTATION_SUMMARY.md)
 
 ---
 

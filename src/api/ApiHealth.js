@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { cookieManager, parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { getApiTimeout } from '../utils/ApiConfigHelper.js'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 /**
  * Memory Usage Informationen
@@ -221,7 +222,7 @@ export class PingResponse {
 export class ApiHealthClient {
   constructor(baseUrl = null) {
     // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-    this.baseUrl = baseUrl || (import.meta.env.DEV ? '/api' : 'https://wls.dk-automation.de')
+    this.baseUrl = baseUrl || getApiBaseUrl()
 
     // Axios-Instanz mit Cookie-Unterstützung konfigurieren
     this.client = axios.create({
@@ -229,7 +230,9 @@ export class ApiHealthClient {
       timeout: getApiTimeout(null), // Verwende Konfigurationswert mit Fallback
       withCredentials: true, // Wichtig für Cookie-Übertragung
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
       }
     })
 
