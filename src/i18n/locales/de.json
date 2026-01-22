@@ -83,8 +83,8 @@
     "dailyDetails": "Tägliche Details (letzte 10 Tage)",
     "date": "Datum",
     "timeSpan": "Zeitspanne",
-    "apartmentStatistics": "Apartment-Statistiken",
-    "apartment": "Apartment",
+    "apartmentStatistics": "Wohnungs-Statistiken",
+    "apartment": "Wohnung",
     "totalDuration": "Gesamtdauer",
     "avgDuration": "Ø Dauer",
     "noStatisticsAvailable": "Keine Statistiken verfügbar",
@@ -176,7 +176,7 @@
     "updatedOneMinuteAgo": "vor 1 Minute aktualisiert",
     "updatedHoursAgo": "vor {hours} Stunden aktualisiert",
     "updatedOneHourAgo": "vor 1 Stunde aktualisiert",
-    "apartmentsCount": "{count} Apartments"
+    "apartmentsCount": "{count} Wohnungen"
   },
   "flushing": {
     "title": "Leerstandsspülungen",
@@ -225,8 +225,8 @@
     "offlineMode": "Offline-Modus",
     "offlineSaved": "Spülung offline gespeichert. Wird automatisch synchronisiert.",
     "offlineAlert": "Spülungen werden lokal gespeichert und automatisch synchronisiert, sobald eine Internetverbindung verfügbar ist.",
-    "apartmentDisabled": "Dieses Apartment ist deaktiviert und kann nicht gespült werden.",
-    "loadingApartment": "Lade Apartment-Daten...",
+    "apartmentDisabled": "Diese Wohnung ist deaktiviert und kann nicht gespült werden.",
+    "loadingApartment": "Lade Wohnungs-Daten...",
     "runningSince": "Läuft seit {duration}",
     "stopPossible": "Stopp möglich",
     "start": "START",
@@ -241,8 +241,8 @@
     "offlineCreated": "Offline erstellt",
     "successful": "Erfolgreich",
     "failed": "Fehler",
-    "apartmentNotFound": "Apartment nicht gefunden",
-    "errorLoadingApartment": "Fehler beim Laden der Apartment-Daten",
+    "apartmentNotFound": "Wohnung nicht gefunden",
+    "errorLoadingApartment": "Fehler beim Laden der Wohnungs-Daten",
     "errorSavingFlush": "Fehler beim Speichern der Spülung",
     "errorSyncing": "Fehler bei der Synchronisation",
     "minDurationReachedCanStop": "Mindestdauer erreicht - Stopp möglich",
@@ -402,7 +402,7 @@
     "requirements": "Voraussetzungen",
     "requirementCamera": "Gerät mit funktionierender Kamera",
     "requirementPermission": "Kamera-Berechtigung erteilt",
-    "requirementQRCode": "Gültiger QR-Code eines Apartments",
+    "requirementQRCode": "Gültiger QR-Code einer Wohnung",
     "steps": "Schritte",
     "step1": "Klicken Sie auf 'Scannen starten'",
     "step2": "Erlauben Sie Kamera-Zugriff",
@@ -410,4 +410,3 @@
     "step4": "Warten Sie auf automatische Erkennung"
   }
 }
-
