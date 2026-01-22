@@ -4,6 +4,7 @@
     @close="handleClose"
     size="lg"
     alignment="center"
+    class="qr-scanner-modal"
   >
     <CModalHeader>
       <CModalTitle>
@@ -400,12 +401,44 @@ code {
   background: #2c3034;
 }
 
-/* Responsive */
+/* Responsive tweaks for scanner frame */
 @media (max-width: 576px) {
   .scanner-frame {
     width: 200px;
     height: 200px;
   }
 }
-</style>
 
+/* --- Added responsive modal overrides for this component --- */
+/* Target teleported modal dialog using ::v-deep so scoped styles apply */
+::v-deep(.qr-scanner-modal .modal-dialog) {
+  /* Constrain width on small screens so the modal doesn't become too wide */
+  max-width: 420px;
+  width: calc(100vw - 32px);
+  margin: 1.2rem auto;
+}
+
+@media (min-width: 768px) {
+  ::v-deep(.qr-scanner-modal .modal-dialog) {
+    /* allow larger modal on tablets and up */
+    max-width: 720px;
+    width: auto;
+  }
+}
+
+/* Make sure modal content doesn't overflow horizontally */
+::v-deep(.qr-scanner-modal .modal-content) {
+  overflow: hidden;
+}
+
+/* Ensure camera view fits the modal content on very small screens */
+.camera-view {
+  max-width: 100%;
+}
+
+/* Make scanner frame scale with viewport (keeps it square) */
+.scanner-frame {
+  width: min(70vmin, 250px);
+  height: min(70vmin, 250px);
+}
+</style>
