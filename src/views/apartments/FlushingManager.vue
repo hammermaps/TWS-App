@@ -216,6 +216,7 @@ import { formatDateTime } from '@/utils/dateFormatter.js'
 import { useApiApartment } from '../../api/ApiApartment.js'
 import { useApiRecords } from '../../api/ApiRecords.js'
 import { currentUser } from '../../stores/GlobalUser.js'
+import { useApartmentStorage } from '../../stores/ApartmentStorage.js'
 import { CIcon } from '@coreui/icons-vue'
 import {
   CRow,
@@ -250,6 +251,7 @@ export default {
   setup() {
     // API Composables
     const { apartments, loading, error, list: loadApartments } = useApiApartment()
+    const apartmentStorage = useApartmentStorage()
     const { create: createRecord, loading: recordLoading } = useApiRecords()
 
     // State
@@ -385,11 +387,19 @@ export default {
           const idx = apartments.value.findIndex(a => a.id === currentApartment.value?.id)
           if (idx !== -1) {
             // merge changes immutably to ensure Vue reactivity
-            apartments.value.splice(idx, 1, {
+            const updatedApt = {
               ...apartments.value[idx],
               last_flush_date: endIso,
               next_flush_due: nextDue.toISOString()
-            })
+            }
+            apartments.value.splice(idx, 1, updatedApt)
+
+            // --- NEW: Also update the ApartmentStorage so other views receive the update event ---
+            try {
+              apartmentStorage.updateApartment(updatedApt.building_id, updatedApt)
+            } catch (e) {
+              console.warn('⚠️ Fehler beim Aktualisieren des ApartmentStorage nach Spülung:', e)
+            }
           }
 
         } catch (e) {
@@ -422,11 +432,15 @@ export default {
           if (idxAfter !== -1) {
             const apt = apartments.value[idxAfter]
             if (apt.next_flush_due !== expectedNextDueIso || apt.last_flush_date !== endIsoReapply) {
-              apartments.value.splice(idxAfter, 1, {
-                ...apt,
-                last_flush_date: endIsoReapply,
-                next_flush_due: expectedNextDueIso
-              })
+              const updatedApt2 = { ...apt, last_flush_date: endIsoReapply, next_flush_due: expectedNextDueIso }
+              apartments.value.splice(idxAfter, 1, updatedApt2)
+
+              // Ensure storage + other views are updated as well
+              try {
+                apartmentStorage.updateApartment(updatedApt2.building_id, updatedApt2)
+              } catch (e) {
+                console.warn('⚠️ Fehler beim erneuten Anwenden der lokalen Spülungs-Aktualisierung im Storage:', e)
+              }
             }
           }
         } catch (e) {

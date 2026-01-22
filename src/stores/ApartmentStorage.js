@@ -3,7 +3,7 @@
  * Ermöglicht Offline-Betrieb und sofortige UI-Updates
  */
 
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 
 const STORAGE_KEY = 'wls_apartments_db'
 const STORAGE_VERSION = '1.0'
@@ -106,7 +106,37 @@ class ApartmentStorageManager {
         apartments.push(apartment)
       }
 
-      return this.setApartmentsForBuilding(buildingId, apartments)
+      const success = this.setApartmentsForBuilding(buildingId, apartments)
+
+      // --- NEW: Keep reactive globalApartments in sync when possible ---
+      try {
+        // Only update if globalApartments already contains apartments for this building
+        if (Array.isArray(globalApartments.value)) {
+          const hasBuilding = globalApartments.value.some(a => String(a.building_id) === String(buildingId))
+          if (hasBuilding) {
+            const idx = globalApartments.value.findIndex(a => a.id === apartment.id)
+            if (idx >= 0) {
+              // Replace existing reactive item to preserve reactivity
+              globalApartments.value.splice(idx, 1, apartment)
+            } else {
+              // Append new apartment to reactive array
+              globalApartments.value.push(apartment)
+            }
+            console.log('🔄 globalApartments reactive ref synchronized for building', buildingId)
+          }
+        }
+
+        // Dispatch a DOM event for other listeners (components) within the same window
+        try {
+          window.dispatchEvent(new CustomEvent('wls_apartment_updated', { detail: { buildingId, apartment } }))
+        } catch (e) {
+          // ignore
+        }
+      } catch (e) {
+        console.warn('⚠️ Fehler beim Synchronisieren des globalApartments refs:', e)
+      }
+
+      return success
     } catch (error) {
       console.error('Failed to add/update apartment:', error)
       return false

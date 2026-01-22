@@ -603,12 +603,60 @@ onMounted(() => {
   console.log('Component mounted, loading apartments data')
   loadApartments()
   setupEventListeners()
+
+  // Listen for apartment updates from storage and other components
+  const apartmentUpdatedHandler = (e) => {
+    try {
+      const detail = e?.detail || {}
+      const updatedBuildingId = detail.buildingId
+      const updatedApartment = detail.apartment
+      if (!updatedApartment) return
+
+      if (String(updatedBuildingId) !== String(buildingId.value)) return
+
+      // Update apartments reactive ref if present
+      const idx = apartments.value.findIndex(a => a.id === updatedApartment.id)
+      if (idx >= 0) {
+        apartments.value.splice(idx, 1, updatedApartment)
+        console.log('🔔 Apartment-Update angewendet in Übersicht:', updatedApartment.number)
+      } else {
+        apartments.value.push(updatedApartment)
+        console.log('🔔 Neues Apartment zur Übersicht hinzugefügt:', updatedApartment.number)
+      }
+
+      // Refresh cache timestamp to indicate recent change
+      try {
+        const cacheKey = `apartments_${buildingId.value}_timestamp`
+        localStorage.setItem(cacheKey, Date.now().toString())
+        calculateCacheAge()
+      } catch (err) {
+        /* ignore */
+      }
+    } catch (err) {
+      console.warn('Fehler beim Verarbeiten des apartment-updated Events:', err)
+    }
+  }
+
+  window.addEventListener('wls_apartment_updated', apartmentUpdatedHandler)
+
+  // Store handler on window for cleanup reference
+  window.__wls_apartment_updated_handler = apartmentUpdatedHandler
 })
 
-// Vor dem Verlassen der Route: cleanup
 onBeforeUnmount(() => {
   removeEventListeners()
   console.log('Component unmounted, cleaned up event listeners')
+
+  // Cleanup custom event listener
+  try {
+    const handler = window.__wls_apartment_updated_handler
+    if (handler) {
+      window.removeEventListener('wls_apartment_updated', handler)
+      delete window.__wls_apartment_updated_handler
+    }
+  } catch (e) {
+    // ignore
+  }
 })
 
 // Watch für Route-Änderungen - lädt Daten neu wenn man zur Seite zurücknavigiert
