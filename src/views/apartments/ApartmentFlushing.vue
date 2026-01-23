@@ -51,11 +51,17 @@
               </CBadge>
             </div>
 
-            <CFormCheck
-              v-model="autoNavigate"
-              :label="$t('flushing.autoNavigate')"
-              class="me-3"
-            />
+            <!-- Touch-freundlicher Toggle-Button für Auto-Navigation -->
+            <CButton
+              :color="autoNavigate ? 'success' : 'outline-secondary'"
+              class="align-items-center"
+              @click="toggleAutoNavigate"
+              :aria-pressed="autoNavigate"
+            >
+              <CIcon :icon="autoNavigate ? 'cil-skip-forward' : 'cil-stop'" class="me-2" />
+              <span>{{ $t('flushing.autoNavigate') }}</span>
+              <small class="text-muted ms-2">{{ autoNavigate ? $t('common.on') : $t('common.off') }}</small>
+            </CButton>
 
             <!-- Sync Button (nur wenn offline Items vorhanden) -->
             <CButton
@@ -206,46 +212,58 @@
             </h5>
           </CCardHeader>
           <CCardBody>
-            <div class="apartment-details">
-              <div class="detail-row">
-                <strong>{{ $t('flushing.apartment') }}:</strong>
-                <span>{{ currentApartment.number }}</span>
-              </div>
-              <div class="detail-row">
-                <strong>{{ $t('flushing.floor') }}:</strong>
-                <span>{{ currentApartment.floor || 'N/A' }}</span>
-              </div>
-              <div class="detail-row">
-                <strong>{{ $t('common.status') }}:</strong>
-                <CBadge :color="currentApartment.enabled ? 'success' : 'danger'">
-                  {{ currentApartment.enabled ? $t('flushing.active') : $t('flushing.disabled') }}
-                </CBadge>
-              </div>
-              <div class="detail-row">
-                <strong>{{ $t('flushing.minDuration') }}:</strong>
-                <span>{{ currentApartment.min_flush_duration }}s</span>
-              </div>
-              <div class="detail-row">
-                <strong>{{ $t('flushing.lastFlush') }}:</strong>
-                <span v-if="currentApartment.last_flush_date">
-                  {{ formatDate(currentApartment.last_flush_date) }}
-                  <small class="text-muted d-block">
-                    {{ formatTimeAgo(currentApartment.last_flush_date) }}
-                  </small>
-                </span>
-                <span v-else class="text-muted">{{ $t('flushing.never') }}</span>
-              </div>
-              <div class="detail-row">
-                <strong>{{ $t('flushing.nextFlush') }}:</strong>
-                <span v-if="currentApartment.next_flush_due || currentApartment.last_flush_date">
-                  {{ formatDate(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date)) }}
-                  <small :class="getNextFlushClass(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date))" class="d-block">
-                    {{ formatTimeToNext(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date)) }}
-                  </small>
-                </span>
-                <span v-else class="text-muted">{{ $t('flushing.notPlanned') }}</span>
-              </div>
-            </div>
+            <!-- Wohnungs-Details tabellarisch -->
+            <CTable bordered responsive class="mb-0 apartment-details-table">
+              <CTableBody>
+                <CTableRow>
+                  <CTableHeaderCell scope="row">{{ $t('flushing.apartment') }}</CTableHeaderCell>
+                  <CTableDataCell>{{ currentApartment.number }}</CTableDataCell>
+                </CTableRow>
+
+                <CTableRow>
+                  <CTableHeaderCell scope="row">{{ $t('flushing.floor') }}</CTableHeaderCell>
+                  <CTableDataCell>{{ currentApartment.floor || 'N/A' }}</CTableDataCell>
+                </CTableRow>
+
+                <CTableRow>
+                  <CTableHeaderCell scope="row">{{ $t('common.status') }}</CTableHeaderCell>
+                  <CTableDataCell>
+                    <CBadge :color="currentApartment.enabled ? 'success' : 'danger'">
+                      {{ currentApartment.enabled ? $t('flushing.active') : $t('flushing.disabled') }}
+                    </CBadge>
+                  </CTableDataCell>
+                </CTableRow>
+
+                <CTableRow>
+                  <CTableHeaderCell scope="row">{{ $t('flushing.minDuration') }}</CTableHeaderCell>
+                  <CTableDataCell>{{ currentApartment.min_flush_duration }}s</CTableDataCell>
+                </CTableRow>
+
+                <CTableRow>
+                  <CTableHeaderCell scope="row">{{ $t('flushing.lastFlush') }}</CTableHeaderCell>
+                  <CTableDataCell>
+                    <span v-if="currentApartment.last_flush_date">
+                      {{ formatDate(currentApartment.last_flush_date) }}
+                      <small class="text-muted d-block">{{ formatTimeAgo(currentApartment.last_flush_date) }}</small>
+                    </span>
+                    <span v-else class="text-muted">{{ $t('flushing.never') }}</span>
+                  </CTableDataCell>
+                </CTableRow>
+
+                <CTableRow>
+                  <CTableHeaderCell scope="row">{{ $t('flushing.nextFlush') }}</CTableHeaderCell>
+                  <CTableDataCell>
+                    <span v-if="currentApartment.next_flush_due || currentApartment.last_flush_date">
+                      {{ formatDate(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date)) }}
+                      <small :class="getNextFlushClass(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date))" class="d-block">
+                        {{ formatTimeToNext(getNextFlushToShow(currentApartment.next_flush_due, currentApartment.last_flush_date)) }}
+                      </small>
+                    </span>
+                    <span v-else class="text-muted">{{ $t('flushing.notPlanned') }}</span>
+                  </CTableDataCell>
+                </CTableRow>
+              </CTableBody>
+            </CTable>
 
             <!-- Navigation zu nächstem Apartment -->
             <div v-if="nextApartment" class="mt-4 pt-3 border-top">
@@ -264,7 +282,7 @@
                   :disabled="isFlushingActive"
                 >
                   <CIcon icon="cil-arrow-right" class="me-2" />
-                  {{ $t('flushing.next') }}
+                  Zur nächsten Wohnung springen
                 </CButton>
               </div>
             </div>
@@ -369,8 +387,7 @@ import {
   CTableBody,
   CTableRow,
   CTableHeaderCell,
-  CTableDataCell,
-  CFormCheck
+  CTableDataCell
 } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
 
@@ -398,6 +415,9 @@ const error = ref(null)
 const currentApartment = ref(null)
 const allApartments = ref([])
 const autoNavigate = ref(true)
+// Verzögerung für die automatische Weiterleitung nach einer Spülung (in ms)
+// Standard: 500ms für schnellere Navigation; kann optional über localStorage konfiguriert werden
+const autoNavigateDelay = ref(Number(localStorage.getItem('wls_auto_navigate_delay_ms')) || 500)
 
 // Offline/Sync State - Verwende Online-Status-Store als einzige Quelle
 const isOnline = computed(() => onlineStatusStore.isFullyOnline)
@@ -495,6 +515,12 @@ const loadApartmentData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Toggle-Funktion für den Auto-Navigate Button
+const toggleAutoNavigate = () => {
+  autoNavigate.value = !autoNavigate.value
+  console.log('🔁 Auto-Navigation umgeschaltet:', autoNavigate.value)
 }
 
 const toggleFlushing = async () => {
@@ -679,11 +705,11 @@ const handleNavigationAfterFlush = async () => {
   })
 
   if (autoNavigate.value && nextApartment.value) {
-    console.log('🚀 Auto-Navigation aktiviert - Navigiere in 2 Sekunden zum nächsten Apartment:', nextApartment.value.number)
+    console.log(`🚀 Auto-Navigation aktiviert - Navigiere in ${autoNavigateDelay.value}ms zum nächsten Apartment:`, nextApartment.value.number)
     setTimeout(() => {
       console.log('⏭️ Führe Navigation aus zu Apartment:', nextApartment.value.number)
       goToNextApartment()
-    }, 2000)
+    }, autoNavigateDelay.value)
   } else {
     if (!autoNavigate.value) {
       console.log('⏸️ Auto-Navigation ist deaktiviert')

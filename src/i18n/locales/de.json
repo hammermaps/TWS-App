@@ -2,6 +2,8 @@
   "common": {
     "save": "Speichern",
     "user": "Benutzer",
+    "on": "Ein",
+    "off": "Aus",
     "unknown": "Unbekannt",
     "never": "Nie",
     "cancel": "Abbrechen",
@@ -75,6 +77,7 @@
     "noData": "Keine Daten verfügbar",
     "statisticsOnlineOnly": "Statistiken und Export-Funktionen sind nur im Online-Modus verfügbar.",
     "entries": "Einträge",
+    "apartments": "Wohnungen",
     "avgDurationPerEntry": "Ø Dauer pro Eintrag",
     "avgWorkTimePerDay": "Ø Arbeitszeit/Tag",
     "avgWorkSpanPerDay": "Ø Arbeitsspanne/Tag",

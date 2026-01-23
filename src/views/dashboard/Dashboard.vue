@@ -230,8 +230,8 @@
 
     <!-- Detailed Statistics Tables -->
     <CRow v-if="!loading && !error && workStats && statisticsAvailable">
-      <!-- Daily Statistics Table -->
-      <CCol lg="6" class="mb-4">
+      <!-- Daily Statistics Table (letzte 10 Tage) - volle Breite -->
+      <CCol lg="12" class="mb-4">
         <CCard>
           <CCardHeader>
             <h5 class="mb-0">
@@ -262,8 +262,8 @@
         </CCard>
       </CCol>
 
-      <!-- Apartment Statistics Table -->
-      <CCol lg="6" class="mb-4">
+      <!-- Gebäude-Statistiken (Cards) - volle Breite -->
+      <CCol lg="12" class="mb-4">
         <CCard>
           <CCardHeader>
             <h5 class="mb-0">
@@ -272,26 +272,40 @@
             </h5>
           </CCardHeader>
           <CCardBody class="p-0">
-            <CTable hover responsive>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>{{ $t('dashboard.apartment') }}</CTableHeaderCell>
-                  <CTableHeaderCell>{{ $t('dashboard.entries') }}</CTableHeaderCell>
-                  <CTableHeaderCell>{{ $t('dashboard.totalDuration') }}</CTableHeaderCell>
-                  <CTableHeaderCell>{{ $t('dashboard.avgDuration') }}</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                <CTableRow v-for="apt in workStats.apartment_statistics" :key="apt.apartment_id">
-                  <CTableDataCell>
-                    <CBadge color="info">{{ apt.apartment_id }}</CBadge>
-                  </CTableDataCell>
-                  <CTableDataCell>{{ apt.total_entries }}</CTableDataCell>
-                  <CTableDataCell>{{ apt.total_duration_formatted }}</CTableDataCell>
-                  <CTableDataCell>{{ apt.avg_duration_per_entry_formatted }}</CTableDataCell>
-                </CTableRow>
-              </CTableBody>
-            </CTable>
+            <CRow class="g-3 p-3">
+              <CCol md="6" v-for="group in groupedApartmentStats" :key="group.buildingKey">
+                <CCard class="h-100">
+                  <CCardHeader>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <strong>{{ group.label }}</strong>
+                        <div class="text-muted small">{{ group.apartments.length }} {{ $t('dashboard.apartments') }}</div>
+                      </div>
+                    </div>
+                  </CCardHeader>
+                  <CCardBody class="p-0">
+                    <CTable small hover responsive class="mb-0">
+                      <CTableHead>
+                        <CTableRow>
+                          <CTableHeaderCell>{{ $t('dashboard.apartment') }}</CTableHeaderCell>
+                          <CTableHeaderCell>{{ $t('dashboard.entries') }}</CTableHeaderCell>
+                          <CTableHeaderCell>{{ $t('dashboard.totalDuration') }}</CTableHeaderCell>
+                        </CTableRow>
+                      </CTableHead>
+                      <CTableBody>
+                        <CTableRow v-for="apt in group.apartments" :key="group.buildingKey + '-' + apt.apartment_id">
+                          <CTableDataCell><CBadge color="info">{{ apt.apartment_id }}</CBadge></CTableDataCell>
+                          <CTableDataCell>{{ apt.total_entries }}</CTableDataCell>
+                          <CTableDataCell>{{ apt.total_duration_formatted }}</CTableDataCell>
+                        </CTableRow>
+                      </CTableBody>
+                    </CTable>
+                  </CCardBody>
+                </CCard>
+              </CCol>
+            </CRow>
+
+            <div v-if="!groupedApartmentStats.length" class="text-center text-muted py-3">{{ $t('dashboard.noApartmentStatistics') }}</div>
           </CCardBody>
         </CCard>
       </CCol>
@@ -416,6 +430,94 @@ const averageEntriesPerDay = computed(() => {
 const recentDays = computed(() => {
   if (!workStats.value || !workStats.value.daily_statistics) return []
   return workStats.value.daily_statistics.slice(-10)
+})
+
+// Neue Gruppierung: Apartment-Statistiken nach Gebäude (mit Lookup aus localStorage 'buildings')
+const groupedApartmentStats = computed(() => {
+  const arr = (workStats.value && workStats.value.apartment_statistics) ? workStats.value.apartment_statistics : []
+
+  // Versuche buildings-Namen aus localStorage zu laden
+  let buildingsLookup = null
+  try {
+    const raw = localStorage.getItem('buildings')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        buildingsLookup = {}
+        parsed.forEach(b => {
+          const id = b.id ?? b.building_id ?? b["id"]
+          const name = b.name ?? b.title ?? b.building_name ?? null
+          if (id != null) buildingsLookup[String(id)] = name || ''
+        })
+      } else if (parsed && typeof parsed === 'object') {
+        buildingsLookup = {}
+        Object.keys(parsed).forEach(k => {
+          const item = parsed[k]
+          if (item && typeof item === 'object') {
+            buildingsLookup[String(k)] = item.name ?? item.title ?? item.building_name ?? String(k)
+          } else {
+            buildingsLookup[String(k)] = String(item)
+          }
+        })
+      }
+    }
+  } catch (e) {
+    // Wenn parsing fehlschlägt, weiter mit Fallback-Labeling
+    console.warn('Could not parse buildings from localStorage', e)
+  }
+
+  const groups = {}
+
+  arr.forEach(apt => {
+    // unterstütze verschiedene mögliche Feldnamen für Gebäude
+    const buildingKey = apt.building_id ?? apt.house_id ?? apt.building ?? apt.building_name ?? 'unassigned'
+
+    // Lesbarer Label-Versuch: Priorität:
+    // 1) apartment.provided building_name
+    // 2) localStorage buildings lookup (wenn buildingKey eine id ist)
+    // 3) apt.building / apt.building_id / apt.house_id
+    // 4) Fallback 'Unbekanntes Haus'
+    let label = 'Unbekanntes Haus'
+    if (apt.building_name) {
+      label = apt.building_name
+    } else if (buildingsLookup) {
+      const keyStr = String(buildingKey)
+      if (buildingsLookup[keyStr] && buildingsLookup[keyStr].trim() !== '') {
+        label = buildingsLookup[keyStr]
+      } else if (apt.building) {
+        label = String(apt.building)
+      } else if (apt.building_id) {
+        label = `Haus ${apt.building_id}`
+      } else if (apt.house_id) {
+        label = `Haus ${apt.house_id}`
+      }
+    } else {
+      if (apt.building) label = String(apt.building)
+      else if (apt.building_id) label = `Haus ${apt.building_id}`
+      else if (apt.house_id) label = `Haus ${apt.house_id}`
+    }
+
+    if (!groups[buildingKey]) {
+      groups[buildingKey] = { buildingKey, label, apartments: [] }
+    }
+
+    groups[buildingKey].apartments.push(apt)
+  })
+
+  // Sortiere Apartments innerhalb der Gruppe nach apartment_id (numerisch wenn möglich)
+  const result = Object.values(groups).map(g => {
+    g.apartments.sort((a, b) => {
+      const aId = isNaN(Number(a.apartment_id)) ? String(a.apartment_id) : Number(a.apartment_id)
+      const bId = isNaN(Number(b.apartment_id)) ? String(b.apartment_id) : Number(b.apartment_id)
+      if (typeof aId === 'number' && typeof bId === 'number') return aId - bId
+      return String(aId).localeCompare(String(bId))
+    })
+    return g
+  })
+
+  // Sortiere Gruppen nach Label
+  result.sort((x, y) => String(x.label).localeCompare(String(y.label)))
+  return result
 })
 
 // Statistiken laden

@@ -1,7 +1,8 @@
 {
   "common": {
     "save": "Save",
-    "user": "User",
+    "useon": "On",
+    "off": "Off",
     "unknown": "Unknown",
     "never": "Never",
     "cancel": "Cancel",
@@ -76,6 +77,7 @@
     "statisticsOnlineOnly": "Statistics and export functions are only available in online mode.",
     "entries": "Entries",
     "avgDurationPerEntry": "Avg Duration per Entry",
+    "apartments": "Apartments",
     "avgWorkTimePerDay": "Avg Work Time/Day",
     "avgWorkSpanPerDay": "Avg Work Span/Day",
     "efficiencyMetrics": "Efficiency Metrics",
