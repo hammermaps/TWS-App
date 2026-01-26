@@ -3,7 +3,7 @@
     <!-- Header mit Navigation in Card -->
     <CCard class="mb-4">
       <CCardBody>
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center header-row">
           <div>
             <h2>{{ $t('flushing.apartmentFlushing', { number: apartmentNumber || apartmentId }) }}</h2>
             <nav aria-label="breadcrumb">
@@ -31,7 +31,7 @@
               </ol>
             </nav>
           </div>
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 header-actions">
             <!-- Offline/Sync Status -->
             <div v-if="syncStatus && syncStatus.unsyncedCount > 0" class="me-3">
               <CBadge
@@ -268,7 +268,7 @@
             <!-- Navigation zu nächstem Apartment -->
             <div v-if="nextApartment" class="mt-4 pt-3 border-top">
               <h6 class="text-muted mb-3">{{ $t('flushing.nextApartment') }}:</h6>
-              <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex justify-content-between align-items-center next-apartment-row">
                 <div>
                   <strong>{{ nextApartment.number }}</strong>
                   <small class="text-muted d-block">
@@ -1051,22 +1051,43 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped src="@/styles/views/ApartmentFlushing.css">
-.apartment-details .detail-row {
+<style scoped src="@/styles/views/ApartmentFlushing.css"></style>
+
+/* Ergänzende responsive Regeln für die Header-Buttons (stapeln bei schmalen Ansichten) */
+<style scoped>
+.apartment-flushing .header-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 0.5rem;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f8f9fa;
+  flex-wrap: wrap;
 }
 
-.apartment-details .detail-row:last-child {
-  border-bottom: none;
-}
+@media (max-width: 767.98px) {
+  .apartment-flushing .header-actions {
+    flex-direction: column;
+    align-items: flex-start; /* Buttons untereinander, linksbündig */
+    width: 100%;
+  }
+  .apartment-flushing .header-actions > * {
+    /* Buttons/Badges full-width auf mobilen Ansichten */
+    width: 100%;
+    max-width: 100%;
+  }
 
-.breadcrumb {
-  background: none;
-  padding: 0;
-  margin: 0;
-}
-</style>
+  /* Make the next-apartment row stack on small screens: text above, button below */
+  .apartment-flushing .next-apartment-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  /* Target real button elements and common button classes from CoreUI/Bootstrap */
+  .apartment-flushing .next-apartment-row button,
+  .apartment-flushing .next-apartment-row .btn,
+  .apartment-flushing .next-apartment-row .c-btn,
+  .apartment-flushing .next-apartment-row .c-button {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+ }
+ </style>

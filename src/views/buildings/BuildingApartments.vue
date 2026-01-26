@@ -3,7 +3,7 @@
     <!-- Header mit Gebäude-Info in Card -->
     <CCard class="mb-4">
       <CCardBody>
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center header-row">
           <div>
             <h2>{{ $t('apartments.title') }} - {{ buildingName || `${$t('buildings.name')} #${buildingId}` }}</h2>
             <nav aria-label="breadcrumb">
@@ -23,7 +23,7 @@
               {{ cacheStatusText }}
             </small>
           </div>
-          <div class="d-flex gap-2 align-items-center">
+          <div class="d-flex gap-2 align-items-center header-actions">
             <CBadge v-if="isPreloading" color="info" class="me-2">
               <CIcon icon="cil-sync" class="me-1" size="sm" />
               {{ $t('apartments.updating') }}
@@ -61,8 +61,7 @@
           <CTableHead>
             <CTableRow>
               <CTableHeaderCell>{{ $t('apartments.apartment') }}</CTableHeaderCell>
-              <CTableHeaderCell>{{ $t('apartments.floor') }}</CTableHeaderCell>
-              <CTableHeaderCell>{{ $t('common.status') }}</CTableHeaderCell>
+              <!-- Floor und Status zusammengefasst in der ersten Spalte -->
               <CTableHeaderCell>{{ $t('apartments.lastFlush') }}</CTableHeaderCell>
               <CTableHeaderCell>{{ $t('apartments.nextFlush') }}</CTableHeaderCell>
               <CTableHeaderCell>{{ $t('apartments.flushStatus') }}</CTableHeaderCell>
@@ -75,29 +74,27 @@
               :key="apartment.id"
               :class="getRowClass(apartment)"
             >
-              <CTableDataCell class="align-middle">
-                <div class="d-flex align-items-center">
-                  <CIcon icon="cil-door" class="me-2 text-muted" />
-                  <strong>{{ apartment.number }}</strong>
+              <!-- Zusammengefasste Zelle: Apartment, Floor und Status nebeneinander -->
+              <CTableDataCell class="align-middle" :data-label="$t('apartments.apartment')">
+                <div class="d-flex align-items-center justify-content-between flex-nowrap">
+                  <div class="d-flex align-items-center">
+                    <CIcon icon="cil-door" class="me-2 text-muted" />
+                    <strong class="me-3">{{ apartment.number }}</strong>
+                    <CBadge color="info" shape="rounded-pill" class="me-2">
+                      {{ apartment.floor || 'N/A' }}
+                    </CBadge>
+                    <CBadge
+                      :color="apartment.enabled ? 'success' : 'danger'"
+                      shape="rounded-pill"
+                    >
+                      {{ apartment.enabled ? $t('apartments.enabled') : $t('apartments.disabled') }}
+                    </CBadge>
+                  </div>
                 </div>
               </CTableDataCell>
 
-              <CTableDataCell class="align-middle">
-                <CBadge color="info" shape="rounded-pill">
-                  {{ apartment.floor || 'N/A' }}
-                </CBadge>
-              </CTableDataCell>
-
-              <CTableDataCell class="align-middle">
-                <CBadge
-                  :color="apartment.enabled ? 'success' : 'danger'"
-                  shape="rounded-pill"
-                >
-                  {{ apartment.enabled ? $t('apartments.enabled') : $t('apartments.disabled') }}
-                </CBadge>
-              </CTableDataCell>
-
-              <CTableDataCell class="align-middle">
+              <!-- Ab hier bleibt die Darstellung gleich -->
+              <CTableDataCell class="align-middle" :data-label="$t('apartments.lastFlush')">
                 <div v-if="apartment.last_flush_date">
                   <div>{{ formatDate(apartment.last_flush_date) }}</div>
                   <small class="text-muted">{{ formatTimeAgo(apartment.last_flush_date) }}</small>
@@ -105,7 +102,7 @@
                 <span v-else class="text-muted">{{ $t('apartments.neverFlushed') }}</span>
               </CTableDataCell>
 
-              <CTableDataCell class="align-middle">
+              <CTableDataCell class="align-middle" :data-label="$t('apartments.nextFlush')">
                 <div v-if="apartment.next_flush_due">
                   <div>{{ formatDate(apartment.next_flush_due) }}</div>
                   <small :class="getNextFlushClass(apartment.next_flush_due)">
@@ -115,7 +112,7 @@
                 <span v-else class="text-muted">{{ $t('apartments.notPlanned') }}</span>
               </CTableDataCell>
 
-              <CTableDataCell class="align-middle">
+              <CTableDataCell class="align-middle" :data-label="$t('apartments.flushStatus')">
                 <CBadge
                   :color="getFlushStatusColor(apartment)"
                   shape="rounded-pill"
@@ -127,7 +124,7 @@
                 </CBadge>
               </CTableDataCell>
 
-              <CTableDataCell class="align-middle">
+              <CTableDataCell class="align-middle" :data-label="$t('apartments.actions')">
                 <div class="d-flex gap-2">
                   <CButton
                     color="primary"
@@ -149,6 +146,7 @@
                   </CButton>
                 </div>
               </CTableDataCell>
+
             </CTableRow>
           </CTableBody>
         </CTable>
@@ -267,11 +265,32 @@ const cacheStatusText = computed(() => {
 const sortedApartments = computed(() => {
   if (!apartments.value || !Array.isArray(apartments.value)) return []
   return [...apartments.value].sort((a, b) => {
-    // Erst nach Etage, dann nach Apartment-Nummer sortieren
-    if (a.floor !== b.floor) {
-      return (a.floor || '').localeCompare(b.floor || '')
+    // Wenn beide ein 'sorted' Feld haben, nutze dieses numerisch (aufsteigend)
+    const aHasSorted = a && a.sorted !== undefined && a.sorted !== null && a.sorted !== ''
+    const bHasSorted = b && b.sorted !== undefined && b.sorted !== null && b.sorted !== ''
+
+    if (aHasSorted && bHasSorted) {
+      const numA = Number(a.sorted)
+      const numB = Number(b.sorted)
+      if (!isNaN(numA) && !isNaN(numB)) {
+        if (numA !== numB) return numA - numB
+      }
     }
-    return (a.number || '').localeCompare(b.number || '')
+
+    // Wenn nur eines der Apartments ein 'sorted' hat, soll dieses vorangestellt werden
+    if (aHasSorted && !bHasSorted) return -1
+    if (!aHasSorted && bHasSorted) return 1
+
+    // Fallback: wie bisher nach Etage, dann nach Apartment-Nummer sortieren
+    try {
+      if ((a.floor || '') !== (b.floor || '')) {
+        return (a.floor || '').toString().localeCompare((b.floor || '').toString(), undefined, { numeric: true })
+      }
+      return (a.number || '').toString().localeCompare((b.number || '').toString(), undefined, { numeric: true })
+    } catch (e) {
+      // Falls etwas schief geht, keine Reihenfolgeänderung
+      return 0
+    }
   })
 })
 
@@ -688,3 +707,85 @@ onBeforeRouteLeave((to, from) => {
 </script>
 
 <style scoped src="@/styles/views/BuildingApartments.css"></style>
+
+<style scoped>
+/* Mobile-first: bei engen Bildschirmen Tabelle in Block-Layout umwandeln, damit kein horizontales Scrollen entsteht */
+@media (max-width: 767.98px) {
+  .building-apartments table thead {
+    display: none;
+  }
+  .building-apartments table,
+  .building-apartments tbody,
+  .building-apartments tr,
+  .building-apartments td,
+  .building-apartments th {
+    display: block;
+    width: 100%;
+  }
+  .building-apartments tr {
+    border: 1px solid #e9ecef;
+    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+    border-radius: 6px;
+    background: #fff;
+  }
+  .building-apartments td {
+    padding: 0.375rem 0;
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    border: none;
+  }
+  .building-apartments td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+  }
+  .building-apartments .d-flex.gap-2 {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .building-apartments .text-muted {
+    display: block;
+  }
+
+  /* Stelle sicher, dass CoreUI's .table-responsive auf kleinen Bildschirmen kein horizontales Scrollen erzwingt */
+  .building-apartments .table-responsive {
+    overflow-x: visible !important;
+  }
+
+  /* Erlaube Buttons innerhalb der Actions-Zelle zu umbrechen */
+  .building-apartments td .d-flex.gap-2 > * {
+    min-width: 0 !important;
+  }
+
+  /* Header: bei kleinen Bildschirmen Header-Row vertikal anordnen und Controls unter dem Titel platzieren */
+  .building-apartments .header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .building-apartments .header-actions {
+    margin-top: 0.5rem;
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  /* Der 'Aktualisieren' Button (und andere Header Controls) soll in mobilen Ansichten
+     direkt unter dem Gebäudetitel erscheinen und touchfreundlich die volle Breite nutzen. */
+  .building-apartments .header-actions > * {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Entferne evtl. rechter margin bei kleinen Elementen, damit Buttons sauber nebeneinander/untereinander sitzen */
+  .building-apartments .header-actions > .me-2 {
+    margin-right: 0 !important;
+  }
+}
+</style>

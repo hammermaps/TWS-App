@@ -327,8 +327,18 @@ export default {
       flushingLoading.value = true
 
       try {
-        // GPS Position ermitteln
-        await getCurrentPosition()
+        // GPS Position ermitteln (zeige Loading an)
+        gpsLoading.value = true
+        gpsError.value = null
+        try {
+          await getCurrentPosition({ timeout: 8000, maximumAge: 0 })
+        } catch (e) {
+          // Nicht kritisch hier: wir starten auch ohne GPS, aber dokumentieren den Fehler
+          console.warn('Warnung: konnte keine GPS-Position vor dem Start ermitteln', e)
+          gpsError.value = e.message || String(e)
+        } finally {
+          gpsLoading.value = false
+        }
 
         isFlushingActive.value = true
         flushStartTime.value = Date.now()
@@ -347,18 +357,65 @@ export default {
       }
     }
 
+    const waitForPosition = (timeoutMs = 10000) => {
+      return new Promise((resolve, reject) => {
+        if (currentPosition.value) return resolve(currentPosition.value)
+        const start = Date.now()
+        const check = setInterval(() => {
+          if (currentPosition.value) {
+            clearInterval(check)
+            resolve(currentPosition.value)
+          } else if (Date.now() - start > timeoutMs) {
+            clearInterval(check)
+            reject(new Error('Timeout beim Warten auf GPS-Position'))
+          }
+        }, 250)
+      })
+    }
+
     const stopFlushing = async () => {
       if (!currentApartment.value || remainingTime.value > 0) return
 
       flushingLoading.value = true
 
       try {
+        // Stelle sicher, dass wir ggf. noch eine aktuelle Position haben bevor wir das Record speichern
+        gpsError.value = null
+        try {
+          gpsLoading.value = true
+          // Wenn noch keine Position vorliegt, versuche kurz noch eine zu holen (kürzerer Timeout)
+          if (!currentPosition.value) {
+            try {
+              // Erster Versuch: schneller Abruf
+              await getCurrentPosition({ timeout: 7000, maximumAge: 0 })
+            } catch (e) {
+              console.warn('Konnte vor dem Speichern keine GPS-Position ermitteln (Versuch 1):', e)
+              // Zweiter Versuch: längerer Timeout
+              try {
+                await getCurrentPosition({ timeout: 15000, maximumAge: 0 })
+              } catch (e2) {
+                console.warn('Konnte vor dem Speichern keine GPS-Position ermitteln (Versuch 2):', e2)
+                // Dritter Versuch: warte auf einen watch-basierten Wert kurz
+                try {
+                  await waitForPosition(10000)
+                } catch (e3) {
+                  console.warn('Kein GPS-Ergebnis nach Warteversuch:', e3)
+                  // leave gpsError for UI
+                  gpsError.value = gpsError.value || e3.message || String(e3)
+                }
+              }
+            }
+          }
+        } finally {
+          gpsLoading.value = false
+        }
+
         // Zeitstempel für start_time und end_time berechnen
         const endTime = new Date()
         const startTime = new Date(flushStartTime.value)
 
         // Record mit allen erforderlichen Feldern erstellen
-        const createdRecord = await createRecord({
+        const recordPayload = {
           apartment_id: currentApartment.value.id,
           building_id: currentApartment.value.building_id, // building_id aus apartment
           user_id: currentUser.value?.id || 1, // user_id aus globalem Store
@@ -367,7 +424,17 @@ export default {
           latitude: currentPosition.value?.latitude || null,
           longitude: currentPosition.value?.longitude || null,
           location_accuracy: currentPosition.value?.accuracy || null
-        })
+        }
+
+        // Debug: Zeige das Payload bevor es gesendet wird
+        console.debug('Spülungs-Record Payload:', recordPayload)
+
+        if (!recordPayload.latitude || !recordPayload.longitude) {
+          gpsError.value = gpsError.value || 'Keine GPS-Daten verfügbar'
+          console.warn('Keine GPS-Daten im Payload, sende Record trotzdem (Backend erhält nulls):', recordPayload)
+        }
+
+        const createdRecord = await createRecord(recordPayload)
 
         console.log('✅ Spülung erfolgreich gespeichert:', createdRecord)
 
@@ -465,49 +532,95 @@ export default {
       }
     }
 
-    const getCurrentPosition = () => {
+    // Hilfsfunktion: erhalte Position, optional mit überschriebenen Optionen
+    const getCurrentPosition = (optsOverride) => {
       return new Promise((resolve, reject) => {
-        if (watchId.value) {
-          // Bereits beobachtet
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              currentPosition.value = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy
-              }
-              resolve(currentPosition.value)
-            },
-            (error) => {
-              reject(error)
-            },
-            {
-              enableHighAccuracy: true,
-              maximumAge: 10000,
-              timeout: 5000
-            }
-          )
-        } else {
-          // Noch nicht beobachtet, starte Beobachtung
-          watchId.value = navigator.geolocation.watchPosition(
-            (position) => {
-              currentPosition.value = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy
-              }
-              resolve(currentPosition.value)
-            },
-            (error) => {
-              reject(error)
-            },
-            {
-              enableHighAccuracy: true,
-              maximumAge: 10000,
-              timeout: 5000
-            }
-          )
+        if (!('geolocation' in navigator)) {
+          const err = new Error('Geolocation wird von diesem Gerät/Browser nicht unterstützt')
+          console.warn('Geolocation not supported')
+          return reject(err)
         }
+
+        const defaultOpts = {
+          enableHighAccuracy: true,
+          maximumAge: 10000,
+          timeout: 5000
+        }
+        const optsSingle = optsOverride || defaultOpts
+
+        // Versuch 1: Schneller Einzelabruf (getCurrentPosition)
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentPosition.value = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            }
+            // Wenn noch kein watch läuft, starte einen, damit wir später Updates haben
+            try {
+              if (!watchId.value) {
+                watchId.value = navigator.geolocation.watchPosition(
+                  (p) => {
+                    currentPosition.value = {
+                      latitude: p.coords.latitude,
+                      longitude: p.coords.longitude,
+                      accuracy: p.coords.accuracy
+                    }
+                  },
+                  (werr) => {
+                    console.warn('watchPosition error', werr)
+                  },
+                  { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+                )
+              }
+            } catch (e) {
+              console.warn('Fehler beim Starten von watchPosition nach getCurrentPosition:', e)
+            }
+
+            resolve(currentPosition.value)
+          },
+          (error) => {
+            console.warn('getCurrentPosition fehlgeschlagen, versuche watchPosition als Fallback', error)
+
+            // Fallback: watchPosition nutzen und auf erstes Ergebnis warten
+            try {
+              if (watchId.value) {
+                // Wenn bereits ein watch läuft, warte kurz ob currentPosition gesetzt wird
+                const waitStart = Date.now()
+                const checkInterval = setInterval(() => {
+                  if (currentPosition.value) {
+                    clearInterval(checkInterval)
+                    resolve(currentPosition.value)
+                  } else if (Date.now() - waitStart > (optsSingle.timeout || 10000)) {
+                    clearInterval(checkInterval)
+                    reject(new Error('Kein Positionsergebnis vom bereits laufenden watchPosition innerhalb Timeout'))
+                  }
+                }, 250)
+              } else {
+                watchId.value = navigator.geolocation.watchPosition(
+                  (position) => {
+                    currentPosition.value = {
+                      latitude: position.coords.latitude,
+                      longitude: position.coords.longitude,
+                      accuracy: position.coords.accuracy
+                    }
+                    // Sobald wir das erste Ergebnis haben, lösen wir das Promise auf
+                    resolve(currentPosition.value)
+                  },
+                  (werror) => {
+                    console.error('watchPosition fehlgeschlagen', werror)
+                    reject(werror)
+                  },
+                  { enableHighAccuracy: optsSingle.enableHighAccuracy ?? true, maximumAge: optsSingle.maximumAge ?? 10000, timeout: optsSingle.timeout ?? 10000 }
+                )
+              }
+            } catch (e) {
+              console.error('Fehler beim watchPosition-Fallback', e)
+              reject(e)
+            }
+          },
+          optsSingle
+        )
       })
     }
 
