@@ -8,52 +8,57 @@
             <h2>{{ $t('dashboard.title') }}</h2>
             <p class="text-muted mb-0">{{ $t('dashboard.subtitle') }}</p>
           </div>
-          <div class="d-flex gap-2">
+          <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
             <CButton
               color="primary"
               @click="loadWorkStats"
-              :disabled="!statisticsAvailable">
+              :disabled="!statisticsAvailable"
+              class="w-100 w-sm-auto">
               <CIcon icon="cil-reload" class="me-2" />
               {{ $t('common.refresh') }}
             </CButton>
+
             <!-- Export-Dropdown nur für Admins sichtbar -->
-            <CDropdown v-if="isAdmin">
-              <CDropdownToggle
-                color="info"
-                variant="outline"
-                :disabled="!statisticsAvailable">
-                <CIcon icon="cil-cloud-download" class="me-2" />
-                {{ $t('dashboard.export') }} {{ selectedMonthFormatted }}
-              </CDropdownToggle>
-              <CDropdownMenu>
-                <CDropdownHeader>{{ $t('dashboard.selectMonth') }}:</CDropdownHeader>
-                <CDropdownItem
-                  v-for="month in availableMonths"
-                  :key="month.value"
-                  @click="selectedMonth = month.value"
-                  :active="selectedMonth === month.value">
-                  <CIcon
-                    :icon="selectedMonth === month.value ? 'cil-check' : 'cil-calendar'"
-                    class="me-2"
-                  />
-                  {{ month.label }}
-                </CDropdownItem>
-                <CDropdownDivider />
-                <CDropdownItem @click="exportToPrint">
-                  <CIcon icon="cil-print" class="me-2" />
-                  {{ $t('dashboard.print') }}
-                </CDropdownItem>
-                <CDropdownItem @click="exportToCSV">
-                  <CIcon icon="cil-spreadsheet" class="me-2"  />
-                  {{ $t('dashboard.exportCSV') }}
-                </CDropdownItem>
-                <CDropdownDivider />
-                <CDropdownItem @click="exportCurrentMonth">
-                  <CIcon icon="cil-data-transfer-down" class="me-2" />
-                  Raw-Daten (Debug)
-                </CDropdownItem>
-              </CDropdownMenu>
-            </CDropdown>
+            <div class="w-100 w-sm-auto">
+              <CDropdown v-if="isAdmin">
+                <CDropdownToggle
+                  color="info"
+                  variant="outline"
+                  :disabled="!statisticsAvailable"
+                  class="w-100 w-sm-auto text-truncate">
+                  <CIcon icon="cil-cloud-download" class="me-2" />
+                  {{ $t('dashboard.export') }} {{ selectedMonthFormatted }}
+                </CDropdownToggle>
+                <CDropdownMenu>
+                  <CDropdownHeader>{{ $t('dashboard.selectMonth') }}:</CDropdownHeader>
+                  <CDropdownItem
+                    v-for="month in availableMonths"
+                    :key="month.value"
+                    @click="selectedMonth = month.value"
+                    :active="selectedMonth === month.value">
+                    <CIcon
+                      :icon="selectedMonth === month.value ? 'cil-check' : 'cil-calendar'"
+                      class="me-2"
+                    />
+                    {{ month.label }}
+                  </CDropdownItem>
+                  <CDropdownDivider />
+                  <CDropdownItem @click="exportToPrint">
+                    <CIcon icon="cil-print" class="me-2" />
+                    {{ $t('dashboard.print') }}
+                  </CDropdownItem>
+                  <CDropdownItem @click="exportToCSV">
+                    <CIcon icon="cil-spreadsheet" class="me-2"  />
+                    {{ $t('dashboard.exportCSV') }}
+                  </CDropdownItem>
+                  <CDropdownDivider />
+                  <CDropdownItem @click="exportCurrentMonth">
+                    <CIcon icon="cil-data-transfer-down" class="me-2" />
+                    Raw-Daten (Debug)
+                  </CDropdownItem>
+                </CDropdownMenu>
+              </CDropdown>
+            </div>
           </div>
         </div>
       </CCardBody>
