@@ -288,8 +288,10 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         
         console.log('✅ Server ist healthy - aktiviere Online-Modus')
         
-        // Bei manuellem Online-Schalten: Ping-Überwachung wieder starten
+        // Erst nach erfolgreicher Health-Prüfung den Modus ändern
         manualOfflineMode.value = offline
+        
+        // Bei manuellem Online-Schalten: Ping-Überwachung wieder starten
         consecutiveFailures.value = 0
         isServerReachable.value = true
         startPingMonitoring()
