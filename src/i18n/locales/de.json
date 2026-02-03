@@ -362,6 +362,7 @@
     "checking": "Prüfe Verbindung...",
     "checkNow": "Verbindung jetzt prüfen",
     "disabledInManualMode": "Im manuellen Modus deaktiviert",
+    "activateOnlineMode": "Online-Modus aktivieren",
     "limitedMode": "Eingeschränkter Modus",
     "featuresNotAvailable": "Folgende Features sind offline nicht verfügbar",
     "changePassword": "Passwort ändern",

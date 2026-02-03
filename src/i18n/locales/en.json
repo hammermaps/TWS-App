@@ -361,6 +361,7 @@
     "checking": "Checking connection...",
     "checkNow": "Check connection now",
     "disabledInManualMode": "Disabled in manual mode",
+    "activateOnlineMode": "Activate online mode",
     "limitedMode": "Limited Mode",
     "featuresNotAvailable": "The following features are not available offline",
     "changePassword": "Change password",

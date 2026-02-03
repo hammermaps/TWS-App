@@ -260,32 +260,74 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
   /**
    * Setzt manuell auf Offline
+   * @param {boolean} offline - true für Offline-Modus, false für Online-Modus
+   * @returns {Promise<boolean>} - true wenn erfolgreich, false wenn abgelehnt
    */
-  function setManualOffline(offline) {
-    manualOfflineMode.value = offline
-
+  async function setManualOffline(offline) {
     if (offline) {
+      // Offline-Modus kann immer aktiviert werden
+      manualOfflineMode.value = offline
       stopPingMonitoring()
       stopDataRefreshMonitoring()
       console.log('📴 Manueller Offline-Modus aktiviert')
       notifyUser('Offline-Modus aktiviert', 'info')
+      return true
     } else {
-      // Bei manuellem Online-Schalten: Ping-Überwachung wieder starten
-      consecutiveFailures.value = 0
-      isServerReachable.value = true
-      startPingMonitoring()
-      startDataRefreshMonitoring()
-      console.log('📶 Manueller Online-Modus aktiviert')
-      notifyUser('Online-Modus aktiviert', 'info')
+      // Online-Modus: Erst Server-Health prüfen
+      console.log('🔍 Prüfe Server-Status vor Online-Aktivierung...')
+      
+      try {
+        const healthStatus = await healthClient.getStatus()
+        
+        if (!healthStatus.isHealthy()) {
+          console.error('❌ Server ist nicht healthy - Online-Modus kann nicht aktiviert werden')
+          console.error('Server Status:', healthStatus.data?.status || 'unknown')
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server ist nicht verfügbar oder fehlerhaft', 'error')
+          return false
+        }
+        
+        console.log('✅ Server ist healthy - aktiviere Online-Modus')
+        
+        // Erst nach erfolgreicher Health-Prüfung den Modus ändern
+        manualOfflineMode.value = offline
+        
+        // Bei manuellem Online-Schalten: Ping-Überwachung wieder starten
+        consecutiveFailures.value = 0
+        isServerReachable.value = true
+        startPingMonitoring()
+        startDataRefreshMonitoring()
+        console.log('📶 Manueller Online-Modus aktiviert')
+        notifyUser('Online-Modus aktiviert', 'info')
 
-      // Preloading starten wenn nötig oder möglich
-      triggerPreloadIfNeeded()
+        // Preloading starten wenn nötig oder möglich
+        triggerPreloadIfNeeded()
 
-      // Config-Synchronisation starten
-      syncConfigChanges()
+        // Config-Synchronisation starten
+        syncConfigChanges()
 
-      // Flush-Synchronisation starten
-      syncFlushData()
+        // Flush-Synchronisation starten
+        syncFlushData()
+        
+        return true
+      } catch (error) {
+        // Unterscheide zwischen Timeout und anderen Fehlern
+        // Axios Timeout-Fehler haben error.code === 'ECONNABORTED' oder error.code === 'ERR_NETWORK'
+        const isTimeout = 
+          error.code === 'ECONNABORTED' || 
+          error.code === 'ERR_NETWORK' ||
+          (error.name === 'AxiosError' && error.message?.toLowerCase().includes('timeout'))
+        
+        if (isTimeout) {
+          console.error('⏱️ Server-Health-Prüfung: Timeout nach 3 Sekunden')
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server antwortet nicht (Timeout)', 'error')
+        } else {
+          console.error('❌ Fehler bei Server-Health-Prüfung:', error.message || error)
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server nicht erreichbar', 'error')
+        }
+        
+        // App bleibt im Offline-Modus verwendbar
+        return false
+      }
     }
   }
 

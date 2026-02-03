@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   CDropdown,
@@ -17,6 +17,7 @@ const onlineStatusStore = useOnlineStatusStore()
 
 const statusInfo = computed(() => onlineStatusStore.connectionStatus)
 const isManualMode = computed(() => onlineStatusStore.manualOfflineMode)
+const isToggling = ref(false)
 
 // i18n - sichere Fallbacks falls Keys fehlen
 const { t } = useI18n()
@@ -29,26 +30,33 @@ const manualModeText = computed(() => {
   return off === 'online.manualModeOff' || !off ? t('online.autoCheckRunning') : off
 })
 
-const toggleOnlineStatus = () => {
-  onlineStatusStore.setManualOffline(!onlineStatusStore.manualOfflineMode)
+const toggleOnlineStatus = async () => {
+  if (isToggling.value) return
+  
+  isToggling.value = true
+  try {
+    await onlineStatusStore.setManualOffline(!onlineStatusStore.manualOfflineMode)
+  } finally {
+    isToggling.value = false
+  }
 }
 
 // Neuer Keydown-Handler für Tastatur-Unterstützung (Enter / Space)
-const onKeyToggle = (e) => {
+const onKeyToggle = async (e) => {
   if (!e) return
   const key = e.key
   if (key === 'Enter' || key === ' ') {
-    toggleOnlineStatus()
+    await toggleOnlineStatus()
   }
 }
 
 // Click-Handler auf der gesamten Card; ignoriert Klicks auf Buttons/Links/SVGs/Inputs
-const onManualBoxClick = (e) => {
+const onManualBoxClick = async (e) => {
   if (e && e.target) {
     const tag = e.target.tagName?.toLowerCase()
     if (['button', 'a', 'svg', 'path', 'input'].includes(tag)) return
   }
-  toggleOnlineStatus()
+  await toggleOnlineStatus()
 }
 
 const getCheckingIndicator = computed(() => {
@@ -141,10 +149,12 @@ const getLastPingInfo = computed(() => {
       <div class="px-3 py-2">
         <div
           class="manual-toggle-box p-2 rounded-3"
+          :class="{ 'opacity-50': isToggling }"
           role="switch"
           :aria-checked="isManualMode"
           :aria-label="manualModeText"
-          tabindex="0"
+          :aria-disabled="isToggling"
+          :tabindex="isToggling ? -1 : 0"
           @click.stop="onManualBoxClick"
           @keydown.stop.prevent="onKeyToggle"
         >
@@ -152,7 +162,8 @@ const getLastPingInfo = computed(() => {
             <div class="flex-grow-1 me-2">
               <div class="fw-semibold mb-1" style="font-size: 0.9rem;">{{ $t('online.manualOfflineMode') }}</div>
               <div class="small text-body-secondary" style="font-size: 0.8rem;">
-                {{ isManualMode ? $t('online.monitoringPaused') : $t('online.autoCheckRunning') }}
+                <span v-if="isToggling">{{ $t('online.checking') }}...</span>
+                <span v-else>{{ isManualMode ? $t('online.monitoringPaused') : $t('online.autoCheckRunning') }}</span>
               </div>
             </div>
             <!-- Inner switch visual only: keine Klick-Handler mehr -->
@@ -161,7 +172,15 @@ const getLastPingInfo = computed(() => {
               class="manual-toggle-switch flex-shrink-0 d-flex align-items-center"
             >
               <div class="me-2">
-                <CIcon :icon="isManualMode ? 'cil-wifi-signal-off' : 'cil-wifi-signal-4'" />
+                <CIcon 
+                  v-if="!isToggling"
+                  :icon="isManualMode ? 'cil-wifi-signal-off' : 'cil-wifi-signal-4'" 
+                />
+                <CIcon 
+                  v-else
+                  icon="cil-sync"
+                  class="rotating"
+                />
               </div>
               <!-- Icon only here to avoid long texts pushing outside the card -->
               <div class="d-none d-sm-block"><!-- placeholder for spacing on larger screens --></div>
