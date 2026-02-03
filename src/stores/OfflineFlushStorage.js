@@ -225,14 +225,11 @@ class OfflineFlushStorage {
       const syncQueue = await this.getSyncQueue()
       const syncedFlushes = allFlushes.filter(f => f.synced)
 
-      const oldestUnsynced = syncQueue.length > 0 ?
-        Math.min(...syncQueue.map(f => new Date(f.createdAt).getTime())) : null
-
       return {
         totalOfflineFlushes: allFlushes.length,
         syncedFlushes: syncedFlushes.length,
         unsyncedFlushes: syncQueue.length,
-        oldestUnsynced: oldestUnsynced
+        oldestUnsynced: syncQueue.length > 0 ? Math.min(...syncQueue.map(f => new Date(f.createdAt).getTime())) : null
       }
     } catch (error) {
       console.error('❌ Fehler beim Abrufen der Statistiken:', error)

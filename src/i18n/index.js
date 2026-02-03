@@ -9,7 +9,6 @@ import en from './locales/en.json'
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 
 const LANGUAGE_KEY = 'wls_language'
-const CONFIG_KEY = 'wls_config'
 
 // Hole gespeicherte Sprache aus IndexedDB oder verwende Browser-Sprache
 async function getInitialLocale() {
@@ -25,7 +24,7 @@ async function getInitialLocale() {
 
   // Dann prüfen ob in Config gespeichert
   try {
-    const configResult = await indexedDBHelper.get(STORES.CONFIG, CONFIG_KEY)
+    const configResult = await indexedDBHelper.get(STORES.CONFIG, 'wls_config_cache')
     if (configResult && configResult.value && configResult.value.ui && configResult.value.ui.language) {
       return configResult.value.ui.language
     }

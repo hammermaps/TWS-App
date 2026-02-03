@@ -79,9 +79,10 @@ migrateLocalStorageToIndexedDB().then((result) => {
     immediate: true
   })
   
-  // Online-Status-Store initialisieren
-  const onlineStatusStore = useOnlineStatusStore()
-  onlineStatusStore.initialize()
+  // Online-Status-Store initialisieren (async)
+  onlineStatusStore.initialize().catch(error => {
+    console.error('❌ Error initializing online status store:', error)
+  })
   
   // Cleanup beim Beenden
   window.addEventListener('beforeunload', () => {

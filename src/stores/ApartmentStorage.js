@@ -325,6 +325,9 @@ export function useApartmentStorage() {
     }
   }
 
+  // Backward compatibility alias
+  const loadFromLocalStorage = loadFromStorage
+
   const getStatusColor = (lastFlush) => {
     return storageManager.getStatusColor(lastFlush)
   }
@@ -341,6 +344,7 @@ export function useApartmentStorage() {
     updateApartment,
     replaceApartments,
     loadFromStorage,
+    loadFromLocalStorage, // Backward compatibility alias
     getStatusColor,
     getStatusText,
     storage: storageManager
