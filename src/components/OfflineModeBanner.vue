@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { CButton, CBadge } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
@@ -8,6 +8,7 @@ const onlineStatusStore = useOnlineStatusStore()
 
 const showBanner = computed(() => !onlineStatusStore.isFullyOnline)
 const statusInfo = computed(() => onlineStatusStore.connectionStatus)
+const isTogglingMode = ref(false)
 
 const getBannerColor = computed(() => {
   const status = statusInfo.value.status
@@ -42,28 +43,44 @@ const retryConnection = () => {
   onlineStatusStore.pingServer()
 }
 
-const enableOnlineMode = () => {
-  onlineStatusStore.setManualOffline(false)
+const enableOnlineMode = async () => {
+  if (isTogglingMode.value) return
+  
+  isTogglingMode.value = true
+  try {
+    await onlineStatusStore.setManualOffline(false)
+  } finally {
+    isTogglingMode.value = false
+  }
 }
 
 // Neu: Toggle für manuellen Offline-Modus
-const toggleManualMode = (e) => {
+const toggleManualMode = async (e) => {
   // verhindern, dass Clicks auf Buttons/Links das toggeln auslösen
   if (e && e.target) {
     const tag = e.target.tagName?.toLowerCase()
     if (['button', 'a', 'svg', 'path', 'input'].includes(tag)) return
   }
-  onlineStatusStore.setManualOffline(!onlineStatusStore.manualOfflineMode)
+  
+  if (isTogglingMode.value) return
+  
+  isTogglingMode.value = true
+  try {
+    await onlineStatusStore.setManualOffline(!onlineStatusStore.manualOfflineMode)
+  } finally {
+    isTogglingMode.value = false
+  }
 }
 
 // Neuer benannter Keydown-Handler statt Inline-Arrow (vermeidet Linter-Warnung)
-const onKeyToggle = (e) => {
+const onKeyToggle = async (e) => {
   if (!e) return
   const key = e.key
   if (key === 'Enter' || key === ' ') {
-    toggleManualMode(e)
+    await toggleManualMode(e)
   }
 }
+
 </script>
 
 <template>
@@ -127,10 +144,15 @@ const onKeyToggle = (e) => {
               size="sm"
               variant="ghost"
               @click="enableOnlineMode"
+              :disabled="isTogglingMode"
               class="banner-action-btn"
             >
-              <CIcon icon="cil-wifi-signal-4" class="me-2" />
-              Online-Modus aktivieren
+              <CIcon 
+                :icon="isTogglingMode ? 'cil-sync' : 'cil-wifi-signal-4'"
+                class="me-2"
+                :class="{ 'rotating': isTogglingMode }"
+              />
+              {{ isTogglingMode ? 'Prüfe...' : 'Online-Modus aktivieren' }}
             </CButton>
 
             <!-- Server Offline: Retry Button -->
