@@ -11,8 +11,8 @@ pipeline {
         NODE_ENV = 'production'
         
         // Android Build Umgebungsvariablen
-        ANDROID_HOME = "${ANDROID_SDK_ROOT}"
         ANDROID_SDK_ROOT = "${env.ANDROID_HOME ?: '/opt/android-sdk'}"
+        ANDROID_HOME = "${ANDROID_SDK_ROOT}"
         
         // App-spezifische Variablen
         VITE_API_BASE_URL = "${env.VITE_API_BASE_URL ?: 'https://wls.dk-automation.de'}"
@@ -76,6 +76,8 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing npm dependencies...'
+                // Note: Using 'npm install' instead of 'npm ci' because package-lock.json
+                // is not committed to the repository (it's in .gitignore)
                 sh '''
                     npm install --prefer-offline --no-audit
                 '''
