@@ -1,7 +1,8 @@
 {
   "common": {
     "save": "Save",
-    "useon": "On",
+    "user": "User",
+    "on": "On",
     "off": "Off",
     "unknown": "Unknown",
     "never": "Never",
