@@ -280,8 +280,10 @@
       "title": "Server-Einstellungen",
       "apiTimeout": "API Timeout (ms)",
       "apiTimeoutHelp": "Standard-Timeout für API-Anfragen",
+      "apiTimeoutPlaceholder": "z.B. 5000",
       "maxRetries": "Max. Retry Versuche",
-      "maxRetriesHelp": "Maximale Anzahl von Wiederholungen bei Fehlern"
+      "maxRetriesHelp": "Maximale Anzahl von Wiederholungen bei Fehlern",
+      "maxRetriesPlaceholder": "z.B. 3"
     },
     "ui": {
       "title": "Benutzeroberfläche",
@@ -299,6 +301,7 @@
       "autoSync": "Automatische Synchronisation",
       "autoSyncHelp": "Daten automatisch synchronisieren, wenn online",
       "syncInterval": "Sync-Intervall (Minuten)",
+      "syncIntervalPlaceholder": "z.B. 15",
       "syncOnStartup": "Beim Start synchronisieren"
     },
     "save": "Speichern",
@@ -330,6 +333,34 @@
     "register": "Registrieren",
     "registerText": "Noch kein Konto? Registrieren Sie sich jetzt und erhalten Sie Zugriff auf alle Funktionen.",
     "registerNow": "Jetzt registrieren!"
+  },
+  "profile": {
+    "title": "Benutzer-Profil",
+    "viewProfile": "Profil anzeigen",
+    "editProfile": "Profil bearbeiten",
+    "saveProfile": "Profil speichern",
+    "userInformation": "Benutzer-Informationen",
+    "statusInformation": "Status-Informationen",
+    "accountStatus": "Account Status",
+    "username": "Benutzername",
+    "usernamePlaceholder": "Benutzername eingeben",
+    "fullName": "Vollständiger Name",
+    "fullNamePlaceholder": "Name eingeben",
+    "email": "E-Mail-Adresse",
+    "emailPlaceholder": "E-Mail eingeben",
+    "identification": "Identifikation",
+    "identificationPlaceholder": "ID eingeben",
+    "identificationHelp": "Nur Administratoren können die Identifikation ändern",
+    "userRole": "Benutzerrolle",
+    "selectRole": "Rolle auswählen",
+    "passwordSection": "Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "currentPasswordPlaceholder": "Aktuelles Passwort eingeben",
+    "newPassword": "Neues Passwort",
+    "newPasswordPlaceholder": "Neues Passwort eingeben",
+    "confirmPassword": "Passwort bestätigen",
+    "confirmPasswordPlaceholder": "Neues Passwort wiederholen",
+    "changePassword": "Passwort ändern"
   },
   "offline": {
     "title": "Offline-Modus",

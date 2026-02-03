@@ -7,7 +7,7 @@
           <CCardHeader>
             <h4>
               <CIcon icon="cil-user" class="me-2" />
-              Profil bearbeiten
+              {{ t('profile.editProfile') }}
             </h4>
           </CCardHeader>
           <CCardBody>
@@ -38,8 +38,8 @@
                 <CCol :md="6">
                   <CFormInput
                     v-model="profileForm.username"
-                    label="Benutzername"
-                    placeholder="Benutzername eingeben"
+                    :label="t('profile.username')"
+                    :placeholder="t('profile.usernamePlaceholder')"
                     :invalid="!!validationErrors.username"
                     :disabled="profileLoading"
                     readonly
@@ -51,8 +51,8 @@
                 <CCol :md="6">
                   <CFormInput
                     v-model="profileForm.name"
-                    label="Vollständiger Name"
-                    placeholder="Name eingeben"
+                    :label="t('profile.fullName')"
+                    :placeholder="t('profile.fullNamePlaceholder')"
                     :invalid="!!validationErrors.name"
                     :disabled="profileLoading"
                   />
@@ -67,8 +67,8 @@
                   <CFormInput
                     v-model="profileForm.email"
                     type="email"
-                    label="E-Mail-Adresse"
-                    placeholder="E-Mail eingeben"
+                    :label="t('profile.email')"
+                    :placeholder="t('profile.emailPlaceholder')"
                     :invalid="!!validationErrors.email"
                     :disabled="profileLoading"
                   />
@@ -79,13 +79,13 @@
                 <CCol :md="6">
                   <CFormInput
                     v-model="profileForm.indent"
-                    label="Identifikation"
-                    placeholder="ID eingeben"
+                    :label="t('profile.identification')"
+                    :placeholder="t('profile.identificationPlaceholder')"
                     :disabled="profileLoading"
                     :readonly="!isAdmin"
                   />
                   <CFormText v-if="!isAdmin">
-                    <small class="text-muted">Nur Administratoren können die Identifikation ändern</small>
+                    <small class="text-muted">{{ t('profile.identificationHelp') }}</small>
                   </CFormText>
                 </CCol>
               </CRow>
@@ -94,11 +94,11 @@
                 <CCol :md="6">
                   <CFormSelect
                     v-model="profileForm.role"
-                    label="Benutzerrolle"
+                    :label="t('profile.userRole')"
                     :disabled="profileLoading || !canChangeRole"
                     :invalid="!!validationErrors.role"
                   >
-                    <option value="" disabled>Rolle auswählen</option>
+                    <option value="" disabled>{{ t('profile.selectRole') }}</option>
                     <option
                       v-for="role in availableRoles"
                       :key="role.value"
@@ -144,7 +144,7 @@
                     size="sm"
                     class="me-2"
                   />
-                  {{ profileLoading ? 'Speichern...' : 'Profil speichern' }}
+                  {{ profileLoading ? t('common.loading') : t('profile.saveProfile') }}
                 </CButton>
               </div>
             </CForm>
@@ -156,7 +156,7 @@
           <CCardHeader>
             <h4>
               <CIcon icon="cil-lock-locked" class="me-2" />
-              Passwort ändern
+              {{ t('profile.passwordSection') }}
             </h4>
           </CCardHeader>
           <CCardBody>
@@ -201,8 +201,8 @@
                   <CFormInput
                     v-model="passwordForm.oldPassword"
                     type="password"
-                    label="Aktuelles Passwort"
-                    placeholder="Aktuelles Passwort eingeben"
+                    :label="t('profile.currentPassword')"
+                    :placeholder="t('profile.currentPasswordPlaceholder')"
                     :invalid="!!passwordValidationErrors.oldPassword"
                     :disabled="profileLoading"
                     required
@@ -218,8 +218,8 @@
                   <CFormInput
                     v-model="passwordForm.newPassword"
                     type="password"
-                    label="Neues Passwort"
-                    placeholder="Neues Passwort eingeben"
+                    :label="t('profile.newPassword')"
+                    :placeholder="t('profile.newPasswordPlaceholder')"
                     :invalid="!!passwordValidationErrors.newPassword"
                     :disabled="profileLoading"
                     required
@@ -232,8 +232,8 @@
                   <CFormInput
                     v-model="passwordForm.confirmPassword"
                     type="password"
-                    label="Passwort bestätigen"
-                    placeholder="Neues Passwort wiederholen"
+                    :label="t('profile.confirmPassword')"
+                    :placeholder="t('profile.confirmPasswordPlaceholder')"
                     :invalid="!!passwordValidationErrors.confirmPassword"
                     :disabled="profileLoading"
                     required
@@ -252,7 +252,7 @@
                   @click="resetPasswordForm"
                   :disabled="profileLoading"
                 >
-                  Zurücksetzen
+                  {{ t('common.reset') }}
                 </CButton>
                 <CButton
                   type="submit"
@@ -264,7 +264,7 @@
                     size="sm"
                     class="me-2"
                   />
-                  {{ profileLoading ? 'Ändern...' : 'Passwort ändern' }}
+                  {{ profileLoading ? t('common.loading') : t('profile.changePassword') }}
                 </CButton>
               </div>
             </CForm>
@@ -278,7 +278,7 @@
           <CCardHeader>
             <h5>
               <CIcon icon="cil-info" class="me-2" />
-              Benutzer-Informationen
+              {{ t('profile.userInformation') }}
             </h5>
           </CCardHeader>
           <CCardBody>
@@ -360,6 +360,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   CRow,
   CCol,
@@ -383,6 +384,8 @@ import { useProfile } from '../../api/useProfile.js'
 import { getUserDebugInfo, setUser, currentUser as globalCurrentUser } from '../../stores/GlobalUser.js'
 import { lastTokenCheck } from '../../stores/TokenManager.js'
 import { ApiUser } from '../../api/ApiUser.js'
+
+const { t } = useI18n()
 
 const {
   currentUser,

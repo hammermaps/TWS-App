@@ -75,7 +75,7 @@
                 <CFormInput
                   v-model.number="configForm.server.apiTimeout"
                   type="number"
-                  placeholder="z.B. 5000"
+                  :placeholder="$t('settings.server.apiTimeoutPlaceholder')"
                 />
                 <CFormText>{{ $t('settings.server.apiTimeoutHelp') }}</CFormText>
               </CCol>
@@ -84,7 +84,7 @@
                 <CFormInput
                   v-model.number="configForm.server.maxRetries"
                   type="number"
-                  placeholder="z.B. 3"
+                  :placeholder="$t('settings.server.maxRetriesPlaceholder')"
                 />
                 <CFormText>{{ $t('settings.server.maxRetriesHelp') }}</CFormText>
               </CCol>
@@ -154,7 +154,7 @@
                   v-model.number="configForm.sync.syncInterval"
                   type="number"
                   :disabled="!configForm.sync.autoSync"
-                  placeholder="z.B. 15"
+                  :placeholder="$t('settings.sync.syncIntervalPlaceholder')"
                 />
               </CCol>
             </CRow>
@@ -287,7 +287,7 @@ const isOnline = computed(() => onlineStatusStore.isFullyOnline)
 const canEditGlobal = computed(() => isAdmin.value)
 
 const lastUpdateFormatted = computed(() => {
-  if (!lastUpdate.value) return 'Nie'
+  if (!lastUpdate.value) return t('common.never')
   return new Date(lastUpdate.value).toLocaleString('de-DE')
 })
 
