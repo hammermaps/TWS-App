@@ -18,6 +18,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   const isCheckingConnection = ref(false)
   const dataPreloader = useOfflineDataPreloader() // Preloader für Offline-Daten
   const configSyncService = useConfigSyncService() // Config Sync Service
+  const dataRefreshInterval = ref(null) // Interval für automatische Datenaktualisierung
 
   // Lazy-Loading für OfflineFlushSyncService (Import erfolgt bei Bedarf)
   // HINWEIS: Dies ist sicher, da Pinia Stores Singletons sind.
@@ -34,6 +35,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // Konfiguration
   const PING_INTERVAL = 30000 // 30 Sekunden
   const MAX_FAILURES_BEFORE_OFFLINE = 3 // Nach 3 fehlgeschlagenen Pings -> Offline
+  const DATA_REFRESH_CHECK_INTERVAL = 3600000 // 1 Stunde (60 * 60 * 1000 ms)
 
   // Computed
   const isFullyOnline = computed(() => {
@@ -223,6 +225,37 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   }
 
   /**
+   * Startet die automatische Datenaktualisierungs-Prüfung
+   */
+  function startDataRefreshMonitoring() {
+    if (dataRefreshInterval.value) {
+      console.log('⏱️ Datenaktualisierungs-Überwachung läuft bereits')
+      return
+    }
+
+    console.log('🚀 Starte Datenaktualisierungs-Überwachung (alle 60 Minuten)...')
+
+    // Regelmäßige Prüfung ob Daten aktualisiert werden müssen
+    dataRefreshInterval.value = setInterval(() => {
+      if (isFullyOnline.value) {
+        console.log('⏰ Periodische Prüfung der Offline-Daten-Aktualität...')
+        triggerPreloadIfNeeded()
+      }
+    }, DATA_REFRESH_CHECK_INTERVAL)
+  }
+
+  /**
+   * Stoppt die automatische Datenaktualisierungs-Prüfung
+   */
+  function stopDataRefreshMonitoring() {
+    if (dataRefreshInterval.value) {
+      clearInterval(dataRefreshInterval.value)
+      dataRefreshInterval.value = null
+      console.log('⏸️ Datenaktualisierungs-Überwachung gestoppt')
+    }
+  }
+
+  /**
    * Setzt manuell auf Offline
    */
   function setManualOffline(offline) {
@@ -230,6 +263,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
     if (offline) {
       stopPingMonitoring()
+      stopDataRefreshMonitoring()
       console.log('📴 Manueller Offline-Modus aktiviert')
       notifyUser('Offline-Modus aktiviert', 'info')
     } else {
@@ -237,6 +271,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       consecutiveFailures.value = 0
       isServerReachable.value = true
       startPingMonitoring()
+      startDataRefreshMonitoring()
       console.log('📶 Manueller Online-Modus aktiviert')
       notifyUser('Online-Modus aktiviert', 'info')
 
@@ -444,6 +479,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       // Nur Ping-Überwachung starten wenn nicht manuell offline
       startPingMonitoring()
 
+      // Starte automatische Datenaktualisierungs-Prüfung
+      startDataRefreshMonitoring()
+
       // Preloading starten wenn nötig (mit Verzögerung nach Initialisierung)
       setTimeout(() => triggerPreloadIfNeeded(), 3000) // 3 Sekunden nach Start
     }
@@ -487,6 +525,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
    */
   function cleanup() {
     stopPingMonitoring()
+    stopDataRefreshMonitoring()
   }
 
   return {
