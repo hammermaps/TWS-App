@@ -152,7 +152,7 @@ const onKeyToggle = async (e) => {
                 class="me-2"
                 :class="{ 'rotating': isTogglingMode }"
               />
-              {{ isTogglingMode ? $t('online.checking') : 'Online-Modus aktivieren' }}
+              {{ isTogglingMode ? $t('online.checking') : $t('online.activateOnlineMode') }}
             </CButton>
 
             <!-- Server Offline: Retry Button -->

@@ -224,7 +224,7 @@ export class ApiHealthClient {
     this.baseUrl = baseUrl || getApiBaseUrl()
 
     // Axios-Instanz mit Cookie-Unterstützung konfigurieren
-    // Verwende kürzeren Timeout für Health-Checks (3 Sekunden)
+    // Verwendet kürzeren Timeout für Health-Checks (3 Sekunden)
     this.client = axios.create({
       baseURL: this.baseUrl,
       timeout: 3000, // Kurzer Timeout für Health-Checks

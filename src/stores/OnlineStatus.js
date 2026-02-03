@@ -311,7 +311,11 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         return true
       } catch (error) {
         // Unterscheide zwischen Timeout und anderen Fehlern
-        const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+        // Axios Timeout-Fehler haben error.code === 'ECONNABORTED' oder error.code === 'ERR_NETWORK'
+        const isTimeout = 
+          error.code === 'ECONNABORTED' || 
+          error.code === 'ERR_NETWORK' ||
+          (error.name === 'AxiosError' && error.message?.toLowerCase().includes('timeout'))
         
         if (isTimeout) {
           console.error('⏱️ Server-Health-Prüfung: Timeout nach 3 Sekunden')
