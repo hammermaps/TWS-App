@@ -310,8 +310,18 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         
         return true
       } catch (error) {
-        console.error('❌ Fehler bei Server-Health-Prüfung:', error)
-        notifyUser('Online-Modus kann nicht aktiviert werden: Server nicht erreichbar', 'error')
+        // Unterscheide zwischen Timeout und anderen Fehlern
+        const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+        
+        if (isTimeout) {
+          console.error('⏱️ Server-Health-Prüfung: Timeout nach 3 Sekunden')
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server antwortet nicht (Timeout)', 'error')
+        } else {
+          console.error('❌ Fehler bei Server-Health-Prüfung:', error.message || error)
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server nicht erreichbar', 'error')
+        }
+        
+        // App bleibt im Offline-Modus verwendbar
         return false
       }
     }
