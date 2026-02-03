@@ -4,7 +4,10 @@ import healthClient from '../api/ApiHealth.js'
 import { useOfflineDataPreloader } from '../services/OfflineDataPreloader.js'
 import { useConfigSyncService } from '../services/ConfigSyncService.js'
 import { useConfigStorage } from './ConfigStorage.js'
-import { getToken } from '@/stores/GlobalToken.js' // <-- Token-Check import
+import { getToken } from '@/stores/GlobalToken.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const MANUAL_OFFLINE_KEY = 'wls-manual-offline-mode'
 
 export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // State
@@ -18,6 +21,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   const isCheckingConnection = ref(false)
   const dataPreloader = useOfflineDataPreloader() // Preloader für Offline-Daten
   const configSyncService = useConfigSyncService() // Config Sync Service
+  const dataRefreshInterval = ref(null) // Interval für automatische Datenaktualisierung
 
   // Lazy-Loading für OfflineFlushSyncService (Import erfolgt bei Bedarf)
   // HINWEIS: Dies ist sicher, da Pinia Stores Singletons sind.
@@ -34,6 +38,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // Konfiguration
   const PING_INTERVAL = 30000 // 30 Sekunden
   const MAX_FAILURES_BEFORE_OFFLINE = 3 // Nach 3 fehlgeschlagenen Pings -> Offline
+  const DATA_REFRESH_CHECK_INTERVAL = 3600000 // 1 Stunde (60 * 60 * 1000 ms)
 
   // Computed
   const isFullyOnline = computed(() => {
@@ -223,31 +228,106 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   }
 
   /**
-   * Setzt manuell auf Offline
+   * Startet die automatische Datenaktualisierungs-Prüfung
    */
-  function setManualOffline(offline) {
-    manualOfflineMode.value = offline
+  function startDataRefreshMonitoring() {
+    if (dataRefreshInterval.value) {
+      console.log('⏱️ Datenaktualisierungs-Überwachung läuft bereits')
+      return
+    }
 
+    console.log('🚀 Starte Datenaktualisierungs-Überwachung (alle 60 Minuten)...')
+
+    // Regelmäßige Prüfung ob Daten aktualisiert werden müssen
+    dataRefreshInterval.value = setInterval(() => {
+      if (isFullyOnline.value) {
+        console.log('⏰ Periodische Prüfung der Offline-Daten-Aktualität...')
+        triggerPreloadIfNeeded()
+      }
+    }, DATA_REFRESH_CHECK_INTERVAL)
+  }
+
+  /**
+   * Stoppt die automatische Datenaktualisierungs-Prüfung
+   */
+  function stopDataRefreshMonitoring() {
+    if (dataRefreshInterval.value) {
+      clearInterval(dataRefreshInterval.value)
+      dataRefreshInterval.value = null
+      console.log('⏸️ Datenaktualisierungs-Überwachung gestoppt')
+    }
+  }
+
+  /**
+   * Setzt manuell auf Offline
+   * @param {boolean} offline - true für Offline-Modus, false für Online-Modus
+   * @returns {Promise<boolean>} - true wenn erfolgreich, false wenn abgelehnt
+   */
+  async function setManualOffline(offline) {
     if (offline) {
+      // Offline-Modus kann immer aktiviert werden
+      manualOfflineMode.value = offline
       stopPingMonitoring()
+      stopDataRefreshMonitoring()
       console.log('📴 Manueller Offline-Modus aktiviert')
       notifyUser('Offline-Modus aktiviert', 'info')
+      return true
     } else {
-      // Bei manuellem Online-Schalten: Ping-Überwachung wieder starten
-      consecutiveFailures.value = 0
-      isServerReachable.value = true
-      startPingMonitoring()
-      console.log('📶 Manueller Online-Modus aktiviert')
-      notifyUser('Online-Modus aktiviert', 'info')
+      // Online-Modus: Erst Server-Health prüfen
+      console.log('🔍 Prüfe Server-Status vor Online-Aktivierung...')
+      
+      try {
+        const healthStatus = await healthClient.getStatus()
+        
+        if (!healthStatus.isHealthy()) {
+          console.error('❌ Server ist nicht healthy - Online-Modus kann nicht aktiviert werden')
+          console.error('Server Status:', healthStatus.data?.status || 'unknown')
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server ist nicht verfügbar oder fehlerhaft', 'error')
+          return false
+        }
+        
+        console.log('✅ Server ist healthy - aktiviere Online-Modus')
+        
+        // Erst nach erfolgreicher Health-Prüfung den Modus ändern
+        manualOfflineMode.value = offline
+        
+        // Bei manuellem Online-Schalten: Ping-Überwachung wieder starten
+        consecutiveFailures.value = 0
+        isServerReachable.value = true
+        startPingMonitoring()
+        startDataRefreshMonitoring()
+        console.log('📶 Manueller Online-Modus aktiviert')
+        notifyUser('Online-Modus aktiviert', 'info')
 
-      // Preloading starten wenn nötig oder möglich
-      triggerPreloadIfNeeded()
+        // Preloading starten wenn nötig oder möglich
+        triggerPreloadIfNeeded()
 
-      // Config-Synchronisation starten
-      syncConfigChanges()
+        // Config-Synchronisation starten
+        syncConfigChanges()
 
-      // Flush-Synchronisation starten
-      syncFlushData()
+        // Flush-Synchronisation starten
+        syncFlushData()
+        
+        return true
+      } catch (error) {
+        // Unterscheide zwischen Timeout und anderen Fehlern
+        // Axios Timeout-Fehler haben error.code === 'ECONNABORTED' oder error.code === 'ERR_NETWORK'
+        const isTimeout = 
+          error.code === 'ECONNABORTED' || 
+          error.code === 'ERR_NETWORK' ||
+          (error.name === 'AxiosError' && error.message?.toLowerCase().includes('timeout'))
+        
+        if (isTimeout) {
+          console.error('⏱️ Server-Health-Prüfung: Timeout nach 3 Sekunden')
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server antwortet nicht (Timeout)', 'error')
+        } else {
+          console.error('❌ Fehler bei Server-Health-Prüfung:', error.message || error)
+          notifyUser('Online-Modus kann nicht aktiviert werden: Server nicht erreichbar', 'error')
+        }
+        
+        // App bleibt im Offline-Modus verwendbar
+        return false
+      }
     }
   }
 
@@ -330,14 +410,14 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
     // Prüfe ob autoSync aktiviert ist
     const configStorage = useConfigStorage()
-    const config = configStorage.loadConfig()
+    const config = await configStorage.loadConfig()
 
     if (!config?.sync?.autoSync) {
       console.log('⏸️ Config-Sync übersprungen - autoSync deaktiviert')
       return
     }
 
-    if (!configSyncService.hasPending()) {
+    if (!(await configSyncService.hasPendingChanges())) {
       console.log('✓ Keine ausstehenden Konfigurationsänderungen')
       return
     }
@@ -345,7 +425,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     console.log('🔄 Synchronisiere Konfigurationsänderungen (autoSync)...')
 
     try {
-      const result = await configSyncService.syncPending()
+      const result = await configSyncService.syncPendingChanges()
 
       if (result.success) {
         console.log(`✅ ${result.synced} Konfigurationsänderungen synchronisiert`)
@@ -431,29 +511,47 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   /**
    * Initialisierung
    */
-  function initialize() {
+  async function initialize() {
     console.log('🔧 Initialisiere Online-Status-Store...')
     setupBrowserListeners()
 
-    // Lade gespeicherten Zustand
-    const savedManualMode = localStorage.getItem('wls-manual-offline-mode')
-    if (savedManualMode === 'true') {
-      manualOfflineMode.value = true
-      console.log('📴 Gespeicherter Offline-Modus wiederhergestellt')
-    } else {
-      // Nur Ping-Überwachung starten wenn nicht manuell offline
-      startPingMonitoring()
+    // Lade gespeicherten Zustand aus IndexedDB
+    try {
+      const result = await indexedDBHelper.get(STORES.SETTINGS, MANUAL_OFFLINE_KEY)
+      if (result && result.value === 'true') {
+        manualOfflineMode.value = true
+        console.log('📴 Gespeicherter Offline-Modus aus IndexedDB wiederhergestellt')
+      } else {
+        // Nur Ping-Überwachung starten wenn nicht manuell offline
+        startPingMonitoring()
 
-      // Preloading starten wenn nötig (mit Verzögerung nach Initialisierung)
-      setTimeout(() => triggerPreloadIfNeeded(), 3000) // 3 Sekunden nach Start
+        // Starte automatische Datenaktualisierungs-Prüfung
+        startDataRefreshMonitoring()
+
+        // Preloading starten wenn nötig (mit Verzögerung nach Initialisierung)
+        setTimeout(() => triggerPreloadIfNeeded(), 3000) // 3 Sekunden nach Start
+      }
+    } catch (error) {
+      console.warn('⚠️ Fehler beim Laden des Offline-Modus:', error)
+      // Fallback: Ping-Überwachung starten
+      startPingMonitoring()
+      startDataRefreshMonitoring()
+      setTimeout(() => triggerPreloadIfNeeded(), 3000)
     }
   }
 
   /**
-   * Speichere manuellen Modus in localStorage
+   * Speichere manuellen Modus in IndexedDB
    */
-  watch(manualOfflineMode, (newValue) => {
-    localStorage.setItem('wls-manual-offline-mode', newValue.toString())
+  watch(manualOfflineMode, async (newValue) => {
+    try {
+      await indexedDBHelper.set(STORES.SETTINGS, {
+        key: MANUAL_OFFLINE_KEY,
+        value: newValue.toString()
+      })
+    } catch (error) {
+      console.error('❌ Fehler beim Speichern des Offline-Modus:', error)
+    }
   })
 
   /**
@@ -487,6 +585,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
    */
   function cleanup() {
     stopPingMonitoring()
+    stopDataRefreshMonitoring()
   }
 
   return {

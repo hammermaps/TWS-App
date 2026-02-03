@@ -6,11 +6,13 @@
 import { ref } from 'vue'
 import { ApiConfig } from '../api/ApiConfig.js'
 import configStorage from '../stores/ConfigStorage.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const SYNC_QUEUE_KEY = 'wls_config_sync_queue'
 
 export class ConfigSyncService {
   constructor() {
     this.configApi = new ApiConfig()
-    this.syncQueueKey = 'wls_config_sync_queue'
     this.isSyncing = ref(false)
     this.lastSyncTime = ref(null)
     this.syncError = ref(null)
@@ -19,9 +21,9 @@ export class ConfigSyncService {
   /**
    * Fügt eine Konfigurationsänderung zur Sync-Queue hinzu
    */
-  addToSyncQueue(config) {
+  async addToSyncQueue(config) {
     try {
-      const queue = this.getSyncQueue()
+      const queue = await this.getSyncQueue()
       const syncItem = {
         id: `config_${Date.now()}`,
         config: config,
@@ -30,7 +32,12 @@ export class ConfigSyncService {
         attempts: 0
       }
       queue.push(syncItem)
-      localStorage.setItem(this.syncQueueKey, JSON.stringify(queue))
+      
+      await indexedDBHelper.set(STORES.METADATA, {
+        key: SYNC_QUEUE_KEY,
+        value: queue
+      })
+      
       console.log('📝 Konfigurationsänderung zur Sync-Queue hinzugefügt')
       return true
     } catch (error) {
@@ -42,10 +49,10 @@ export class ConfigSyncService {
   /**
    * Gibt die aktuelle Sync-Queue zurück
    */
-  getSyncQueue() {
+  async getSyncQueue() {
     try {
-      const queueString = localStorage.getItem(this.syncQueueKey)
-      return queueString ? JSON.parse(queueString) : []
+      const result = await indexedDBHelper.get(STORES.METADATA, SYNC_QUEUE_KEY)
+      return result && result.value ? result.value : []
     } catch (error) {
       console.error('❌ Fehler beim Laden der Sync-Queue:', error)
       return []
@@ -113,7 +120,11 @@ export class ConfigSyncService {
     
     // Entferne erfolgreich synchronisierte und fehlgeschlagene Items
     const cleanedQueue = updatedQueue.filter(item => !item.synced && !item.failed)
-    localStorage.setItem(this.syncQueueKey, JSON.stringify(cleanedQueue))
+    
+    await indexedDBHelper.set(STORES.METADATA, {
+      key: SYNC_QUEUE_KEY,
+      value: cleanedQueue
+    })
 
     this.lastSyncTime.value = new Date()
     this.isSyncing.value = false
@@ -133,25 +144,25 @@ export class ConfigSyncService {
   /**
    * Prüft ob Änderungen zur Synchronisation anstehen
    */
-  hasPendingChanges() {
-    const queue = this.getSyncQueue()
+  async hasPendingChanges() {
+    const queue = await this.getSyncQueue()
     return queue.some(item => !item.synced && !item.failed)
   }
 
   /**
    * Gibt die Anzahl ausstehender Änderungen zurück
    */
-  getPendingCount() {
-    const queue = this.getSyncQueue()
+  async getPendingCount() {
+    const queue = await this.getSyncQueue()
     return queue.filter(item => !item.synced && !item.failed).length
   }
 
   /**
    * Löscht die Sync-Queue
    */
-  clearSyncQueue() {
+  async clearSyncQueue() {
     try {
-      localStorage.removeItem(this.syncQueueKey)
+      await indexedDBHelper.delete(STORES.METADATA, SYNC_QUEUE_KEY)
       console.log('🗑️ Config Sync-Queue gelöscht')
       return true
     } catch (error) {
@@ -163,8 +174,8 @@ export class ConfigSyncService {
   /**
    * Gibt Statistiken über die Sync-Queue zurück
    */
-  getSyncStats() {
-    const queue = this.getSyncQueue()
+  async getSyncStats() {
+    const queue = await this.getSyncQueue()
     const pending = queue.filter(item => !item.synced && !item.failed)
     const synced = queue.filter(item => item.synced)
     const failed = queue.filter(item => item.failed)

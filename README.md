@@ -482,8 +482,16 @@ Bei Fragen oder Problemen:
 
 ## 📚 Weitere Dokumentation
 
+### Build & Deployment
+- [Jenkins Setup Anleitung (Deutsch)](docs/JENKINS_SETUP.md)
+- [Jenkins Quick Start (Deutsch)](docs/JENKINS_QUICKSTART.md)
+- [Jenkins Setup Guide (English)](docs/JENKINS_SETUP_EN.md)
+
+### Mobile Development
 - [Android Setup Anleitung (Deutsch)](docs/ANDROID_SETUP.md)
 - [Android Quick Start (English)](docs/ANDROID_QUICKSTART.md)
+
+### Application Features
 - [PWA Dokumentation](docs/PWA_DOCUMENTATION.md)
 - [Offline-Modus Guide](docs/OFFLINE_PRELOADING_DOCUMENTATION.md)
 - [Logo Design Guide](docs/LOGO_README.md)

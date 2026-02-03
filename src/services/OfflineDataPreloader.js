@@ -10,6 +10,9 @@ import { ApiConfig } from '../api/ApiConfig.js'
 import BuildingStorage from '../stores/BuildingStorage.js'
 import { useApartmentStorage } from '../stores/ApartmentStorage.js'
 import configStorage from '../stores/ConfigStorage.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const PRELOAD_METADATA_KEY = 'wls_preload_metadata'
 
 export class OfflineDataPreloader {
   constructor() {
@@ -61,7 +64,7 @@ export class OfflineDataPreloader {
       try {
         const configResult = await this.configApi.get()
         if (configResult) {
-          configStorage.saveConfig(configResult)
+          await configStorage.saveConfig(configResult)
           this.preloadProgress.value.config = true
           console.log('✅ Konfiguration geladen und gespeichert')
         } else {
@@ -86,9 +89,9 @@ export class OfflineDataPreloader {
 
       console.log(`✅ ${buildings.length} Gebäude geladen`)
 
-      // Speichere Gebäude in LocalStorage
-      BuildingStorage.saveBuildings(buildings)
-      console.log('💾 Gebäude in LocalStorage gespeichert')
+      // Speichere Gebäude in IndexedDB
+      await BuildingStorage.saveBuildings(buildings)
+      console.log('💾 Gebäude in IndexedDB gespeichert')
 
       // Schritt 2: Lade alle Apartments für jedes Gebäude
       console.log('🏢 Lade Apartments für alle Gebäude...')
@@ -202,10 +205,10 @@ export class OfflineDataPreloader {
   /**
    * Lädt Metadaten über das letzte Preloading
    */
-  getPreloadMetadata() {
+  async getPreloadMetadata() {
     try {
-      const data = localStorage.getItem('wls_preload_metadata')
-      return data ? JSON.parse(data) : null
+      const result = await indexedDBHelper.get(STORES.METADATA, PRELOAD_METADATA_KEY)
+      return result && result.value ? result.value : null
     } catch (error) {
       console.error('❌ Fehler beim Laden der Preload-Metadaten:', error)
       return null
@@ -215,8 +218,8 @@ export class OfflineDataPreloader {
   /**
    * Prüft, ob Daten bereits vorgeladen wurden
    */
-  isDataPreloaded() {
-    const metadata = this.getPreloadMetadata()
+  async isDataPreloaded() {
+    const metadata = await this.getPreloadMetadata()
     return metadata !== null && metadata.buildingsCount > 0
   }
 
@@ -224,8 +227,8 @@ export class OfflineDataPreloader {
    * Prüft, ob ein erneutes Preloading empfohlen wird
    * (z.B. wenn die Daten älter als 24 Stunden sind)
    */
-  shouldRefreshData(maxAgeHours = 24) {
-    const metadata = this.getPreloadMetadata()
+  async shouldRefreshData(maxAgeHours = 24) {
+    const metadata = await this.getPreloadMetadata()
 
     if (!metadata || !metadata.timestamp) {
       return true
@@ -241,14 +244,14 @@ export class OfflineDataPreloader {
   /**
    * Gibt Statistiken über vorgeladene Daten zurück
    */
-  getPreloadStats() {
+  async getPreloadStats() {
     // Wichtig: lese hier einen reaktiven Wert, damit Aufrufer (Components / Computed) reaktiv aktualisiert werden
     // wenn sich das Preload-Datum ändert. Ohne diesen Zugriff wird getPreloadStats als rein nicht-reaktiv
     // behandelt und UI-Computeds, die nur dieses Ergebnis verwenden, werden nicht neu ausgewertet.
     // optional chaining: wenn lastPreloadTime mal null sein sollte, vermeiden wir einen Crash
     void (this.lastPreloadTime?.value)
 
-    const metadata = this.getPreloadMetadata()
+    const metadata = await this.getPreloadMetadata()
 
     if (!metadata) {
       return {
@@ -267,7 +270,7 @@ export class OfflineDataPreloader {
       apartmentsCount: metadata.apartmentsCount,
       lastPreload: metadata.timestamp,
       hoursSinceLastPreload,
-      needsRefresh: this.shouldRefreshData(),
+      needsRefresh: await this.shouldRefreshData(),
       buildings: metadata.buildingDetails || []
     }
   }
@@ -275,12 +278,12 @@ export class OfflineDataPreloader {
   /**
    * Löscht alle vorgeladenen Daten
    */
-  clearPreloadedData() {
+  async clearPreloadedData() {
     try {
-      BuildingStorage.clearBuildings()
-      this.apartmentStorage.storage.clearAll()
-      configStorage.clearConfig()
-      localStorage.removeItem('wls_preload_metadata')
+      await BuildingStorage.clearBuildings()
+      await this.apartmentStorage.storage.clearAll()
+      await configStorage.clearConfig()
+      await indexedDBHelper.delete(STORES.METADATA, PRELOAD_METADATA_KEY)
       // Reset reaktive Werte
       this.preloadProgress.value = {
         buildings: 0,

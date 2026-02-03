@@ -1,48 +1,57 @@
-// GlobalToken.js - Globale JWT Token Verwaltung
+// GlobalToken.js - Globale JWT Token Verwaltung mit IndexedDB
 import { ref, watch } from 'vue'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const TOKEN_KEY = 'jwt_token'
 
 // Globaler Token State
 const authToken = ref(null)
 const isAuthenticated = ref(false)
 
-// Token aus localStorage laden beim Start
-const loadTokenFromStorage = () => {
+// Token aus IndexedDB laden beim Start
+const loadTokenFromStorage = async () => {
   try {
-    const storedToken = localStorage.getItem('jwt_token')
-    if (storedToken) {
-      authToken.value = storedToken
+    const result = await indexedDBHelper.get(STORES.AUTH, TOKEN_KEY)
+    if (result && result.value) {
+      authToken.value = result.value
       isAuthenticated.value = true
+      console.log('🔑 Token aus IndexedDB geladen')
     }
   } catch (error) {
-    console.warn('Konnte Token nicht aus localStorage laden:', error)
+    console.warn('⚠️ Konnte Token nicht aus IndexedDB laden:', error)
   }
 }
 
-// Token in localStorage speichern
-const saveTokenToStorage = (token) => {
+// Token in IndexedDB speichern
+const saveTokenToStorage = async (token) => {
   try {
     if (token) {
-      localStorage.setItem('jwt_token', token)
+      await indexedDBHelper.set(STORES.AUTH, {
+        key: TOKEN_KEY,
+        value: token
+      })
+      console.log('💾 Token in IndexedDB gespeichert')
     } else {
-      localStorage.removeItem('jwt_token')
+      await indexedDBHelper.delete(STORES.AUTH, TOKEN_KEY)
+      console.log('🗑️ Token aus IndexedDB entfernt')
     }
   } catch (error) {
-    console.warn('Konnte Token nicht in localStorage speichern:', error)
+    console.warn('⚠️ Konnte Token nicht in IndexedDB speichern:', error)
   }
 }
 
 // Token setzen
-const setToken = (token) => {
+const setToken = async (token) => {
   authToken.value = token
   isAuthenticated.value = !!token
-  saveTokenToStorage(token)
+  await saveTokenToStorage(token)
 }
 
 // Token löschen
-const clearToken = () => {
+const clearToken = async () => {
   authToken.value = null
   isAuthenticated.value = false
-  saveTokenToStorage(null)
+  await saveTokenToStorage(null)
 }
 
 // Token abrufen
@@ -58,9 +67,9 @@ const getAuthHeaders = () => {
   }
 }
 
-// Watcher für automatische localStorage Synchronisation
-watch(authToken, (newToken) => {
-  saveTokenToStorage(newToken)
+// Watcher für automatische IndexedDB Synchronisation
+watch(authToken, async (newToken) => {
+  await saveTokenToStorage(newToken)
   isAuthenticated.value = !!newToken
 })
 

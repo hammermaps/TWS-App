@@ -9,7 +9,7 @@
               <div>
                 <h2 class="mb-0">
                   <CIcon icon="cil-user" class="me-2" />
-                  Benutzer-Profil
+                  {{ t('profile.title') }}
                 </h2>
               </div>
             </div>
@@ -34,28 +34,28 @@
                   <CCol :sm="6" class="mb-3">
                     <div class="profile-info-item">
                       <CIcon icon="cil-user" class="text-muted me-2" />
-                      <strong>Benutzername:</strong>
+                      <strong>{{ t('profile.username') }}:</strong>
                       <div class="ms-4">{{ currentUser?.username || 'N/A' }}</div>
                     </div>
                   </CCol>
                   <CCol :sm="6" class="mb-3">
                     <div class="profile-info-item">
                       <CIcon icon="cil-people" class="text-muted me-2" />
-                      <strong>Vollständiger Name:</strong>
+                      <strong>{{ t('profile.fullName') }}:</strong>
                       <div class="ms-4">{{ currentUser?.name || 'Nicht angegeben' }}</div>
                     </div>
                   </CCol>
                   <CCol :sm="6" class="mb-3">
                     <div class="profile-info-item">
                       <CIcon icon="cil-envelope-closed" class="text-muted me-2" />
-                      <strong>E-Mail:</strong>
+                      <strong>{{ t('profile.email') }}:</strong>
                       <div class="ms-4">{{ currentUser?.email || 'Nicht angegeben' }}</div>
                     </div>
                   </CCol>
                   <CCol :sm="6" class="mb-3">
                     <div class="profile-info-item">
                       <CIcon icon="cil-fingerprint" class="text-muted me-2" />
-                      <strong>Identifikation:</strong>
+                      <strong>{{ t('profile.identification') }}:</strong>
                       <div class="ms-4">{{ currentUser?.indent || 'Nicht angegeben' }}</div>
                     </div>
                   </CCol>
@@ -68,7 +68,7 @@
               <CCol :md="12">
                 <h5 class="mb-3">
                   <CIcon icon="cil-lightbulb" class="me-2" />
-                  Status-Informationen
+                  {{ t('profile.statusInformation') }}
                 </h5>
                 <CRow>
                   <CCol :sm="4" class="mb-3">
@@ -81,7 +81,7 @@
                             size="xl"
                           />
                         </div>
-                        <div class="status-label mb-2">Account Status</div>
+                        <div class="status-label mb-2">{{ t('profile.accountStatus') }}</div>
                         <CBadge
                           :color="currentUser?.enabled ? 'success' : 'danger'"
                           class="px-3 py-2"
@@ -101,7 +101,7 @@
                             size="xl"
                           />
                         </div>
-                        <div class="status-label mb-2">Benutzerrolle</div>
+                        <div class="status-label mb-2">{{ t('profile.userRole') }}</div>
                         <CBadge
                           :color="getRoleColor(currentUser?.role)"
                           class="px-3 py-2"
@@ -394,6 +394,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   CRow,
   CCol,
@@ -418,6 +419,8 @@ import {
   canManageUsers,
   canViewReports
 } from '../../stores/GlobalUser.js'
+
+const { t } = useI18n()
 import { lastTokenCheck, lastPageTokenCheck, lastActivity } from '../../stores/TokenManager.js'
 import { useOnlineStatusStore } from '../../stores/OnlineStatus.js'
 import { ApiUser } from '../../api/ApiUser.js'

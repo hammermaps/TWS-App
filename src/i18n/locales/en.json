@@ -1,7 +1,8 @@
 {
   "common": {
     "save": "Save",
-    "useon": "On",
+    "user": "User",
+    "on": "On",
     "off": "Off",
     "unknown": "Unknown",
     "never": "Never",
@@ -279,8 +280,10 @@
       "title": "Server Settings",
       "apiTimeout": "API Timeout (ms)",
       "apiTimeoutHelp": "Default timeout for API requests",
+      "apiTimeoutPlaceholder": "e.g. 5000",
       "maxRetries": "Max. Retry Attempts",
-      "maxRetriesHelp": "Maximum number of retries on errors"
+      "maxRetriesHelp": "Maximum number of retries on errors",
+      "maxRetriesPlaceholder": "e.g. 3"
     },
     "ui": {
       "title": "User Interface",
@@ -298,6 +301,7 @@
       "autoSync": "Automatic Synchronization",
       "autoSyncHelp": "Automatically synchronize data when online",
       "syncInterval": "Sync Interval (minutes)",
+      "syncIntervalPlaceholder": "e.g. 15",
       "syncOnStartup": "Synchronize on startup"
     },
     "save": "Save",
@@ -330,6 +334,38 @@
     "registerText": "Don't have an account yet? Register now and get access to all features.",
     "registerNow": "Register now!"
   },
+  "profile": {
+    "title": "User Profile",
+    "viewProfile": "View Profile",
+    "editProfile": "Edit Profile",
+    "saveProfile": "Save Profile",
+    "userInformation": "User Information",
+    "statusInformation": "Status Information",
+    "accountStatus": "Account Status",
+    "username": "Username",
+    "usernamePlaceholder": "Enter username",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Enter name",
+    "email": "Email Address",
+    "emailPlaceholder": "Enter email",
+    "identification": "Identification",
+    "identificationPlaceholder": "Enter ID",
+    "identificationHelp": "Only administrators can change the identification",
+    "userRole": "User Role",
+    "selectRole": "Select role",
+    "passwordSection": "Change Password",
+    "currentPassword": "Current Password",
+    "currentPasswordPlaceholder": "Enter current password",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Repeat new password",
+    "changePassword": "Change Password",
+    "role": "Role",
+    "permissions": "Permissions",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
   "offline": {
     "title": "Offline Mode",
     "youAreOffline": "You are offline",
@@ -361,6 +397,7 @@
     "checking": "Checking connection...",
     "checkNow": "Check connection now",
     "disabledInManualMode": "Disabled in manual mode",
+    "activateOnlineMode": "Activate online mode",
     "limitedMode": "Limited Mode",
     "featuresNotAvailable": "The following features are not available offline",
     "changePassword": "Change password",
