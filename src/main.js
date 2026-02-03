@@ -12,6 +12,9 @@ import { iconsSet as icons } from '@/assets/icons'
 // PWA Service Worker Registration
 import { registerSW } from 'virtual:pwa-register'
 
+// Storage migration from localStorage to IndexedDB
+import { migrateLocalStorageToIndexedDB } from '@/utils/StorageMigration.js'
+
 // Online-Status-Store
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 
@@ -50,25 +53,43 @@ app.use(CoreuiVue)
 app.provide('icons', icons)
 app.component('CIcon', CIcon)
 
-app.mount('#app')
-
-// PWA Service Worker registrieren
-const updateSW = registerSW({
-  onNeedRefresh() {
-    console.log('🔄 Neue Version verfügbar')
-  },
-  onOfflineReady() {
-    console.log('📴 App ist offline-bereit')
-  },
-  immediate: true
-})
-
-// Online-Status-Store initialisieren
-const onlineStatusStore = useOnlineStatusStore()
-onlineStatusStore.initialize()
-
-// Cleanup beim Beenden
-window.addEventListener('beforeunload', () => {
-  onlineStatusStore.cleanup()
+// Run storage migration before mounting the app
+migrateLocalStorageToIndexedDB().then((result) => {
+  if (result.success) {
+    if (result.alreadyMigrated) {
+      console.log('✓ Storage already using IndexedDB')
+    } else {
+      console.log('✅ Successfully migrated from localStorage to IndexedDB:', result.migrated)
+    }
+  } else {
+    console.warn('⚠️ Storage migration failed, app will continue with IndexedDB:', result.error)
+  }
+  
+  // Mount the app after migration
+  app.mount('#app')
+  
+  // PWA Service Worker registrieren
+  const updateSW = registerSW({
+    onNeedRefresh() {
+      console.log('🔄 Neue Version verfügbar')
+    },
+    onOfflineReady() {
+      console.log('📴 App ist offline-bereit')
+    },
+    immediate: true
+  })
+  
+  // Online-Status-Store initialisieren
+  const onlineStatusStore = useOnlineStatusStore()
+  onlineStatusStore.initialize()
+  
+  // Cleanup beim Beenden
+  window.addEventListener('beforeunload', () => {
+    onlineStatusStore.cleanup()
+  })
+}).catch((error) => {
+  console.error('❌ Critical error during storage migration:', error)
+  // Still mount the app even if migration fails
+  app.mount('#app')
 })
 
