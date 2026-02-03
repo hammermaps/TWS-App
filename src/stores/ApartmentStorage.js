@@ -1,13 +1,13 @@
 /**
- * LocalStorage-Datenbank für Apartments
+ * IndexedDB-Datenbank für Apartments
  * Ermöglicht Offline-Betrieb und sofortige UI-Updates
  */
 
 import { ref } from 'vue'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 
-const STORAGE_KEY = 'wls_apartments_db'
 const STORAGE_VERSION = '1.0'
-const STORAGE_METADATA_KEY = 'wls_apartments_metadata'
+const METADATA_KEY = 'wls_apartments_metadata'
 
 /**
  * Metadaten für die Datenbank
@@ -22,41 +22,27 @@ class StorageMetadata {
 }
 
 /**
- * LocalStorage-Manager für Apartments
+ * IndexedDB-Manager für Apartments
  */
 class ApartmentStorageManager {
   constructor() {
-    this.initializeStorage()
-  }
-
-  /**
-   * Initialisiert den Storage
-   */
-  initializeStorage() {
-    try {
-      const existing = localStorage.getItem(STORAGE_KEY)
-      if (!existing) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({}))
-      }
-
-      const metadata = localStorage.getItem(STORAGE_METADATA_KEY)
-      if (!metadata) {
-        localStorage.setItem(STORAGE_METADATA_KEY, JSON.stringify(new StorageMetadata()))
-      }
-    } catch (error) {
-      console.error('Failed to initialize apartment storage:', error)
-    }
+    // Initialization is handled by IndexedDBHelper
   }
 
   /**
    * Gibt alle Apartments für ein Gebäude zurück
    */
-  getApartmentsForBuilding(buildingId) {
+  async getApartmentsForBuilding(buildingId) {
     try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-      return data[buildingId] || []
+      const apartments = await indexedDBHelper.getAllByIndex(
+        STORES.APARTMENTS,
+        'buildingId',
+        String(buildingId)
+      )
+      console.log(`📦 ${apartments.length} Apartments für Gebäude ${buildingId} aus IndexedDB geladen`)
+      return apartments
     } catch (error) {
-      console.error('Failed to get apartments for building:', error)
+      console.error('❌ Failed to get apartments for building:', error)
       return []
     }
   }
@@ -64,51 +50,81 @@ class ApartmentStorageManager {
   /**
    * Speichert Apartments für ein Gebäude
    */
-  setApartmentsForBuilding(buildingId, apartments) {
+  async setApartmentsForBuilding(buildingId, apartments) {
     try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-      data[buildingId] = apartments
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      // First, delete all existing apartments for this building
+      const existing = await this.getApartmentsForBuilding(buildingId)
+      for (const apt of existing) {
+        await indexedDBHelper.delete(STORES.APARTMENTS, apt.id)
+      }
+
+      // Then add all new apartments
+      for (const apartment of apartments) {
+        await indexedDBHelper.set(STORES.APARTMENTS, {
+          id: `${buildingId}_${apartment.id}`,
+          buildingId: String(buildingId),
+          apartmentId: apartment.id,
+          ...apartment
+        })
+      }
 
       // Update metadata
-      const metadata = JSON.parse(localStorage.getItem(STORAGE_METADATA_KEY) || '{}')
-      metadata.lastUpdate = new Date().toISOString()
-      if (!metadata.buildingIds.includes(buildingId)) {
-        metadata.buildingIds.push(buildingId)
-      }
-      localStorage.setItem(STORAGE_METADATA_KEY, JSON.stringify(metadata))
+      await this.updateMetadata(buildingId)
 
+      console.log(`💾 ${apartments.length} Apartments für Gebäude ${buildingId} in IndexedDB gespeichert`)
       return true
     } catch (error) {
-      console.error('Failed to set apartments for building:', error)
+      console.error('❌ Failed to set apartments for building:', error)
       return false
+    }
+  }
+
+  /**
+   * Update metadata for apartment storage
+   */
+  async updateMetadata(buildingId) {
+    try {
+      let metadata = await indexedDBHelper.get(STORES.METADATA, METADATA_KEY)
+      if (!metadata) {
+        metadata = { key: METADATA_KEY, value: new StorageMetadata() }
+      }
+      
+      metadata.value.lastUpdate = new Date().toISOString()
+      if (!metadata.value.buildingIds) {
+        metadata.value.buildingIds = []
+      }
+      if (!metadata.value.buildingIds.includes(String(buildingId))) {
+        metadata.value.buildingIds.push(String(buildingId))
+      }
+      
+      await indexedDBHelper.set(STORES.METADATA, metadata)
+    } catch (error) {
+      console.error('❌ Failed to update metadata:', error)
     }
   }
 
   /**
    * Ersetzt alle Apartments für ein Gebäude
    */
-  replaceForBuilding(buildingId, apartments) {
-    return this.setApartmentsForBuilding(buildingId, apartments)
+  async replaceForBuilding(buildingId, apartments) {
+    return await this.setApartmentsForBuilding(buildingId, apartments)
   }
 
   /**
    * Fügt ein neues Apartment hinzu oder aktualisiert ein bestehendes
    */
-  addOrUpdateApartment(buildingId, apartment) {
+  async addOrUpdateApartment(buildingId, apartment) {
     try {
-      const apartments = this.getApartmentsForBuilding(buildingId)
-      const existingIndex = apartments.findIndex(apt => apt.id === apartment.id)
+      await indexedDBHelper.set(STORES.APARTMENTS, {
+        id: `${buildingId}_${apartment.id}`,
+        buildingId: String(buildingId),
+        apartmentId: apartment.id,
+        ...apartment
+      })
 
-      if (existingIndex >= 0) {
-        apartments[existingIndex] = apartment
-      } else {
-        apartments.push(apartment)
-      }
+      await this.updateMetadata(buildingId)
 
-      const success = this.setApartmentsForBuilding(buildingId, apartments)
-
-      // --- NEW: Keep reactive globalApartments in sync when possible ---
+      // --- Keep reactive globalApartments in sync when possible ---
       try {
         // Only update if globalApartments already contains apartments for this building
         if (Array.isArray(globalApartments.value)) {
@@ -136,9 +152,9 @@ class ApartmentStorageManager {
         console.warn('⚠️ Fehler beim Synchronisieren des globalApartments refs:', e)
       }
 
-      return success
+      return true
     } catch (error) {
-      console.error('Failed to add/update apartment:', error)
+      console.error('❌ Failed to add/update apartment:', error)
       return false
     }
   }
@@ -178,14 +194,14 @@ class ApartmentStorageManager {
   /**
    * Löscht alle Daten
    */
-  clearAll() {
+  async clearAll() {
     try {
-      localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem(STORAGE_METADATA_KEY)
-      this.initializeStorage()
+      await indexedDBHelper.clear(STORES.APARTMENTS)
+      await indexedDBHelper.delete(STORES.METADATA, METADATA_KEY)
+      console.log('🗑️ Alle Apartment-Daten aus IndexedDB entfernt')
       return true
     } catch (error) {
-      console.error('Failed to clear storage:', error)
+      console.error('❌ Failed to clear storage:', error)
       return false
     }
   }
@@ -193,11 +209,12 @@ class ApartmentStorageManager {
   /**
    * Gibt Metadaten zurück
    */
-  getMetadata() {
+  async getMetadata() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_METADATA_KEY) || '{}')
+      const result = await indexedDBHelper.get(STORES.METADATA, METADATA_KEY)
+      return result ? result.value : new StorageMetadata()
     } catch (error) {
-      console.error('Failed to get metadata:', error)
+      console.error('❌ Failed to get metadata:', error)
       return new StorageMetadata()
     }
   }
@@ -205,32 +222,33 @@ class ApartmentStorageManager {
   /**
    * Gibt Debug-Statistiken zurück
    */
-  getStats() {
+  async getStats() {
     try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-      const metadata = this.getMetadata()
+      const metadata = await this.getMetadata()
+      const totalApartments = await indexedDBHelper.count(STORES.APARTMENTS)
 
       const stats = {
-        totalBuildings: Object.keys(data).length,
-        totalApartments: 0,
+        totalBuildings: metadata.buildingIds ? metadata.buildingIds.length : 0,
+        totalApartments: totalApartments,
         buildingStats: {},
         lastUpdate: metadata.lastUpdate,
         version: metadata.version
       }
 
-      // Zähle Apartments pro Gebäude
-      for (const [buildingId, apartments] of Object.entries(data)) {
-        const apartmentCount = Array.isArray(apartments) ? apartments.length : 0
-        stats.totalApartments += apartmentCount
-        stats.buildingStats[buildingId] = {
-          apartmentCount,
-          apartments: apartmentCount > 0 ? apartments.map(apt => ({ id: apt.id, number: apt.number })) : []
+      // Count apartments per building
+      if (metadata.buildingIds) {
+        for (const buildingId of metadata.buildingIds) {
+          const apartments = await this.getApartmentsForBuilding(buildingId)
+          stats.buildingStats[buildingId] = {
+            apartmentCount: apartments.length,
+            apartments: apartments.map(apt => ({ id: apt.apartmentId, number: apt.number }))
+          }
         }
       }
 
       return stats
     } catch (error) {
-      console.error('Failed to get storage stats:', error)
+      console.error('❌ Failed to get storage stats:', error)
       return {
         totalBuildings: 0,
         totalApartments: 0,
@@ -252,7 +270,7 @@ const globalLoading = ref(false)
 const globalError = ref(null)
 
 /**
- * Composable für Apartment Storage - jetzt echter Singleton
+ * Composable für Apartment Storage - jetzt echter Singleton mit async Unterstützung
  */
 export function useApartmentStorage() {
   const loadApartments = async (buildingId) => {
@@ -260,24 +278,24 @@ export function useApartmentStorage() {
     globalError.value = null
 
     try {
-      // Zuerst aus LocalStorage laden für sofortige Anzeige
-      const cachedApartments = storageManager.getApartmentsForBuilding(buildingId)
+      // Aus IndexedDB laden für sofortige Anzeige
+      const cachedApartments = await storageManager.getApartmentsForBuilding(buildingId)
       globalApartments.value = cachedApartments
-      console.log('📦 Apartments aus LocalStorage in reactive ref geladen:', cachedApartments.length)
+      console.log('📦 Apartments aus IndexedDB in reactive ref geladen:', cachedApartments.length)
 
       // Dann vom Backend aktualisieren (falls verfügbar)
       // Dies wird in der API-Integration implementiert
 
     } catch (err) {
       globalError.value = err.message
-      console.error('Failed to load apartments:', err)
+      console.error('❌ Failed to load apartments:', err)
     } finally {
       globalLoading.value = false
     }
   }
 
-  const updateApartment = (buildingId, apartment) => {
-    const success = storageManager.addOrUpdateApartment(buildingId, apartment)
+  const updateApartment = async (buildingId, apartment) => {
+    const success = await storageManager.addOrUpdateApartment(buildingId, apartment)
     if (success) {
       // Aktualisiere die reactive Liste
       const index = globalApartments.value.findIndex(apt => apt.id === apartment.id)
@@ -290,8 +308,8 @@ export function useApartmentStorage() {
     return success
   }
 
-  const replaceApartments = (buildingId, newApartments) => {
-    const success = storageManager.replaceForBuilding(buildingId, newApartments)
+  const replaceApartments = async (buildingId, newApartments) => {
+    const success = await storageManager.replaceForBuilding(buildingId, newApartments)
     if (success) {
       globalApartments.value = newApartments
       console.log('🔄 Reactive apartments ersetzt:', newApartments.length)
@@ -299,9 +317,9 @@ export function useApartmentStorage() {
     return success
   }
 
-  const loadFromLocalStorage = (buildingId) => {
+  const loadFromStorage = async (buildingId) => {
     if (buildingId) {
-      const cachedApartments = storageManager.getApartmentsForBuilding(buildingId)
+      const cachedApartments = await storageManager.getApartmentsForBuilding(buildingId)
       globalApartments.value = cachedApartments
       console.log('🏠 Apartments für Gebäude', buildingId, 'geladen:', cachedApartments.length)
     }
@@ -322,7 +340,7 @@ export function useApartmentStorage() {
     loadApartments,
     updateApartment,
     replaceApartments,
-    loadFromLocalStorage,
+    loadFromStorage,
     getStatusColor,
     getStatusText,
     storage: storageManager

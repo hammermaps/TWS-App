@@ -1,12 +1,13 @@
 /**
  * OfflineFlushStorage.js
- * Verwaltung von Offline-Spülungen im LocalStorage
+ * Verwaltung von Offline-Spülungen in IndexedDB
  */
+
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 
 class OfflineFlushStorage {
   constructor() {
-    this.storageKey = 'wls_offline_flushes'
-    this.syncQueueKey = 'wls_flush_sync_queue'
+    // No instance variables needed with IndexedDB
   }
 
   /**
@@ -19,7 +20,7 @@ class OfflineFlushStorage {
   /**
    * Speichert eine Spülung offline
    */
-  saveOfflineFlush(apartmentId, buildingId, flushData) {
+  async saveOfflineFlush(apartmentId, buildingId, flushData) {
     const flush = {
       id: this.generateId(),
       apartmentId: parseInt(apartmentId),
@@ -34,15 +35,14 @@ class OfflineFlushStorage {
 
     console.log('💾 Speichere Offline-Spülung:', flush)
 
-    // Zu Offline-Spülungen hinzufügen
-    const offlineFlushes = this.getOfflineFlushes()
-    offlineFlushes.push(flush)
-    localStorage.setItem(this.storageKey, JSON.stringify(offlineFlushes))
-
-    // Zur Sync-Queue hinzufügen
-    this.addToSyncQueue(flush)
-
-    return flush
+    try {
+      await indexedDBHelper.set(STORES.OFFLINE_FLUSHES, flush)
+      console.log('✅ Offline-Spülung in IndexedDB gespeichert')
+      return flush
+    } catch (error) {
+      console.error('❌ Fehler beim Speichern der Offline-Spülung:', error)
+      throw error
+    }
   }
 
   /**
@@ -57,10 +57,11 @@ class OfflineFlushStorage {
   /**
    * Lädt alle Offline-Spülungen
    */
-  getOfflineFlushes() {
+  async getOfflineFlushes() {
     try {
-      const stored = localStorage.getItem(this.storageKey)
-      return stored ? JSON.parse(stored) : []
+      const flushes = await indexedDBHelper.getAll(STORES.OFFLINE_FLUSHES)
+      console.log(`📦 ${flushes.length} Offline-Spülungen aus IndexedDB geladen`)
+      return flushes
     } catch (error) {
       console.error('❌ Fehler beim Laden der Offline-Spülungen:', error)
       return []
@@ -70,36 +71,49 @@ class OfflineFlushStorage {
   /**
    * Lädt Offline-Spülungen für ein bestimmtes Apartment
    */
-  getOfflineFlushesForApartment(apartmentId) {
-    const allFlushes = this.getOfflineFlushes()
-    return allFlushes.filter(flush => flush.apartmentId === parseInt(apartmentId))
+  async getOfflineFlushesForApartment(apartmentId) {
+    try {
+      const flushes = await indexedDBHelper.getAllByIndex(
+        STORES.OFFLINE_FLUSHES,
+        'apartmentId',
+        parseInt(apartmentId)
+      )
+      return flushes
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der Apartment-Spülungen:', error)
+      return []
+    }
   }
 
   /**
    * Lädt Offline-Spülungen für ein bestimmtes Gebäude
    */
-  getOfflineFlushesForBuilding(buildingId) {
-    const allFlushes = this.getOfflineFlushes()
-    return allFlushes.filter(flush => flush.buildingId === parseInt(buildingId))
-  }
-
-  /**
-   * Fügt eine Spülung zur Sync-Queue hinzu
-   */
-  addToSyncQueue(flush) {
-    const syncQueue = this.getSyncQueue()
-    syncQueue.push(flush)
-    localStorage.setItem(this.syncQueueKey, JSON.stringify(syncQueue))
-    console.log('📤 Zur Sync-Queue hinzugefügt:', flush.id)
-  }
-
-  /**
-   * Lädt die Sync-Queue
-   */
-  getSyncQueue() {
+  async getOfflineFlushesForBuilding(buildingId) {
     try {
-      const stored = localStorage.getItem(this.syncQueueKey)
-      return stored ? JSON.parse(stored) : []
+      const flushes = await indexedDBHelper.getAllByIndex(
+        STORES.OFFLINE_FLUSHES,
+        'buildingId',
+        parseInt(buildingId)
+      )
+      return flushes
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der Gebäude-Spülungen:', error)
+      return []
+    }
+  }
+
+  /**
+   * Lädt die Sync-Queue (alle nicht synchronisierten Spülungen)
+   */
+  async getSyncQueue() {
+    try {
+      const flushes = await indexedDBHelper.getAllByIndex(
+        STORES.OFFLINE_FLUSHES,
+        'synced',
+        false
+      )
+      console.log(`📤 ${flushes.length} Spülungen in der Sync-Queue`)
+      return flushes
     } catch (error) {
       console.error('❌ Fehler beim Laden der Sync-Queue:', error)
       return []
@@ -109,34 +123,40 @@ class OfflineFlushStorage {
   /**
    * Entfernt eine Spülung aus der Sync-Queue nach erfolgreichem Sync
    */
-  removeFromSyncQueue(flushId) {
-    const syncQueue = this.getSyncQueue()
-    const updatedQueue = syncQueue.filter(flush => flush.id !== flushId)
-    localStorage.setItem(this.syncQueueKey, JSON.stringify(updatedQueue))
-
-    // Markiere als synchronisiert in den Offline-Spülungen
-    this.markAsSynced(flushId)
-    console.log('✅ Aus Sync-Queue entfernt:', flushId)
+  async removeFromSyncQueue(flushId) {
+    try {
+      // Markiere als synchronisiert statt zu löschen
+      await this.markAsSynced(flushId)
+      console.log('✅ Aus Sync-Queue entfernt:', flushId)
+    } catch (error) {
+      console.error('❌ Fehler beim Entfernen aus Sync-Queue:', error)
+      throw error
+    }
   }
 
   /**
    * Markiert eine Spülung als synchronisiert
    */
-  markAsSynced(flushId) {
-    const offlineFlushes = this.getOfflineFlushes()
-    const flush = offlineFlushes.find(f => f.id === flushId)
-    if (flush) {
-      flush.synced = true
-      flush.syncedAt = new Date().toISOString()
-      localStorage.setItem(this.storageKey, JSON.stringify(offlineFlushes))
+  async markAsSynced(flushId) {
+    try {
+      const flush = await indexedDBHelper.get(STORES.OFFLINE_FLUSHES, flushId)
+      if (flush) {
+        flush.synced = true
+        flush.syncedAt = new Date().toISOString()
+        await indexedDBHelper.set(STORES.OFFLINE_FLUSHES, flush)
+        console.log('✅ Spülung als synchronisiert markiert:', flushId)
+      }
+    } catch (error) {
+      console.error('❌ Fehler beim Markieren als synchronisiert:', error)
+      throw error
     }
   }
 
   /**
    * Zählt die Anzahl nicht synchronisierter Spülungen
    */
-  getUnsyncedCount() {
-    const syncQueue = this.getSyncQueue()
+  async getUnsyncedCount() {
+    const syncQueue = await this.getSyncQueue()
     return syncQueue.length
   }
 
@@ -159,45 +179,69 @@ class OfflineFlushStorage {
   /**
    * Bereinigt alte synchronisierte Spülungen (älter als 30 Tage)
    */
-  cleanupOldFlushes() {
-    const offlineFlushes = this.getOfflineFlushes()
-    const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000))
-
-    const cleanedFlushes = offlineFlushes.filter(flush => {
-      if (flush.synced && flush.syncedAt) {
-        return new Date(flush.syncedAt) > thirtyDaysAgo
+  async cleanupOldFlushes() {
+    try {
+      const allFlushes = await this.getOfflineFlushes()
+      const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000))
+      
+      let deletedCount = 0
+      for (const flush of allFlushes) {
+        if (flush.synced && flush.syncedAt) {
+          const syncDate = new Date(flush.syncedAt)
+          if (syncDate < thirtyDaysAgo) {
+            await indexedDBHelper.delete(STORES.OFFLINE_FLUSHES, flush.id)
+            deletedCount++
+          }
+        }
       }
-      return true // Behalte nicht synchronisierte Spülungen
-    })
 
-    if (cleanedFlushes.length !== offlineFlushes.length) {
-      localStorage.setItem(this.storageKey, JSON.stringify(cleanedFlushes))
-      console.log('🧹 Bereinigung:', offlineFlushes.length - cleanedFlushes.length, 'alte Spülungen entfernt')
+      if (deletedCount > 0) {
+        console.log('🧹 Bereinigung:', deletedCount, 'alte Spülungen entfernt')
+      }
+    } catch (error) {
+      console.error('❌ Fehler bei der Bereinigung:', error)
     }
   }
 
   /**
    * Löscht alle Offline-Daten (für Debugging/Reset)
    */
-  clearAll() {
-    localStorage.removeItem(this.storageKey)
-    localStorage.removeItem(this.syncQueueKey)
-    console.log('🗑️ Alle Offline-Spülungen gelöscht')
+  async clearAll() {
+    try {
+      await indexedDBHelper.clear(STORES.OFFLINE_FLUSHES)
+      console.log('🗑️ Alle Offline-Spülungen gelöscht')
+    } catch (error) {
+      console.error('❌ Fehler beim Löschen aller Spülungen:', error)
+      throw error
+    }
   }
 
   /**
    * Gibt Statistiken über Offline-Spülungen zurück
    */
-  getStats() {
-    const offlineFlushes = this.getOfflineFlushes()
-    const syncQueue = this.getSyncQueue()
+  async getStats() {
+    try {
+      const allFlushes = await this.getOfflineFlushes()
+      const syncQueue = await this.getSyncQueue()
+      const syncedFlushes = allFlushes.filter(f => f.synced)
 
-    return {
-      totalOfflineFlushes: offlineFlushes.length,
-      syncedFlushes: offlineFlushes.filter(f => f.synced).length,
-      unsyncedFlushes: syncQueue.length,
-      oldestUnsynced: syncQueue.length > 0 ?
+      const oldestUnsynced = syncQueue.length > 0 ?
         Math.min(...syncQueue.map(f => new Date(f.createdAt).getTime())) : null
+
+      return {
+        totalOfflineFlushes: allFlushes.length,
+        syncedFlushes: syncedFlushes.length,
+        unsyncedFlushes: syncQueue.length,
+        oldestUnsynced: oldestUnsynced
+      }
+    } catch (error) {
+      console.error('❌ Fehler beim Abrufen der Statistiken:', error)
+      return {
+        totalOfflineFlushes: 0,
+        syncedFlushes: 0,
+        unsyncedFlushes: 0,
+        oldestUnsynced: null
+      }
     }
   }
 }
