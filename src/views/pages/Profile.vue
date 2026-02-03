@@ -286,28 +286,28 @@
               <strong>ID:</strong> {{ currentUser?.id || 'N/A' }}
             </div>
             <div class="mb-3">
-              <strong>Benutzername:</strong> {{ currentUser?.username || 'N/A' }}
+              <strong>{{ t('profile.username') }}:</strong> {{ currentUser?.username || 'N/A' }}
             </div>
             <div class="mb-3">
-              <strong>Rolle:</strong>
+              <strong>{{ t('profile.role') }}:</strong>
               <CBadge
                 :color="getRoleColor(currentUser?.role)"
                 class="ms-2"
               >
-                {{ currentUser?.role || 'Unbekannt' }}
+                {{ currentUser?.role || t('common.unknown') }}
               </CBadge>
             </div>
             <div class="mb-3">
-              <strong>Status:</strong>
+              <strong>{{ t('common.status') }}:</strong>
               <CBadge
                 :color="currentUser?.enabled ? 'success' : 'danger'"
                 class="ms-2"
               >
-                {{ currentUser?.enabled ? 'Aktiv' : 'Inaktiv' }}
+                {{ currentUser?.enabled ? t('profile.active') : t('profile.inactive') }}
               </CBadge>
             </div>
             <div class="mb-3">
-              <strong>Berechtigungen:</strong>
+              <strong>{{ t('profile.permissions') }}:</strong>
               <ul class="list-unstyled mt-2">
                 <li>
                   <CIcon
@@ -315,7 +315,7 @@
                     :class="canEdit ? 'text-success' : 'text-danger'"
                     class="me-2"
                   />
-                  Profil bearbeiten
+                  {{ t('profile.editProfile') }}
                 </li>
                 <li>
                   <CIcon
@@ -323,7 +323,7 @@
                     :class="canChangePass ? 'text-success' : 'text-danger'"
                     class="me-2"
                   />
-                  Passwort ändern
+                  {{ t('profile.changePassword') }}
                 </li>
               </ul>
             </div>

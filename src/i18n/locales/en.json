@@ -360,7 +360,11 @@
     "newPasswordPlaceholder": "Enter new password",
     "confirmPassword": "Confirm Password",
     "confirmPasswordPlaceholder": "Repeat new password",
-    "changePassword": "Change Password"
+    "changePassword": "Change Password",
+    "role": "Role",
+    "permissions": "Permissions",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "offline": {
     "title": "Offline Mode",
