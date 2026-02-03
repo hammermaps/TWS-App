@@ -4,7 +4,10 @@ import healthClient from '../api/ApiHealth.js'
 import { useOfflineDataPreloader } from '../services/OfflineDataPreloader.js'
 import { useConfigSyncService } from '../services/ConfigSyncService.js'
 import { useConfigStorage } from './ConfigStorage.js'
-import { getToken } from '@/stores/GlobalToken.js' // <-- Token-Check import
+import { getToken } from '@/stores/GlobalToken.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const MANUAL_OFFLINE_KEY = 'wls-manual-offline-mode'
 
 export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   // State
@@ -365,14 +368,14 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
     // Prüfe ob autoSync aktiviert ist
     const configStorage = useConfigStorage()
-    const config = configStorage.loadConfig()
+    const config = await configStorage.loadConfig()
 
     if (!config?.sync?.autoSync) {
       console.log('⏸️ Config-Sync übersprungen - autoSync deaktiviert')
       return
     }
 
-    if (!configSyncService.hasPending()) {
+    if (!(await configSyncService.hasPendingChanges())) {
       console.log('✓ Keine ausstehenden Konfigurationsänderungen')
       return
     }
@@ -380,7 +383,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     console.log('🔄 Synchronisiere Konfigurationsänderungen (autoSync)...')
 
     try {
-      const result = await configSyncService.syncPending()
+      const result = await configSyncService.syncPendingChanges()
 
       if (result.success) {
         console.log(`✅ ${result.synced} Konfigurationsänderungen synchronisiert`)
@@ -466,32 +469,47 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
   /**
    * Initialisierung
    */
-  function initialize() {
+  async function initialize() {
     console.log('🔧 Initialisiere Online-Status-Store...')
     setupBrowserListeners()
 
-    // Lade gespeicherten Zustand
-    const savedManualMode = localStorage.getItem('wls-manual-offline-mode')
-    if (savedManualMode === 'true') {
-      manualOfflineMode.value = true
-      console.log('📴 Gespeicherter Offline-Modus wiederhergestellt')
-    } else {
-      // Nur Ping-Überwachung starten wenn nicht manuell offline
+    // Lade gespeicherten Zustand aus IndexedDB
+    try {
+      const result = await indexedDBHelper.get(STORES.SETTINGS, MANUAL_OFFLINE_KEY)
+      if (result && result.value === 'true') {
+        manualOfflineMode.value = true
+        console.log('📴 Gespeicherter Offline-Modus aus IndexedDB wiederhergestellt')
+      } else {
+        // Nur Ping-Überwachung starten wenn nicht manuell offline
+        startPingMonitoring()
+
+        // Starte automatische Datenaktualisierungs-Prüfung
+        startDataRefreshMonitoring()
+
+        // Preloading starten wenn nötig (mit Verzögerung nach Initialisierung)
+        setTimeout(() => triggerPreloadIfNeeded(), 3000) // 3 Sekunden nach Start
+      }
+    } catch (error) {
+      console.warn('⚠️ Fehler beim Laden des Offline-Modus:', error)
+      // Fallback: Ping-Überwachung starten
       startPingMonitoring()
-
-      // Starte automatische Datenaktualisierungs-Prüfung
       startDataRefreshMonitoring()
-
-      // Preloading starten wenn nötig (mit Verzögerung nach Initialisierung)
-      setTimeout(() => triggerPreloadIfNeeded(), 3000) // 3 Sekunden nach Start
+      setTimeout(() => triggerPreloadIfNeeded(), 3000)
     }
   }
 
   /**
-   * Speichere manuellen Modus in localStorage
+   * Speichere manuellen Modus in IndexedDB
    */
-  watch(manualOfflineMode, (newValue) => {
-    localStorage.setItem('wls-manual-offline-mode', newValue.toString())
+  watch(manualOfflineMode, async (newValue) => {
+    try {
+      await indexedDBHelper.set(STORES.SETTINGS, {
+        key: MANUAL_OFFLINE_KEY,
+        value: newValue.toString()
+      })
+    } catch (error) {
+      console.error('❌ Fehler beim Speichern des Offline-Modus:', error)
+    }
   })
 
   /**
