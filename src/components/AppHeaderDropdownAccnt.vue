@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   CDropdown,
   CDropdownToggle,
@@ -14,6 +15,7 @@ import { useUser } from '../api/useUser.js'
 import avatar from '@/assets/images/avatars/8.jpg'
 
 const router = useRouter()
+const { t } = useI18n()
 const { logout, currentUser, isAuthenticated } = useUser() // Keine hardcodierte URL - verwende automatische Proxy-Erkennung
 
 const handleLogout = async () => {
@@ -71,20 +73,20 @@ const navigateToProfile = async () => {
         component="h6"
         class="bg-body-secondary text-body-secondary fw-semibold my-2"
       >
-        {{ currentUser?.username || 'Benutzer' }}
+        {{ currentUser?.username || t('common.user') }}
       </CDropdownHeader>
       <CDropdownItem @click="navigateToProfileView" v-if="isAuthenticated">
         <CIcon icon="cil-user" class="me-2" />
-        Profil anzeigen
+        {{ t('profile.viewProfile') }}
       </CDropdownItem>
       <CDropdownItem @click="navigateToProfile" v-if="isAuthenticated">
         <CIcon icon="cil-settings" class="me-2" />
-        Profil bearbeiten
+        {{ t('profile.editProfile') }}
       </CDropdownItem>
       <CDropdownDivider />
       <CDropdownItem @click="handleLogout">
         <CIcon icon="cil-account-logout" class="me-2" />
-        Abmelden
+        {{ t('nav.logout') }}
       </CDropdownItem>
     </CDropdownMenu>
   </CDropdown>
