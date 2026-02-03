@@ -5,6 +5,7 @@ import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
+import ImageCache from '@/services/ImageCache.js'
 
 /**
  * Standardisierte API-Response-Klasse
@@ -352,7 +353,19 @@ export class ApiUser {
     })
 
     const response = await this.send(request)
-    return response.data ? new UserItem(response.data) : null
+    const user = response.data ? new UserItem(response.data) : null
+
+    // Wenn Update erfolgreich und user zurückgegeben wurde, Cache für Avatar entfernen
+    if (user && user.id) {
+      try {
+        await ImageCache.remove(user.id)
+      } catch (e) {
+        // Fehler beim Entfernen ignorieren
+        console.warn('Could not remove avatar cache after user update', e)
+      }
+    }
+
+    return user
   }
 
   /**
@@ -507,6 +520,104 @@ export class ApiUser {
    */
   async getCurrentUser(options = {}) {
     return await this.get(null, options)
+  }
+
+  /**
+   * GET /user/photo/{id} - Profilbild als Base64 laden (mit lokalem Cache)
+   * Rückgabe: { success: boolean, data: { base64: string|null }, error: string|null }
+   * Optionen: { timeout, headers, ttlMinutes }
+   */
+  async getProfileImage(userId, options = {}) {
+    const { timeout = null, headers = {}, ttlMinutes = 24 * 60 } = options
+
+    // Validierung
+    if (!userId) {
+      return { success: false, data: null, error: 'No userId provided' }
+    }
+
+    const cacheKey = `user_profile_image_${userId}` // nur für legacy localStorage fallback
+    try {
+      // Prüfe IndexedDB Cache zuerst
+      try {
+        const cached = await ImageCache.get(userId)
+        if (cached && cached.base64) {
+          const ageMinutes = Math.floor((Date.now() - (cached.ts || 0)) / 60000)
+          if (ageMinutes <= ttlMinutes) {
+            return { success: true, data: { base64: cached.base64 }, error: null }
+          }
+          // Wenn Cache abgelaufen, aber App offline -> gib alten Cache zurück
+          const onlineStatus = useOnlineStatusStore()
+          if (!onlineStatus.isFullyOnline || onlineStatus.manualOfflineMode) {
+            console.warn('Offline oder manueller Offline-Modus - verwende abgelaufenen IndexedDB-Cache für Profilbild')
+            return { success: true, data: { base64: cached.base64 }, error: null }
+          }
+          // sonst weiter zum Server-Request
+        }
+      } catch (e) {
+        console.warn('Fehler beim Lesen aus ImageCache:', e)
+      }
+
+      // Fallback: Prüfe localStorage (ältere Implementationen)
+      try {
+        const cachedRaw = localStorage.getItem(cacheKey)
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw)
+          if (cached && cached.base64) {
+            const ageMinutes = Math.floor((Date.now() - (cached.ts || 0)) / 60000)
+            if (ageMinutes <= ttlMinutes) {
+              return { success: true, data: { base64: cached.base64 }, error: null }
+            }
+            const onlineStatus = useOnlineStatusStore()
+            if (!onlineStatus.isFullyOnline || onlineStatus.manualOfflineMode) {
+              return { success: true, data: { base64: cached.base64 }, error: null }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Fehler beim Parsen des Profilbild-Caches aus localStorage', e)
+      }
+
+      // Wenn wir offline sind, aber kein Cache oder Cache ungültig -> Fehler
+      const onlineStatus = useOnlineStatusStore()
+      if (!onlineStatus.isFullyOnline || onlineStatus.manualOfflineMode) {
+        return { success: false, data: null, error: 'Offline - kein Profilbild im Cache' }
+      }
+
+      // Request an Backend
+      const endpoint = `/user/photo/${encodeURIComponent(userId)}`
+      const request = new ApiRequest({ endpoint, method: 'GET', headers, timeout })
+      const response = await this.send(request)
+
+      if (!response.success || !response.data) {
+        return { success: false, data: null, error: response.error || 'No data' }
+      }
+
+      // Erwartet: response.data.base64 oder response.data
+      const base64 = typeof response.data === 'string' ? response.data : (response.data.base64 || null)
+      if (!base64) {
+        return { success: false, data: null, error: 'No base64 image in response' }
+      }
+
+      // Cache in IndexedDB speichern
+      try {
+        await ImageCache.set(userId, base64)
+      } catch (e) {
+        console.warn('Konnte Profilbild nicht in ImageCache speichern', e)
+      }
+
+      // Auch localStorage als optionalen Fallback schreiben
+      try {
+        const storeObj = { base64, ts: Date.now() }
+        localStorage.setItem(cacheKey, JSON.stringify(storeObj))
+      } catch (e) {
+        // Ignoriere localStorage Fehler
+      }
+
+      return { success: true, data: { base64 }, error: null }
+    } catch (error) {
+      console.error('Fehler beim Laden des Profilbildes:', error)
+      return { success: false, data: null, error: error.message || 'Error' }
+    }
   }
 }
 
