@@ -1,5 +1,8 @@
-// GlobalUser.js - Globale Benutzer-Verwaltung
+// GlobalUser.js - Globale Benutzer-Verwaltung mit IndexedDB
 import { ref, computed } from 'vue'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const USER_KEY = 'wls_current_user'
 
 // UserItem Klasse (aus der bestehenden API übernommen)
 class UserItem {
@@ -129,69 +132,77 @@ const userRole = computed(() => currentUser.value?.role || '')
 const userName = computed(() => currentUser.value?.name || currentUser.value?.username || '')
 
 // User setzen
-const setUser = (userData) => {
+const setUser = async (userData) => {
   if (userData) {
     currentUser.value = userData instanceof UserItem ? userData : new UserItem(userData)
-    // Speichere User auch im LocalStorage für Offline-Zugriff
+    // Speichere User auch in IndexedDB für Offline-Zugriff
     try {
-      localStorage.setItem('wls_current_user', JSON.stringify(currentUser.value.toJSON()))
-      console.log('💾 User im LocalStorage gespeichert:', currentUser.value.id)
+      await indexedDBHelper.set(STORES.USER, {
+        key: USER_KEY,
+        value: currentUser.value.toJSON()
+      })
+      console.log('💾 User in IndexedDB gespeichert:', currentUser.value.id)
     } catch (error) {
-      console.error('❌ Fehler beim Speichern des Users im LocalStorage:', error)
+      console.error('❌ Fehler beim Speichern des Users in IndexedDB:', error)
     }
   } else {
     currentUser.value = null
-    localStorage.removeItem('wls_current_user')
+    try {
+      await indexedDBHelper.delete(STORES.USER, USER_KEY)
+    } catch (error) {
+      console.error('❌ Fehler beim Entfernen des Users aus IndexedDB:', error)
+    }
   }
   userError.value = null
 }
 
 // User löschen
-const clearUser = () => {
+const clearUser = async () => {
   currentUser.value = null
   userError.value = null
-  // Auch aus LocalStorage entfernen
+  // Auch aus IndexedDB entfernen
   try {
-    localStorage.removeItem('wls_current_user')
-    console.log('🗑️ User aus LocalStorage entfernt')
+    await indexedDBHelper.delete(STORES.USER, USER_KEY)
+    console.log('🗑️ User aus IndexedDB entfernt')
   } catch (error) {
-    console.error('❌ Fehler beim Entfernen des Users aus LocalStorage:', error)
+    console.error('❌ Fehler beim Entfernen des Users aus IndexedDB:', error)
   }
 }
 
-// Aktuellen User abrufen (mit LocalStorage-Fallback)
-const getCurrentUser = () => {
-  // Wenn kein User im Memory, versuche aus LocalStorage zu laden
+// Aktuellen User abrufen (mit IndexedDB-Fallback)
+const getCurrentUser = async () => {
+  // Wenn kein User im Memory, versuche aus IndexedDB zu laden
   if (!currentUser.value) {
     try {
-      const storedUser = localStorage.getItem('wls_current_user')
-      if (storedUser) {
-        const userData = JSON.parse(storedUser)
-        currentUser.value = new UserItem(userData)
-        console.log('📦 User aus LocalStorage geladen:', currentUser.value.id)
+      const result = await indexedDBHelper.get(STORES.USER, USER_KEY)
+      if (result && result.value) {
+        currentUser.value = new UserItem(result.value)
+        console.log('📦 User aus IndexedDB geladen:', currentUser.value.id)
       }
     } catch (error) {
-      console.error('❌ Fehler beim Laden des Users aus LocalStorage:', error)
+      console.error('❌ Fehler beim Laden des Users aus IndexedDB:', error)
     }
   }
   return currentUser.value
 }
 
-// User aus LocalStorage initialisieren (beim App-Start)
-const initUserFromLocalStorage = () => {
+// User aus IndexedDB initialisieren (beim App-Start)
+const initUserFromStorage = async () => {
   try {
-    const storedUser = localStorage.getItem('wls_current_user')
-    if (storedUser) {
-      const userData = JSON.parse(storedUser)
-      currentUser.value = new UserItem(userData)
-      console.log('🔄 User beim Start aus LocalStorage geladen:', currentUser.value.username)
+    const result = await indexedDBHelper.get(STORES.USER, USER_KEY)
+    if (result && result.value) {
+      currentUser.value = new UserItem(result.value)
+      console.log('🔄 User beim Start aus IndexedDB geladen:', currentUser.value.username)
       return true
     }
   } catch (error) {
-    console.error('❌ Fehler beim Initialisieren des Users aus LocalStorage:', error)
+    console.error('❌ Fehler beim Initialisieren des Users aus IndexedDB:', error)
   }
   return false
 }
+
+// Backward compatibility alias
+const initUserFromLocalStorage = initUserFromStorage
 
 // Session-Zeit des aktuellen Benutzers aktualisieren
 const updateSessionTime = (sessionTime) => {

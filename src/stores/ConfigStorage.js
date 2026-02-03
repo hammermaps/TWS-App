@@ -1,22 +1,32 @@
 /**
  * ConfigStorage.js - Store für Konfigurationsverwaltung mit Offline-Support
+ * Verwendet IndexedDB statt localStorage für bessere Performance und Speicherkapazität
  */
 import { ref } from 'vue'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const CONFIG_KEY = 'wls_config_cache'
+const LAST_UPDATE_KEY = 'wls_config_last_update'
 
 export class ConfigStorage {
   constructor() {
-    this.storageKey = 'wls_config_cache'
-    this.lastUpdateKey = 'wls_config_last_update'
+    // No instance variables needed with IndexedDB
   }
 
   /**
-   * Speichert die Konfiguration im LocalStorage
+   * Speichert die Konfiguration in IndexedDB
    */
-  saveConfig(config) {
+  async saveConfig(config) {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(config))
-      localStorage.setItem(this.lastUpdateKey, new Date().toISOString())
-      console.log('💾 Konfiguration im LocalStorage gespeichert')
+      await indexedDBHelper.set(STORES.CONFIG, {
+        key: CONFIG_KEY,
+        value: config
+      })
+      await indexedDBHelper.set(STORES.CONFIG, {
+        key: LAST_UPDATE_KEY,
+        value: new Date().toISOString()
+      })
+      console.log('💾 Konfiguration in IndexedDB gespeichert')
       return true
     } catch (error) {
       console.error('❌ Fehler beim Speichern der Konfiguration:', error)
@@ -25,15 +35,14 @@ export class ConfigStorage {
   }
 
   /**
-   * Lädt die Konfiguration aus dem LocalStorage
+   * Lädt die Konfiguration aus IndexedDB
    */
-  getConfig() {
+  async getConfig() {
     try {
-      const configString = localStorage.getItem(this.storageKey)
-      if (configString) {
-        const config = JSON.parse(configString)
-        console.log('📦 Konfiguration aus LocalStorage geladen')
-        return config
+      const result = await indexedDBHelper.get(STORES.CONFIG, CONFIG_KEY)
+      if (result && result.value) {
+        console.log('📦 Konfiguration aus IndexedDB geladen')
+        return result.value
       }
     } catch (error) {
       console.error('❌ Fehler beim Laden der Konfiguration:', error)
@@ -44,11 +53,11 @@ export class ConfigStorage {
   /**
    * Gibt das Datum der letzten Aktualisierung zurück
    */
-  getLastUpdateTime() {
+  async getLastUpdateTime() {
     try {
-      const timestamp = localStorage.getItem(this.lastUpdateKey)
-      if (timestamp) {
-        return new Date(timestamp)
+      const result = await indexedDBHelper.get(STORES.CONFIG, LAST_UPDATE_KEY)
+      if (result && result.value) {
+        return new Date(result.value)
       }
     } catch (error) {
       console.error('❌ Fehler beim Laden des Update-Timestamps:', error)
@@ -59,18 +68,24 @@ export class ConfigStorage {
   /**
    * Prüft ob Konfiguration verfügbar ist
    */
-  hasConfig() {
-    return !!localStorage.getItem(this.storageKey)
+  async hasConfig() {
+    try {
+      const result = await indexedDBHelper.get(STORES.CONFIG, CONFIG_KEY)
+      return !!result
+    } catch (error) {
+      console.error('❌ Fehler beim Prüfen der Konfiguration:', error)
+      return false
+    }
   }
 
   /**
    * Löscht die gecachte Konfiguration
    */
-  clearConfig() {
+  async clearConfig() {
     try {
-      localStorage.removeItem(this.storageKey)
-      localStorage.removeItem(this.lastUpdateKey)
-      console.log('🗑️ Konfiguration aus LocalStorage entfernt')
+      await indexedDBHelper.delete(STORES.CONFIG, CONFIG_KEY)
+      await indexedDBHelper.delete(STORES.CONFIG, LAST_UPDATE_KEY)
+      console.log('🗑️ Konfiguration aus IndexedDB entfernt')
       return true
     } catch (error) {
       console.error('❌ Fehler beim Löschen der Konfiguration:', error)
@@ -81,8 +96,8 @@ export class ConfigStorage {
   /**
    * Prüft ob die Konfiguration aktualisiert werden sollte (älter als X Stunden)
    */
-  shouldRefreshConfig(maxAgeHours = 24) {
-    const lastUpdate = this.getLastUpdateTime()
+  async shouldRefreshConfig(maxAgeHours = 24) {
+    const lastUpdate = await this.getLastUpdateTime()
     if (!lastUpdate) return true
 
     const ageInHours = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60)
@@ -92,16 +107,16 @@ export class ConfigStorage {
   /**
    * Gibt Statistiken über die gespeicherte Konfiguration zurück
    */
-  getStats() {
-    const config = this.getConfig()
-    const lastUpdate = this.getLastUpdateTime()
+  async getStats() {
+    const config = await this.getConfig()
+    const lastUpdate = await this.getLastUpdateTime()
     
     return {
-      hasConfig: this.hasConfig(),
+      hasConfig: await this.hasConfig(),
       lastUpdate: lastUpdate,
       lastUpdateFormatted: lastUpdate ? lastUpdate.toLocaleString('de-DE') : 'Nie',
       configKeys: config ? Object.keys(config).length : 0,
-      shouldRefresh: this.shouldRefreshConfig()
+      shouldRefresh: await this.shouldRefreshConfig()
     }
   }
 }
@@ -111,50 +126,68 @@ const configStorage = new ConfigStorage()
 
 /**
  * Vue Composable für Config Storage
+ * Alle Operationen sind jetzt async wegen IndexedDB
  */
 export function useConfigStorage() {
-  const config = ref(configStorage.getConfig())
-  const lastUpdate = ref(configStorage.getLastUpdateTime())
+  const config = ref(null)
+  const lastUpdate = ref(null)
+  const loading = ref(false)
   
-  const saveConfig = (newConfig) => {
-    const success = configStorage.saveConfig(newConfig)
-    if (success) {
-      config.value = newConfig
-      lastUpdate.value = new Date()
+  const saveConfig = async (newConfig) => {
+    loading.value = true
+    try {
+      const success = await configStorage.saveConfig(newConfig)
+      if (success) {
+        config.value = newConfig
+        lastUpdate.value = new Date()
+      }
+      return success
+    } finally {
+      loading.value = false
     }
-    return success
   }
 
-  const loadConfig = () => {
-    config.value = configStorage.getConfig()
-    lastUpdate.value = configStorage.getLastUpdateTime()
-    return config.value
-  }
-
-  const clearConfig = () => {
-    const success = configStorage.clearConfig()
-    if (success) {
-      config.value = null
-      lastUpdate.value = null
+  const loadConfig = async () => {
+    loading.value = true
+    try {
+      config.value = await configStorage.getConfig()
+      lastUpdate.value = await configStorage.getLastUpdateTime()
+      return config.value
+    } finally {
+      loading.value = false
     }
-    return success
   }
 
-  const hasConfig = () => {
-    return configStorage.hasConfig()
+  const clearConfig = async () => {
+    loading.value = true
+    try {
+      const success = await configStorage.clearConfig()
+      if (success) {
+        config.value = null
+        lastUpdate.value = null
+      }
+      return success
+    } finally {
+      loading.value = false
+    }
   }
 
-  const shouldRefresh = (maxAgeHours = 24) => {
-    return configStorage.shouldRefreshConfig(maxAgeHours)
+  const hasConfig = async () => {
+    return await configStorage.hasConfig()
   }
 
-  const getStats = () => {
-    return configStorage.getStats()
+  const shouldRefresh = async (maxAgeHours = 24) => {
+    return await configStorage.shouldRefreshConfig(maxAgeHours)
+  }
+
+  const getStats = async () => {
+    return await configStorage.getStats()
   }
 
   return {
     config,
     lastUpdate,
+    loading,
     saveConfig,
     loadConfig,
     clearConfig,
