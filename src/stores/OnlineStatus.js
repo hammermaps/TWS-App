@@ -478,7 +478,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     } else {
       // Nur Ping-Überwachung starten wenn nicht manuell offline
       startPingMonitoring()
-      
+
       // Starte automatische Datenaktualisierungs-Prüfung
       startDataRefreshMonitoring()
 
