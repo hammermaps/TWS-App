@@ -40,57 +40,109 @@ if (import.meta.env.DEV) {
     console.log('  testHealthPing()              - Health Ping testen')
     console.log('  testCheckToken("token")       - Token validieren')
     console.log('  corsDebugger.checkCookies()   - Cookie-Status anzeigen')
+  }).catch(err => {
+    console.warn('⚠️ CORS-Debug-Tool konnte nicht geladen werden:', err)
   })
 }
 
-const app = createApp(App)
-const pinia = createPinia()
+// Global flag to prevent double mounting
+let appMounted = false
+let onlineStatusStoreInstance = null
 
-app.use(pinia)
-app.use(router)
-app.use(i18n)
-app.use(CoreuiVue)
-app.provide('icons', icons)
-app.component('CIcon', CIcon)
-
-// Run storage migration before mounting the app
-migrateLocalStorageToIndexedDB().then((result) => {
-  if (result.success) {
-    if (result.alreadyMigrated) {
-      console.log('✓ Storage already using IndexedDB')
-    } else {
-      console.log('✅ Successfully migrated from localStorage to IndexedDB:', result.migrated)
-    }
-  } else {
-    console.warn('⚠️ Storage migration failed, app will continue with IndexedDB:', result.error)
+// Async initialization function
+async function initializeApp() {
+  if (appMounted) {
+    console.warn('⚠️ App is already mounted, skipping re-mount')
+    return
   }
-  
-  // Mount the app after migration
-  app.mount('#app')
-  
-  // PWA Service Worker registrieren
-  const updateSW = registerSW({
-    onNeedRefresh() {
-      console.log('🔄 Neue Version verfügbar')
-    },
-    onOfflineReady() {
-      console.log('📴 App ist offline-bereit')
-    },
-    immediate: true
-  })
-  
-  // Online-Status-Store initialisieren (async)
-  onlineStatusStore.initialize().catch(error => {
-    console.error('❌ Error initializing online status store:', error)
-  })
-  
-  // Cleanup beim Beenden
-  window.addEventListener('beforeunload', () => {
-    onlineStatusStore.cleanup()
-  })
-}).catch((error) => {
-  console.error('❌ Critical error during storage migration:', error)
-  // Still mount the app even if migration fails
-  app.mount('#app')
-})
+
+  try {
+    // Step 1: Run storage migration
+    const migrationResult = await migrateLocalStorageToIndexedDB()
+    if (migrationResult.success) {
+      if (migrationResult.alreadyMigrated) {
+        console.log('✓ Storage already using IndexedDB')
+      } else {
+        console.log('✅ Successfully migrated from localStorage to IndexedDB:', migrationResult.migrated)
+      }
+    } else {
+      console.warn('⚠️ Storage migration failed, app will continue with IndexedDB:', migrationResult.error)
+    }
+
+    // Step 2: Create Vue app
+    const app = createApp(App)
+    const pinia = createPinia()
+
+    // Step 3: Register plugins
+    app.use(pinia)
+    app.use(router)
+    app.use(i18n)
+    app.use(CoreuiVue)
+    app.provide('icons', icons)
+    app.component('CIcon', CIcon)
+
+    // Step 4: Mount the app
+    appMounted = true
+    app.mount('#app')
+    console.log('✅ App mounted successfully')
+
+    // Step 5: Initialize online status store (after mount)
+    try {
+      onlineStatusStoreInstance = useOnlineStatusStore()
+      await onlineStatusStoreInstance.initialize()
+      console.log('✅ Online status store initialized')
+    } catch (error) {
+      console.error('❌ Error initializing online status store:', error)
+    }
+
+    // Step 6: Register PWA Service Worker
+    try {
+      const updateSW = registerSW({
+        onNeedRefresh() {
+          console.log('🔄 Neue Version verfügbar')
+        },
+        onOfflineReady() {
+          console.log('📴 App ist offline-bereit')
+        },
+        immediate: true
+      })
+      console.log('✅ PWA Service Worker registered')
+    } catch (error) {
+      console.warn('⚠️ PWA Service Worker registration failed:', error)
+    }
+
+    // Step 7: Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (onlineStatusStoreInstance) {
+        onlineStatusStoreInstance.cleanup()
+      }
+    })
+
+  } catch (error) {
+    console.error('❌ Critical error during app initialization:', error)
+
+    // Try to mount app anyway to show error page
+    if (!appMounted) {
+      try {
+        const app = createApp(App)
+        const pinia = createPinia()
+        app.use(pinia)
+        app.use(router)
+        app.use(i18n)
+        app.use(CoreuiVue)
+        app.provide('icons', icons)
+        app.component('CIcon', CIcon)
+
+        appMounted = true
+        app.mount('#app')
+        console.log('✅ App mounted after error recovery')
+      } catch (mountError) {
+        console.error('❌ Failed to mount app even in error recovery:', mountError)
+      }
+    }
+  }
+}
+
+// Start initialization
+initializeApp()
 
