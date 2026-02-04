@@ -3,6 +3,7 @@ import { ref, computed, readonly } from 'vue'
 import { ApiUser } from './ApiUser.js'
 import { setToken, clearToken, getToken } from '../stores/GlobalToken.js'
 import { setUser, clearUser, setUserLoading, setUserError, UserItem } from '../stores/GlobalUser.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
 
 /**
@@ -100,9 +101,27 @@ export function useUser(baseUrl = null) {
         setUser(result.user)
         loginInfo.value = result
 
-        // Benutzer im LocalStorage speichern
+        // Benutzer und userId im LocalStorage speichern
         localStorage.setItem('user', JSON.stringify(result.user))
         localStorage.setItem('auth_token', result.token)
+
+        // Wichtig: userId separat speichern für Dashboard und andere Komponenten
+        if (result.user.id) {
+          const userIdString = result.user.id.toString()
+          localStorage.setItem('userId', userIdString)
+          localStorage.setItem('wls_user_id', userIdString)
+
+          // Auch in IndexedDB speichern für bessere Offline-Unterstützung
+          try {
+            await indexedDBHelper.set(STORES.CONFIG, {
+              key: 'currentUserId',
+              value: result.user.id
+            })
+            console.log('💾 User-ID in IndexedDB gespeichert:', result.user.id)
+          } catch (error) {
+            console.warn('⚠️ Fehler beim Speichern der User-ID in IndexedDB:', error)
+          }
+        }
 
         return {
           success: true,
@@ -153,6 +172,16 @@ export function useUser(baseUrl = null) {
       // Benutzer und Token aus LocalStorage entfernen
       localStorage.removeItem('user')
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('wls_user_id')
+
+      // Auch aus IndexedDB entfernen
+      try {
+        await indexedDBHelper.delete(STORES.CONFIG, 'currentUserId')
+        console.log('🗑️ User-ID aus IndexedDB entfernt')
+      } catch (error) {
+        console.warn('⚠️ Fehler beim Entfernen der User-ID aus IndexedDB:', error)
+      }
     }
 
     return { success: true }

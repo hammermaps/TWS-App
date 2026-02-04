@@ -378,6 +378,7 @@ const lastExportData = ref(null)
 
 // QR-Scanner State
 const showQRScanner = ref(false)
+const currentUserId = ref(null)
 
 // Prüfung ob Statistiken verfügbar sind
 const statisticsAvailable = computed(() => {
@@ -385,18 +386,49 @@ const statisticsAvailable = computed(() => {
   return onlineStatusStore.isFullyOnline
 })
 
-// User-ID aus LocalStorage oder GlobalUser Store
-const currentUserId = computed(() => {
-  // Zuerst versuchen wir es aus dem GlobalUser Store
-  const user = getCurrentUser()
-  if (user && user.id) {
-    return user.id
+// User-ID laden (async beim Mount)
+async function loadUserId() {
+  // Zuerst versuchen wir LocalStorage (synchron und schnell)
+  const userIdFromLS = localStorage.getItem('userId') || localStorage.getItem('wls_user_id')
+  if (userIdFromLS) {
+    currentUserId.value = parseInt(userIdFromLS, 10)
+    console.log('✅ User-ID aus LocalStorage geladen:', currentUserId.value)
+    return
   }
 
-  // Fallback auf LocalStorage
-  const userId = localStorage.getItem('userId') || localStorage.getItem('wls_user_id')
-  return userId ? parseInt(userId, 10) : null
-})
+  // Zweiter Versuch: IndexedDB
+  try {
+    const indexedDBHelper = (await import('@/utils/IndexedDBHelper.js')).default
+    const STORES = (await import('@/utils/IndexedDBHelper.js')).STORES
+    const result = await indexedDBHelper.get(STORES.CONFIG, 'currentUserId')
+    if (result && result.value) {
+      currentUserId.value = parseInt(result.value, 10)
+      // Speichere in localStorage für zukünftige Zugriffe
+      localStorage.setItem('userId', currentUserId.value.toString())
+      localStorage.setItem('wls_user_id', currentUserId.value.toString())
+      console.log('✅ User-ID aus IndexedDB geladen:', currentUserId.value)
+      return
+    }
+  } catch (error) {
+    console.warn('⚠️ Fehler beim Laden der User-ID aus IndexedDB:', error)
+  }
+
+  // Dritter Versuch: GlobalUser Store (async)
+  try {
+    const user = await getCurrentUser()
+    if (user && user.id) {
+      currentUserId.value = user.id
+      // Speichere in localStorage für zukünftige Zugriffe
+      localStorage.setItem('userId', user.id.toString())
+      localStorage.setItem('wls_user_id', user.id.toString())
+      console.log('✅ User-ID aus GlobalUser Store geladen:', currentUserId.value)
+    } else {
+      console.warn('⚠️ Kein User im GlobalUser Store gefunden')
+    }
+  } catch (error) {
+    console.error('❌ Fehler beim Laden der User-ID:', error)
+  }
+}
 
 // Admin-Prüfung aus dem globalen User-Store (reactive)
 // Das importierte `isAdmin` ist bereits ein reactive computed und steht dem Template direkt zur Verfügung
@@ -615,8 +647,17 @@ async function exportCurrentMonth() {
 
 
 // Initial laden beim Mount
-onMounted(() => {
+onMounted(async () => {
   console.log('🚀 Dashboard geladen')
+
+  // Zuerst User-ID laden
+  await loadUserId()
+
+  if (!currentUserId.value) {
+    console.error('❌ Keine User-ID gefunden nach dem Laden')
+    error.value = 'Keine Benutzer-ID gefunden. Bitte melden Sie sich erneut an.'
+    return
+  }
 
   if (statisticsAvailable.value) {
     console.log('📊 Online-Modus erkannt, lade Statistiken...')
