@@ -16,11 +16,19 @@
             <!-- Avatar Sektion -->
             <CRow class="mb-4">
               <CCol :md="3" class="text-center">
-                <CAvatar
-                  :src="avatar"
-                  size="xl"
-                  class="mb-3"
-                />
+                <div class="position-relative d-inline-block">
+                  <CAvatar
+                    :src="avatar"
+                    size="xl"
+                    class="mb-3"
+                  />
+                  <CSpinner
+                    v-if="avatarLoading"
+                    class="position-absolute top-50 start-50 translate-middle"
+                    color="primary"
+                    size="sm"
+                  />
+                </div>
                 <div>
                   <CBadge
                     :color="getRoleColor(currentUser?.role)"
@@ -361,8 +369,8 @@
               </div>
               <div class="permission-item d-flex align-items-center mb-2">
                 <CIcon
-                  :icon="isAdmin || isSupervisor ? 'cil-check' : 'cil-ban'"
-                  :class="isAdmin || isSupervisor ? 'text-success' : 'text-danger'"
+                  :icon="canAccessAdminArea ? 'cil-check' : 'cil-ban'"
+                  :class="canAccessAdminArea ? 'text-success' : 'text-danger'"
                   class="me-2"
                 />
                 Admin-Bereich
@@ -424,12 +432,16 @@ const { t } = useI18n()
 import { lastTokenCheck, lastPageTokenCheck, lastActivity } from '../../stores/TokenManager.js'
 import { useOnlineStatusStore } from '../../stores/OnlineStatus.js'
 import { ApiUser } from '../../api/ApiUser.js'
-import avatar from '@/assets/images/avatars/8.jpg'
+import defaultAvatar from '@/assets/images/avatars/8.jpg'
 
 const router = useRouter()
 const loading = ref(false)
 const loadingUserData = ref(false)
 const userDataError = ref('')
+
+// Avatar-Bild laden
+const avatar = ref(defaultAvatar)
+const avatarLoading = ref(false)
 
 // Stores initialisieren
 const onlineStatusStore = useOnlineStatusStore()
@@ -705,8 +717,41 @@ watch(currentUser, (newUser) => {
   if (!newUser || !newUser.id) {
     console.log('👤 currentUser ist leer - automatisches Nachladen...')
     loadUserDataIfNeeded()
+  } else {
+    // Wenn User geladen ist, lade auch das Profilbild
+    loadProfileImage()
   }
 }, { immediate: false })
+
+// Profilbild laden
+const loadProfileImage = async () => {
+  if (!currentUser.value || !currentUser.value.id) {
+    console.log('⚠️ Kein User vorhanden - kann Profilbild nicht laden')
+    return
+  }
+
+  avatarLoading.value = true
+  console.log('🖼️ Lade Profilbild für User:', currentUser.value.id)
+
+  try {
+    const result = await apiUser.getProfileImage(currentUser.value.id, {
+      ttlMinutes: 24 * 60 // 24 Stunden Cache
+    })
+
+    if (result.success && result.data && result.data.base64) {
+      avatar.value = result.data.base64
+      console.log('✅ Profilbild erfolgreich geladen')
+    } else {
+      console.log('ℹ️ Kein Profilbild verfügbar, verwende Standard-Avatar')
+      avatar.value = defaultAvatar
+    }
+  } catch (error) {
+    console.error('❌ Fehler beim Laden des Profilbilds:', error)
+    avatar.value = defaultAvatar
+  } finally {
+    avatarLoading.value = false
+  }
+}
 
 // Actions
 const changePasswordAction = () => {
@@ -759,6 +804,11 @@ onMounted(async () => {
 
   // Prüfe beim Mount ob Benutzerdaten vorhanden sind
   await loadUserDataIfNeeded()
+
+  // Lade Profilbild wenn User verfügbar
+  if (currentUser.value && currentUser.value.id) {
+    await loadProfileImage()
+  }
 })
 </script>
 

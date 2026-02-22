@@ -229,7 +229,20 @@ const localRefreshKey = ref(0)
 // Listen to global preload events
 function onPreloadComplete(e) {
   console.log('🔔 Event wls:preload:complete empfangen in PreloadCard', e.detail)
+  console.log('🔄 Erhöhe localRefreshKey von', localRefreshKey.value, 'auf', localRefreshKey.value + 1)
   localRefreshKey.value++
+  console.log('✅ localRefreshKey erhöht, neue computed values werden ausgewertet')
+
+  // Zusätzlich: Trigger manuelles Update des Stats-Cache
+  if (onlineStatusStore.dataPreloader && onlineStatusStore.dataPreloader.refreshStatsCache) {
+    console.log('🔄 Rufe refreshStatsCache manuell auf...')
+    onlineStatusStore.dataPreloader.refreshStatsCache().then(() => {
+      console.log('✅ Stats-Cache manuell aktualisiert')
+      localRefreshKey.value++ // Nochmal erhöhen um sicherzustellen, dass UI neu rendert
+    }).catch(err => {
+      console.warn('⚠️ Fehler beim manuellen Update des Stats-Cache:', err)
+    })
+  }
 }
 function onPreloadCleared() {
   console.log('🔔 Event wls:preload:cleared empfangen in PreloadCard')
@@ -256,9 +269,17 @@ const progress = computed(() => {
 const preloadStats = computed(() => {
   // Verwende localRefreshKey als Abhängigkeit
   localRefreshKey.value
-  if (!onlineStatusStore.dataPreloader) return { preloaded: false, message: 'Initialisierung...' }
+  console.log('🔍 preloadStats computed wird ausgewertet, localRefreshKey:', localRefreshKey.value)
+
+  if (!onlineStatusStore.dataPreloader) {
+    console.log('⚠️ dataPreloader ist nicht verfügbar')
+    return { preloaded: false, message: 'Initialisierung...' }
+  }
+
   try {
-    return onlineStatusStore.dataPreloader?.getPreloadStats() ?? { preloaded: false, message: 'Initialisierung...' }
+    const stats = onlineStatusStore.dataPreloader?.getPreloadStats() ?? { preloaded: false, message: 'Initialisierung...' }
+    console.log('📊 preloadStats Ergebnis:', stats)
+    return stats
   } catch (e) {
     console.warn('⚠️ Fehler beim Lesen der Preload-Statistiken in PreloadCard:', e)
     return { preloaded: false, message: 'Initialisierung...' }
@@ -323,9 +344,24 @@ if (onlineStatusStore.dataPreloader) {
   })
 
   // Watch auf isPreloading um UI-Aktualisierung sicherzustellen
-  watch(() => onlineStatusStore.dataPreloader.isPreloading?.value, (newVal) => {
-    console.log('🔁 Preloader isPreloading:', newVal)
-    localRefreshKey.value++
+  watch(() => onlineStatusStore.dataPreloader.isPreloading?.value, (newVal, oldVal) => {
+    console.log('🔁 Preloader isPreloading:', newVal, '(war:', oldVal, ')')
+
+    // Wenn Preloading gerade beendet wurde (von true zu false)
+    if (oldVal === true && newVal === false) {
+      console.log('🎉 Preloading beendet - aktualisiere Stats-Cache...')
+
+      // Warte kurz, damit savePreloadMetadata abgeschlossen ist
+      setTimeout(async () => {
+        if (onlineStatusStore.dataPreloader && onlineStatusStore.dataPreloader.refreshStatsCache) {
+          await onlineStatusStore.dataPreloader.refreshStatsCache()
+          console.log('✅ Stats-Cache nach Preloading-Ende aktualisiert')
+          localRefreshKey.value++
+        }
+      }, 500)
+    } else {
+      localRefreshKey.value++
+    }
   })
 }
 

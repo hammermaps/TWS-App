@@ -315,8 +315,8 @@ const loadApartments = async (forceRefresh = false) => {
 
   // Wenn nicht erzwungen, versuche Cache zu laden
   if (!forceRefresh) {
-    const cachedApartments = storage.storage.getApartmentsForBuilding(buildingId.value)
-    if (cachedApartments && cachedApartments.length > 0) {
+    const cachedApartments = await storage.storage.getApartmentsForBuilding(buildingId.value)
+    if (Array.isArray(cachedApartments) && cachedApartments.length > 0) {
       apartments.value = cachedApartments
       calculateCacheAge()
 
@@ -626,21 +626,33 @@ onMounted(() => {
   // Listen for apartment updates from storage and other components
   const apartmentUpdatedHandler = (e) => {
     try {
+      console.log('🔔 wls_apartment_updated Event empfangen:', e.detail)
       const detail = e?.detail || {}
       const updatedBuildingId = detail.buildingId
       const updatedApartment = detail.apartment
-      if (!updatedApartment) return
 
-      if (String(updatedBuildingId) !== String(buildingId.value)) return
+      console.log('🔍 Event Details - Building ID:', updatedBuildingId, 'Current Building ID:', buildingId.value)
+
+      if (!updatedApartment) {
+        console.warn('⚠️ Kein Apartment im Event-Detail gefunden')
+        return
+      }
+
+      if (String(updatedBuildingId) !== String(buildingId.value)) {
+        console.log('⏭️ Event ignoriert - anderes Gebäude (Event:', updatedBuildingId, 'Current:', buildingId.value, ')')
+        return
+      }
+
+      console.log('✅ Event ist für aktuelles Gebäude - aktualisiere Apartment:', updatedApartment.number)
 
       // Update apartments reactive ref if present
       const idx = apartments.value.findIndex(a => a.id === updatedApartment.id)
       if (idx >= 0) {
         apartments.value.splice(idx, 1, updatedApartment)
-        console.log('🔔 Apartment-Update angewendet in Übersicht:', updatedApartment.number)
+        console.log('✅ Apartment-Update angewendet in Übersicht:', updatedApartment.number)
       } else {
         apartments.value.push(updatedApartment)
-        console.log('🔔 Neues Apartment zur Übersicht hinzugefügt:', updatedApartment.number)
+        console.log('✅ Neues Apartment zur Übersicht hinzugefügt:', updatedApartment.number)
       }
 
       // Refresh cache timestamp to indicate recent change
@@ -648,14 +660,16 @@ onMounted(() => {
         const cacheKey = `apartments_${buildingId.value}_timestamp`
         localStorage.setItem(cacheKey, Date.now().toString())
         calculateCacheAge()
+        console.log('✅ Cache-Timestamp aktualisiert')
       } catch (err) {
-        /* ignore */
+        console.warn('⚠️ Fehler beim Aktualisieren des Cache-Timestamps:', err)
       }
     } catch (err) {
-      console.warn('Fehler beim Verarbeiten des apartment-updated Events:', err)
+      console.error('❌ Fehler beim Verarbeiten des apartment-updated Events:', err)
     }
   }
 
+  console.log('📡 Registriere Event-Listener für wls_apartment_updated')
   window.addEventListener('wls_apartment_updated', apartmentUpdatedHandler)
 
   // Store handler on window for cleanup reference

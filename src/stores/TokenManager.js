@@ -228,6 +228,13 @@ const performTokenCheck = async () => {
     console.error('🔍 Error details:', { name: error.name, message: error.message })
     lastTokenCheck.value = new Date()
 
+    // Bei Network-Fehlern (Failed to fetch) nicht abmelden
+    // Dies passiert oft direkt nach Login wenn Server noch beschäftigt ist
+    if (error.message && (error.message.includes('fetch') || error.message.includes('Timeout'))) {
+      console.warn('⚠️ Netzwerk/Timeout-Fehler bei Token-Check - Token bleibt gültig')
+      return { valid: true, reason: 'Token-Check fehlgeschlagen (Netzwerk), Token bleibt gültig' }
+    }
+
     // Bei Netzwerkfehlern (Server nicht erreichbar) nicht abmelden
     if (error.message.includes('fetch') ||
         error.message.includes('Network') ||

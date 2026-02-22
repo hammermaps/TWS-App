@@ -2,9 +2,11 @@ import { ref } from 'vue'
 import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { useApartmentStorage } from '../stores/ApartmentStorage.js'
+import BuildingStorage from '../stores/BuildingStorage.js'
 import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
+import indexedDBHelper, { STORES } from '../utils/IndexedDBHelper.js'
 
 // Apartment-Element mit Leerstandsspülung
 export class ApartmentItem {
@@ -236,30 +238,30 @@ export class ApiApartment {
             endpoint += `/${encodeURIComponent(building_id)}`
         }
 
-        // Zuerst aus LocalStorage laden für sofortige Anzeige
+        // Zuerst aus IndexedDB laden für sofortige Anzeige
         if (building_id) {
-            const cachedApartments = storage.storage.getApartmentsForBuilding(building_id)
-            if (cachedApartments.length > 0) {
-                console.log('📦 Apartments aus LocalStorage geladen:', cachedApartments.length)
-                // Setze sofort die Apartments aus LocalStorage
+            const cachedApartments = await storage.storage.getApartmentsForBuilding(building_id)
+            if (Array.isArray(cachedApartments) && cachedApartments.length > 0) {
+                console.log('📦 Apartments aus IndexedDB geladen:', cachedApartments.length)
+                // Setze sofort die Apartments aus IndexedDB
                 storage.apartments.value = cachedApartments
             } else {
                 // Wichtig: Leere das Array wenn keine Apartments im Cache
-                console.log('🔄 Keine Apartments im LocalStorage, leere Array')
+                console.log('🔄 Keine Apartments im IndexedDB, leere Array')
                 storage.apartments.value = []
             }
         }
 
-        // ✅ NEU: Im Offline-Modus direkt LocalStorage-Daten zurückgeben, ohne API-Call
+        // ✅ NEU: Im Offline-Modus direkt IndexedDB-Daten zurückgeben, ohne API-Call
         if (!onlineStatus.isFullyOnline) {
-            console.log('📴 Offline-Modus: Verwende nur LocalStorage-Daten, kein API-Call')
+            console.log('📴 Offline-Modus: Verwende nur IndexedDB-Daten, kein API-Call')
 
             if (building_id) {
-                const cachedApartments = storage.storage.getApartmentsForBuilding(building_id)
+                const cachedApartments = await storage.storage.getApartmentsForBuilding(building_id)
                 return new ApiApartmentListResponse({
-                    items: cachedApartments,
+                    items: Array.isArray(cachedApartments) ? cachedApartments : [],
                     success: true,
-                    error: cachedApartments.length > 0 ? 'Daten aus lokalem Speicher (Offline)' : 'Keine Daten im Offline-Modus verfügbar'
+                    error: (Array.isArray(cachedApartments) && cachedApartments.length > 0) ? 'Daten aus lokalem Speicher (Offline)' : 'Keine Daten im Offline-Modus verfügbar'
                 })
             }
 
@@ -288,13 +290,13 @@ export class ApiApartment {
 
                 console.log('✅ Apartments vom Backend erhalten:', apartments.length, 'für Gebäude:', building_id)
 
-                // Aktualisiere sowohl LocalStorage als auch reactive ref
+                // Aktualisiere sowohl IndexedDB als auch reactive ref
                 if (building_id) {
-                    // Speichere in LocalStorage
-                    storage.storage.setApartmentsForBuilding(building_id, apartments)
+                    // Speichere in IndexedDB
+                    await storage.storage.setApartmentsForBuilding(building_id, apartments)
                     // Setze das reactive ref explizit
                     storage.apartments.value = apartments
-                    console.log('💾 Apartments in LocalStorage und reactive ref aktualisiert:', apartments.length)
+                    console.log('💾 Apartments in IndexedDB und reactive ref aktualisiert:', apartments.length)
                 } else if (apartments.length > 0) {
                     // Falls keine building_id, setze direkt das reactive ref
                     storage.apartments.value = apartments
@@ -315,17 +317,21 @@ export class ApiApartment {
         } catch (error) {
             console.error('❌ Fehler beim Laden der Apartments:', error)
 
-            // Bei Netzwerkfehler: Fallback auf LocalStorage
+            // Bei Netzwerkfehler: Fallback auf IndexedDB
             if (building_id) {
-                const cachedApartments = storage.storage.getApartmentsForBuilding(building_id)
-                if (cachedApartments.length > 0) {
-                    console.log('🔄 Fallback auf LocalStorage-Daten')
-                    storage.apartments.value = cachedApartments
-                    return new ApiApartmentListResponse({
-                        items: cachedApartments,
-                        success: true,
-                        error: 'Daten aus lokalem Speicher (Offline)'
-                    })
+                try {
+                    const cachedApartments = await storage.storage.getApartmentsForBuilding(building_id)
+                    if (Array.isArray(cachedApartments) && cachedApartments.length > 0) {
+                        console.log('🔄 Fallback auf IndexedDB-Daten:', cachedApartments.length)
+                        storage.apartments.value = cachedApartments
+                        return new ApiApartmentListResponse({
+                            items: cachedApartments,
+                            success: true,
+                            error: 'Daten aus lokalem Speicher (Offline)'
+                        })
+                    }
+                } catch (cacheError) {
+                    console.error('❌ Fehler beim Laden aus IndexedDB:', cacheError)
                 }
             }
 
@@ -344,20 +350,26 @@ export class ApiApartment {
         const storage = useApartmentStorage()
         const onlineStatus = useOnlineStatusStore()
 
-        // Zuerst in LocalStorage suchen
-        const buildings = storage.storage.getAllBuildings()
-        for (const building of buildings) {
-            const apartments = storage.storage.getApartmentsForBuilding(building.id)
-            const apartment = apartments.find(apt => apt.qr_code_uuid === uuid)
-            if (apartment) {
-                console.log('📦 Apartment per UUID aus LocalStorage gefunden:', apartment.number)
-                return new ApiResponse({
-                    success: true,
-                    data: {
-                        apartment,
-                        building
+        // Zuerst in IndexedDB suchen
+        const buildings = await BuildingStorage.getBuildings()
+
+        if (Array.isArray(buildings)) {
+            for (const building of buildings) {
+                const apartments = await storage.storage.getApartmentsForBuilding(building.id)
+
+                if (Array.isArray(apartments)) {
+                    const apartment = apartments.find(apt => apt.qr_code_uuid === uuid)
+                    if (apartment) {
+                        console.log('📦 Apartment per UUID aus IndexedDB gefunden:', apartment.number)
+                        return new ApiResponse({
+                            success: true,
+                            data: {
+                                apartment,
+                                building
+                            }
+                        })
                     }
-                })
+                }
             }
         }
 
@@ -482,30 +494,37 @@ export class ApiApartment {
         const { timeout = 30000, headers = {}, startTime, endTime, duration, buildingId } = options
         const storage = useApartmentStorage()
 
-        // Hole das aktuelle Apartment direkt aus LocalStorage um building_id zu erhalten
+        // Hole das aktuelle Apartment direkt aus IndexedDB um building_id zu erhalten
         let currentApartment = null
 
         // Wenn buildingId übergeben wurde, nutze diese
         if (buildingId) {
-            const apartments = storage.storage.getApartmentsForBuilding(buildingId)
-            currentApartment = apartments.find(apt => apt.id === parseInt(apartmentId))
+            const apartments = await storage.storage.getApartmentsForBuilding(buildingId)
+            if (Array.isArray(apartments)) {
+                currentApartment = apartments.find(apt => apt.id === parseInt(apartmentId))
+            }
         }
 
-        // Fallback: Durchsuche alle Gebäude im LocalStorage
+        // Fallback: Durchsuche alle Gebäude in IndexedDB
         if (!currentApartment) {
             console.log('🔍 Suche Apartment in allen Gebäuden...')
             try {
-                const storageData = JSON.parse(localStorage.getItem('wls_apartments_db') || '{}')
-                for (const [bId, apartments] of Object.entries(storageData)) {
-                    const found = apartments.find(apt => apt.id === parseInt(apartmentId))
-                    if (found) {
-                        currentApartment = found
-                        console.log('✅ Apartment gefunden in Gebäude:', bId)
-                        break
+                const buildings = await BuildingStorage.getBuildings()
+                if (Array.isArray(buildings)) {
+                    for (const building of buildings) {
+                        const apartments = await storage.storage.getApartmentsForBuilding(building.id)
+                        if (Array.isArray(apartments)) {
+                            const found = apartments.find(apt => apt.id === parseInt(apartmentId))
+                            if (found) {
+                                currentApartment = found
+                                console.log('✅ Apartment gefunden in Gebäude:', building.id)
+                                break
+                            }
+                        }
                     }
                 }
-            } catch (error) {
-                console.error('❌ Fehler beim Durchsuchen des LocalStorage:', error)
+            } catch (err) {
+                console.error('❌ Fehler beim Suchen des Apartments:', err)
             }
         }
 
@@ -516,13 +535,13 @@ export class ApiApartment {
 
         console.log('✅ Apartment gefunden:', currentApartment.number, 'Building:', currentApartment.building_id)
 
-        // Hole aktuelle User-ID aus LocalStorage (GlobalUser)
+        // Hole aktuelle User-ID aus GlobalUser Store
         let currentUserId = null
 
         try {
-            // Hole User aus LocalStorage über GlobalUser Store
+            // Hole User aus GlobalUser Store (async!)
             const { getCurrentUser } = await import('../stores/GlobalUser.js')
-            const currentUser = getCurrentUser()
+            const currentUser = await getCurrentUser()  // ✅ await hinzugefügt!
             if (currentUser && currentUser.id) {
                 currentUserId = currentUser.id
                 console.log('✅ User-ID aus GlobalUser Store:', currentUserId)
@@ -531,22 +550,22 @@ export class ApiApartment {
             console.warn('⚠️ Konnte User nicht aus GlobalUser laden:', error)
         }
 
-        // Fallback: Prüfe LocalStorage direkt
+        // Fallback: Prüfe IndexedDB direkt
         if (!currentUserId) {
             try {
-                const userDataStr = localStorage.getItem('wls_current_user')
-                if (userDataStr) {
-                    const userData = JSON.parse(userDataStr)
-                    currentUserId = userData.id
-                    console.log('✅ User-ID aus LocalStorage:', currentUserId)
+                const userResult = await indexedDBHelper.get(STORES.USER, 'wls_current_user')
+                if (userResult && userResult.value && userResult.value.id) {
+                    currentUserId = userResult.value.id
+                    console.log('✅ User-ID aus IndexedDB:', currentUserId)
                 }
             } catch (error) {
-                console.warn('⚠️ Konnte User nicht aus LocalStorage laden:', error)
+                console.warn('⚠️ Konnte User nicht aus IndexedDB laden:', error)
             }
         }
 
         // Wenn immer noch keine User-ID, Fehler werfen
         if (!currentUserId) {
+            console.error('❌ Keine User-ID gefunden - weder in GlobalUser noch in IndexedDB')
             throw new Error('Keine User-ID gefunden. Bitte einloggen.')
         }
 

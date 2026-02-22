@@ -189,10 +189,10 @@ const oldestUnsyncedAge = computed(() => {
 })
 
 // Methods
-const updateStats = () => {
+const updateStats = async () => {
   try {
-    const offlineStats = offlineStorage.getStats()
-    const currentSyncStatus = getSyncStatus()
+    const offlineStats = await offlineStorage.getStats()
+    const currentSyncStatus = await getSyncStatus()
 
     stats.value = {
       ...offlineStats,

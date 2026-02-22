@@ -487,9 +487,17 @@ const loadApartmentData = async () => {
   error.value = null
 
   try {
-    // Apartment-Details aus LocalStorage laden
-    const apartments = apartmentStorage.storage.getApartmentsForBuilding(buildingId.value)
-    allApartments.value = apartments
+    // Apartment-Details aus IndexedDB laden (async!)
+    let apartments = await apartmentStorage.storage.getApartmentsForBuilding(buildingId.value)
+
+    // Sicherstellen, dass apartments ein Array ist
+    if (!Array.isArray(apartments)) {
+      console.warn('⚠️ apartments ist kein Array:', typeof apartments)
+      apartments = []  // Setze apartments selbst auf leeres Array
+      allApartments.value = []
+    } else {
+      allApartments.value = apartments
+    }
 
     console.log('✅ Apartment geladen:', apartmentId.value, 'Min-Duration:', apartments.find(apt => String(apt.id) === String(apartmentId.value))?.min_flush_duration)
     console.log('📋 Alle Apartments im Gebäude:', apartments.length)
@@ -641,7 +649,7 @@ const stopFlushing = async () => {
       // Offline: Lokale Speicherung
       console.log('📱 Speichere Spülung offline')
 
-      const offlineFlush = offlineStorage.saveOfflineFlush(
+      const offlineFlush = await offlineStorage.saveOfflineFlush(
         apartmentId.value,
         buildingId.value,
         flushData
@@ -655,9 +663,9 @@ const stopFlushing = async () => {
           Object.assign(currentApartment.value, apartmentUpdate)
         }
 
-        // Persistiere die Änderung im Apartment-Storage
+        // Persistiere die Änderung im Apartment-Storage (async!)
         try {
-          apartmentStorage.storage.addOrUpdateApartment(buildingId.value, currentApartment.value)
+          await apartmentStorage.storage.addOrUpdateApartment(buildingId.value, currentApartment.value)
         } catch (e) {
           console.warn('⚠️ Fehler beim Speichern des aktualisierten Apartments in Storage:', e)
         }
@@ -705,11 +713,32 @@ const handleNavigationAfterFlush = async () => {
   })
 
   if (autoNavigate.value && nextApartment.value) {
-    console.log(`🚀 Auto-Navigation aktiviert - Navigiere in ${autoNavigateDelay.value}ms zum nächsten Apartment:`, nextApartment.value.number)
-    setTimeout(() => {
-      console.log('⏭️ Führe Navigation aus zu Apartment:', nextApartment.value.number)
-      goToNextApartment()
-    }, autoNavigateDelay.value)
+    // Prüfe ob aktuelles Apartment das letzte in der sortierten Liste ist
+    const sortedApartments = [...allApartments.value].sort((a, b) => {
+      const sortA = a.sorted || 0
+      const sortB = b.sorted || 0
+      if (sortA !== sortB) {
+        return sortA - sortB
+      }
+      return (a.number || '').localeCompare(b.number || '')
+    })
+
+    const currentIndex = sortedApartments.findIndex(apt => apt.id === currentApartment.value.id)
+    const isLastApartment = currentIndex === sortedApartments.length - 1
+
+    if (isLastApartment) {
+      console.log('🏁 Letztes Apartment erreicht - Springe zur Übersicht zurück')
+      setTimeout(() => {
+        console.log('🔙 Führe Navigation zur Übersicht aus')
+        goBack()
+      }, autoNavigateDelay.value)
+    } else {
+      console.log(`🚀 Auto-Navigation aktiviert - Navigiere in ${autoNavigateDelay.value}ms zum nächsten Apartment:`, nextApartment.value.number)
+      setTimeout(() => {
+        console.log('⏭️ Führe Navigation aus zu Apartment:', nextApartment.value.number)
+        goToNextApartment()
+      }, autoNavigateDelay.value)
+    }
   } else {
     if (!autoNavigate.value) {
       console.log('⏸️ Auto-Navigation ist deaktiviert')
@@ -776,15 +805,28 @@ const goBack = () => {
 }
 
 // Offline-Spülungen für aktuelles Apartment laden
-const loadOfflineFlushes = () => {
-  const flushes = offlineStorage.getOfflineFlushesForApartment(apartmentId.value)
-  offlineFlushes.value = flushes.sort((a, b) => new Date(b.endTime) - new Date(a.endTime))
-  console.log('📱 Offline-Spülungen geladen:', flushes.length)
+const loadOfflineFlushes = async () => {
+  try {
+    const flushes = await offlineStorage.getOfflineFlushesForApartment(apartmentId.value)
+
+    // Sicherstellen, dass flushes ein Array ist
+    if (!Array.isArray(flushes)) {
+      console.warn('⚠️ flushes ist kein Array:', typeof flushes)
+      offlineFlushes.value = []
+      return
+    }
+
+    offlineFlushes.value = flushes.sort((a, b) => new Date(b.endTime) - new Date(a.endTime))
+    console.log('📱 Offline-Spülungen geladen:', flushes.length)
+  } catch (error) {
+    console.error('❌ Fehler beim Laden der Offline-Spülungen:', error)
+    offlineFlushes.value = []
+  }
 }
 
 // Sync-Status aktualisieren
-const updateSyncStatus = () => {
-  const status = getSyncStatus()
+const updateSyncStatus = async () => {
+  const status = await getSyncStatus()
   // isOnline kommt vom Store, nicht vom syncService
   syncStatus.value = {
     ...status,
@@ -851,9 +893,7 @@ onMounted(async () => {
     updateSyncStatus()
   }, 10000) // Alle 10 Sekunden
 
-  // Apartment-Daten laden
-  await loadApartmentData()
-
+  // ✅ WICHTIG: Lifecycle-Hooks VOR dem ersten await registrieren!
   // Cleanup bei Component-Unmount
   onUnmounted(() => {
     console.log('🧹 ApartmentFlushing cleanup')
@@ -875,6 +915,9 @@ onMounted(async () => {
     // Unsubscribe vom Sync-Listener
     unsubscribeSyncListener()
   })
+
+  // Apartment-Daten laden (NACH onUnmounted-Registrierung)
+  await loadApartmentData()
 })
 
 // Hilfsfunktionen für Timer und Status

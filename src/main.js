@@ -15,6 +15,12 @@ import { registerSW } from 'virtual:pwa-register'
 // Storage migration from localStorage to IndexedDB
 import { migrateLocalStorageToIndexedDB } from '@/utils/StorageMigration.js'
 
+// Config Storage
+import configStorage from '@/stores/ConfigStorage.js'
+
+// API Config Helper für In-Memory Cache
+import { initApiConfigCache, refreshApiConfigCache } from '@/utils/ApiConfigHelper.js'
+
 // Online-Status-Store
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 
@@ -67,6 +73,22 @@ async function initializeApp() {
       }
     } else {
       console.warn('⚠️ Storage migration failed, app will continue with IndexedDB:', migrationResult.error)
+    }
+
+    // Step 1.5: Initialize ConfigStorage
+    try {
+      await configStorage.init()
+    } catch (error) {
+      console.warn('⚠️ ConfigStorage init failed:', error)
+    }
+
+    // Step 1.6: Initialize API Config Cache (für synchronen Zugriff)
+    try {
+      await initApiConfigCache()
+      // Mache refreshApiConfigCache global verfügbar
+      window.refreshApiConfigCache = refreshApiConfigCache
+    } catch (error) {
+      console.warn('⚠️ API Config Cache init failed:', error)
     }
 
     // Step 2: Create Vue app

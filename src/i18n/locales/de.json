@@ -210,6 +210,7 @@
     "gpsLoading": "GPS Position wird ermittelt...",
     "gpsError": "GPS-Fehler",
     "position": "Position",
+    "noGPSData": "Keine GPS-Daten verfügbar",
     "accuracy": "Genauigkeit",
     "user": "Benutzer",
     "startTime": "Startzeit",
@@ -421,6 +422,21 @@
     "noOfflineData": "Keine Offline-Daten verfügbar",
     "successTitle": "Vorabladen abgeschlossen",
     "successStats": "{buildings} Gebäude, {apartments} Wohnungen vorabgeladen"
+  },
+  "offlineData": {
+    "loading": {
+      "title": "Offline-Daten werden geladen",
+      "statusConfig": "Lade Konfiguration...",
+      "statusBuildings": "Lade Gebäude...",
+      "statusApartments": "Lade Wohnungen...",
+      "statusSuccess": "Erfolgreich geladen!",
+      "statusError": "Fehler beim Laden",
+      "statusIdle": "Bereit zum Laden",
+      "config": "Konfiguration",
+      "buildings": "Gebäude",
+      "apartments": "Wohnungen",
+      "progress": "Fortschritt"
+    }
   },
   "offlinePreload": {
     "title": "Offline-Daten",

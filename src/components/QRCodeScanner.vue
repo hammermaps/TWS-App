@@ -110,6 +110,7 @@ import {
 } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
+import BuildingStorage from '@/stores/BuildingStorage.js'
 
 const props = defineProps({
   visible: {
@@ -180,7 +181,7 @@ const initScanner = async () => {
   }
 }
 
-const handleScanResult = (scannedData) => {
+const handleScanResult = async (scannedData) => {
   console.log('📷 QR-Code gescannt:', scannedData)
 
   try {
@@ -197,8 +198,8 @@ const handleScanResult = (scannedData) => {
       throw new Error(t('qrScanner.invalidQRCode'))
     }
 
-    // Suche Apartment anhand der UUID
-    const apartment = findApartmentByUUID(uuid)
+    // Suche Apartment anhand der UUID (async!)
+    const apartment = await findApartmentByUUID(uuid)
 
     if (!apartment) {
       throw new Error(t('qrScanner.apartmentNotFound'))
@@ -230,19 +231,35 @@ const handleScanResult = (scannedData) => {
   }
 }
 
-const findApartmentByUUID = (uuid) => {
-  // Durchsuche alle Gebäude und Apartments nach der UUID
-  const buildings = apartmentStorage.storage.getAllBuildings()
+const findApartmentByUUID = async (uuid) => {
+  try {
+    // Durchsuche alle Gebäude und Apartments nach der UUID
+    const buildings = await BuildingStorage.getBuildings()
 
-  for (const building of buildings) {
-    const apartments = apartmentStorage.storage.getApartmentsForBuilding(building.id)
-    const apartment = apartments.find(apt => apt.qr_code_uuid === uuid)
-    if (apartment) {
-      return apartment
+    if (!Array.isArray(buildings)) {
+      console.warn('⚠️ buildings ist kein Array:', typeof buildings)
+      return null
     }
-  }
 
-  return null
+    for (const building of buildings) {
+      const apartments = await apartmentStorage.storage.getApartmentsForBuilding(building.id)
+
+      if (!Array.isArray(apartments)) {
+        console.warn('⚠️ apartments ist kein Array für Gebäude', building.id)
+        continue
+      }
+
+      const apartment = apartments.find(apt => apt.qr_code_uuid === uuid)
+      if (apartment) {
+        return apartment
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('❌ Fehler beim Suchen des Apartments:', error)
+    return null
+  }
 }
 
 const navigateToApartment = () => {

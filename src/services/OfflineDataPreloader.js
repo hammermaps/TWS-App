@@ -33,6 +33,94 @@ export class OfflineDataPreloader {
     })
     this.lastPreloadTime = ref(null)
     this.preloadError = ref(null)
+
+    // Reaktiver Cache für Preload-Stats
+    this.cachedStats = ref({
+      preloaded: false,
+      message: 'Keine Daten vorgeladen',
+      buildingsCount: 0,
+      apartmentsCount: 0,
+      lastPreload: null,
+      hoursSinceLastPreload: null,
+      needsRefresh: false,
+      buildings: []
+    })
+
+    // Ready-Status für Initialisierung
+    this.isReady = ref(false)
+
+    // Initialisiere mit gespeicherten Metadaten
+    this.initFromStorage()
+  }
+
+  /**
+   * Initialisiert den Preloader mit gespeicherten Metadaten
+   */
+  async initFromStorage() {
+    try {
+      console.log('🔄 initFromStorage: Starte Initialisierung...')
+      const metadata = await this.getPreloadMetadata()
+      console.log('🔄 initFromStorage: Metadaten geladen:', metadata)
+
+      if (metadata && metadata.timestamp) {
+        this.lastPreloadTime.value = metadata.timestamp
+        console.log('🔄 Preload-Metadaten beim Start geladen:', metadata.timestamp)
+
+        // Aktualisiere den Stats-Cache sofort
+        await this.refreshStatsCache()
+        console.log('✅ initFromStorage: Stats-Cache initialisiert')
+      } else {
+        console.log('⚠️ initFromStorage: Keine Metadaten gefunden')
+      }
+    } catch (error) {
+      console.warn('⚠️ Fehler beim Initialisieren der Preload-Metadaten:', error)
+    } finally {
+      // Setze ready-Status immer auf true, auch wenn keine Daten gefunden wurden
+      this.isReady.value = true
+      console.log('✅ OfflineDataPreloader ist bereit')
+    }
+  }
+
+  /**
+   * Aktualisiert den reaktiven Stats-Cache
+   */
+  async refreshStatsCache() {
+    try {
+      const metadata = await this.getPreloadMetadata()
+      console.log('🔄 refreshStatsCache - Metadaten geladen:', metadata)
+
+      if (!metadata) {
+        console.log('⚠️ refreshStatsCache - Keine Metadaten gefunden, setze preloaded=false')
+        this.cachedStats.value = {
+          preloaded: false,
+          message: 'Keine Daten vorgeladen',
+          buildingsCount: 0,
+          apartmentsCount: 0,
+          lastPreload: null,
+          hoursSinceLastPreload: null,
+          needsRefresh: false,
+          buildings: []
+        }
+        return
+      }
+
+      const lastPreload = new Date(metadata.timestamp)
+      const now = new Date()
+      const hoursSinceLastPreload = Math.floor((now - lastPreload) / (1000 * 60 * 60))
+
+      this.cachedStats.value = {
+        preloaded: true,
+        buildingsCount: metadata.buildingsCount || 0,
+        apartmentsCount: metadata.apartmentsCount || 0,
+        lastPreload: metadata.timestamp,
+        hoursSinceLastPreload,
+        needsRefresh: await this.shouldRefreshData(),
+        buildings: metadata.buildingDetails || []
+      }
+      console.log('✅ refreshStatsCache - cachedStats aktualisiert:', this.cachedStats.value)
+    } catch (error) {
+      console.warn('⚠️ Fehler beim Aktualisieren des Stats-Cache:', error)
+    }
   }
 
   /**
@@ -53,8 +141,18 @@ export class OfflineDataPreloader {
     }
 
     this.isPreloading.value = true
-    this.preloadProgress.value.status = 'loading'
     this.preloadError.value = null
+
+    // Reset Progress
+    this.preloadProgress.value = {
+      buildings: 0,
+      apartments: 0,
+      totalBuildings: 0,
+      totalApartments: 0,
+      currentBuilding: null,
+      config: false,
+      status: 'loading'
+    }
 
     console.log('🚀 Starte Preloading von Gebäuden, Apartments und Konfiguration für Offline-Modus...')
 
@@ -85,7 +183,7 @@ export class OfflineDataPreloader {
 
       const buildings = buildingsResponse.items
       this.preloadProgress.value.totalBuildings = buildings.length
-      this.preloadProgress.value.buildings = buildings.length
+      this.preloadProgress.value.buildings = 0 // Start bei 0, wird während Apartment-Laden erhöht
 
       console.log(`✅ ${buildings.length} Gebäude geladen`)
 
@@ -107,6 +205,7 @@ export class OfflineDataPreloader {
         apartmentCounts.push(count)
         totalApartmentsLoaded += count
         this.preloadProgress.value.apartments = totalApartmentsLoaded
+        this.preloadProgress.value.buildings++ // Erhöhe nach jedem erfolgreich geladenen Gebäude
 
         // Kleine Pause zwischen den Requests, um Server nicht zu überlasten
         await new Promise(resolve => setTimeout(resolve, 300))
@@ -123,7 +222,7 @@ export class OfflineDataPreloader {
       }
 
       // Speichere Preload-Metadaten
-      this.savePreloadMetadata({
+      await this.savePreloadMetadata({
         timestamp: this.lastPreloadTime.value,
         buildingsCount: buildings.length,
         apartmentsCount: totalApartmentsLoaded,
@@ -135,12 +234,19 @@ export class OfflineDataPreloader {
         }))
       })
 
+      // Warte 2 Sekunden, damit Benutzer die Erfolgs-Nachricht sehen kann
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
       return true
 
     } catch (error) {
       console.error('❌ Fehler beim Preloading:', error)
       this.preloadError.value = error.message
       this.preloadProgress.value.status = 'error'
+
+      // Bei Fehler 3 Sekunden warten, damit Benutzer die Fehlermeldung sehen kann
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
       return false
     } finally {
       this.isPreloading.value = false
@@ -183,17 +289,45 @@ export class OfflineDataPreloader {
   /**
    * Speichert Metadaten über das Preloading
    */
-  savePreloadMetadata(metadata) {
+  async savePreloadMetadata(metadata) {
     try {
+      console.log('💾 savePreloadMetadata aufgerufen mit:', metadata)
+
+      // Speichere in IndexedDB (primary storage)
+      await indexedDBHelper.set(STORES.METADATA, {
+        key: PRELOAD_METADATA_KEY,
+        value: metadata
+      })
+      console.log('✅ Metadaten in IndexedDB gespeichert')
+
+      // Auch in localStorage als Fallback
       localStorage.setItem('wls_preload_metadata', JSON.stringify(metadata))
+      console.log('✅ Metadaten in localStorage gespeichert')
+
       // Aktualisiere reaktiven Zeitstempel damit UIs neu gerendert werden
       if (metadata && metadata.timestamp && this.lastPreloadTime) {
         this.lastPreloadTime.value = metadata.timestamp
+        console.log('✅ lastPreloadTime aktualisiert:', metadata.timestamp)
       }
+
+      // Aktualisiere den Stats-Cache BEVOR das Event gesendet wird
+      console.log('🔄 Rufe refreshStatsCache auf...')
+      await this.refreshStatsCache()
+      console.log('✅ refreshStatsCache abgeschlossen, cachedStats:', this.cachedStats.value)
+
       console.log('💾 Preload-Metadaten gespeichert')
+
       try {
         // Emit event so UI components can react immediately
-        window.dispatchEvent(new CustomEvent('wls:preload:complete', { detail: metadata }))
+        console.log('📢 Dispatche wls:preload:complete Event mit Detail:', metadata)
+        const event = new CustomEvent('wls:preload:complete', {
+          detail: {
+            ...metadata,
+            cachedStats: this.cachedStats.value
+          }
+        })
+        window.dispatchEvent(event)
+        console.log('✅ Event wls:preload:complete dispatched')
       } catch (e) {
         console.warn('⚠️ Konnte Preload-Event nicht dispatchen:', e)
       }
@@ -207,8 +341,39 @@ export class OfflineDataPreloader {
    */
   async getPreloadMetadata() {
     try {
+      console.log('🔍 getPreloadMetadata - Suche in IndexedDB...')
+      // Zuerst aus IndexedDB versuchen (primary storage)
       const result = await indexedDBHelper.get(STORES.METADATA, PRELOAD_METADATA_KEY)
-      return result && result.value ? result.value : null
+      console.log('🔍 IndexedDB Ergebnis:', result)
+
+      if (result && result.value) {
+        console.log('✅ Metadaten aus IndexedDB geladen:', result.value)
+        return result.value
+      }
+
+      console.log('⚠️ Keine Metadaten in IndexedDB, prüfe localStorage...')
+      // Fallback auf localStorage
+      const localStorageData = localStorage.getItem('wls_preload_metadata')
+      console.log('🔍 localStorage Daten:', localStorageData ? 'gefunden' : 'nicht gefunden')
+
+      if (localStorageData) {
+        try {
+          const parsed = JSON.parse(localStorageData)
+          console.log('✅ Metadaten aus localStorage geladen:', parsed)
+          // Migriere zu IndexedDB für zukünftige Zugriffe
+          await indexedDBHelper.set(STORES.METADATA, {
+            key: PRELOAD_METADATA_KEY,
+            value: parsed
+          })
+          console.log('🔄 Preload-Metadaten von localStorage nach IndexedDB migriert')
+          return parsed
+        } catch (parseError) {
+          console.warn('⚠️ Fehler beim Parsen der localStorage-Metadaten:', parseError)
+        }
+      }
+
+      console.log('❌ Keine Metadaten gefunden (weder IndexedDB noch localStorage)')
+      return null
     } catch (error) {
       console.error('❌ Fehler beim Laden der Preload-Metadaten:', error)
       return null
@@ -242,37 +407,22 @@ export class OfflineDataPreloader {
   }
 
   /**
-   * Gibt Statistiken über vorgeladene Daten zurück
+   * Gibt Statistiken über vorgeladene Daten zurück (synchron aus Cache)
    */
-  async getPreloadStats() {
-    // Wichtig: lese hier einen reaktiven Wert, damit Aufrufer (Components / Computed) reaktiv aktualisiert werden
-    // wenn sich das Preload-Datum ändert. Ohne diesen Zugriff wird getPreloadStats als rein nicht-reaktiv
-    // behandelt und UI-Computeds, die nur dieses Ergebnis verwenden, werden nicht neu ausgewertet.
-    // optional chaining: wenn lastPreloadTime mal null sein sollte, vermeiden wir einen Crash
-    void (this.lastPreloadTime?.value)
+  getPreloadStats() {
+    // Lies aus dem reaktiven Cache
+    console.log('📊 getPreloadStats aufgerufen')
+    console.log('📊 isReady:', this.isReady.value)
+    console.log('📊 cachedStats.value:', JSON.stringify(this.cachedStats.value, null, 2))
+    return this.cachedStats.value
+  }
 
-    const metadata = await this.getPreloadMetadata()
-
-    if (!metadata) {
-      return {
-        preloaded: false,
-        message: 'Keine Daten vorgeladen'
-      }
-    }
-
-    const lastPreload = new Date(metadata.timestamp)
-    const now = new Date()
-    const hoursSinceLastPreload = Math.floor((now - lastPreload) / (1000 * 60 * 60))
-
-    return {
-      preloaded: true,
-      buildingsCount: metadata.buildingsCount,
-      apartmentsCount: metadata.apartmentsCount,
-      lastPreload: metadata.timestamp,
-      hoursSinceLastPreload,
-      needsRefresh: await this.shouldRefreshData(),
-      buildings: metadata.buildingDetails || []
-    }
+  /**
+   * Lädt die aktuellen Stats aus IndexedDB und aktualisiert den Cache (async)
+   */
+  async getPreloadStatsAsync() {
+    await this.refreshStatsCache()
+    return this.cachedStats.value
   }
 
   /**

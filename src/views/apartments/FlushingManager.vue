@@ -462,10 +462,16 @@ export default {
             apartments.value.splice(idx, 1, updatedApt)
 
             // --- NEW: Also update the ApartmentStorage so other views receive the update event ---
+            console.log('📢 Aktualisiere ApartmentStorage nach Spülung für Apartment:', updatedApt.number, 'Building:', updatedApt.building_id)
             try {
-              apartmentStorage.updateApartment(updatedApt.building_id, updatedApt)
+              const success = await apartmentStorage.updateApartment(updatedApt.building_id, updatedApt)
+              if (success) {
+                console.log('✅ ApartmentStorage erfolgreich aktualisiert - Event sollte dispatched sein')
+              } else {
+                console.warn('⚠️ ApartmentStorage-Update fehlgeschlagen')
+              }
             } catch (e) {
-              console.warn('⚠️ Fehler beim Aktualisieren des ApartmentStorage nach Spülung:', e)
+              console.error('❌ Fehler beim Aktualisieren des ApartmentStorage nach Spülung:', e)
             }
           }
 

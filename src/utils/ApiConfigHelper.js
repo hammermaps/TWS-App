@@ -2,7 +2,12 @@
  * ApiConfigHelper.js
  * Zentrale Stelle für API-Konfigurationswerte (Timeout, Retries)
  * mit Fallback-Mechanismus und Offline-Unterstützung
+ * Verwendet IndexedDB für persistente Speicherung
  */
+
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+
+const CONFIG_KEY = 'wls_config_cache'
 
 /**
  * Standard-Fallback-Werte wenn keine Konfiguration verfügbar ist
@@ -13,43 +18,77 @@ const DEFAULT_CONFIG = {
 }
 
 /**
- * Lädt die API-Konfiguration aus dem LocalStorage
- * @returns {Object} Konfigurationsobjekt mit apiTimeout und maxRetries
+ * In-Memory Cache für synchronen Zugriff
+ * Wird beim App-Start initialisiert
  */
-function loadConfigFromStorage() {
+let configCache = null
+
+/**
+ * Lädt die API-Konfiguration aus IndexedDB
+ * @returns {Promise<Object>} Konfigurationsobjekt mit apiTimeout und maxRetries
+ */
+async function loadConfigFromIndexedDB() {
   try {
-    const configString = localStorage.getItem('wls_config_cache')
-    if (configString) {
-      const config = JSON.parse(configString)
-      if (config && config.server) {
-        return {
-          apiTimeout: config.server.apiTimeout || DEFAULT_CONFIG.apiTimeout,
-          maxRetries: config.server.maxRetries || DEFAULT_CONFIG.maxRetries
-        }
+    const result = await indexedDBHelper.get(STORES.CONFIG, CONFIG_KEY)
+    if (result && result.value && result.value.server) {
+      return {
+        apiTimeout: result.value.server.apiTimeout || DEFAULT_CONFIG.apiTimeout,
+        maxRetries: result.value.server.maxRetries || DEFAULT_CONFIG.maxRetries
       }
     }
   } catch (error) {
-    console.warn('⚠️ Fehler beim Laden der API-Konfiguration aus LocalStorage:', error)
+    console.warn('⚠️ Fehler beim Laden der API-Konfiguration aus IndexedDB:', error)
   }
   return null
 }
 
 /**
- * Gibt die aktuellen API-Konfigurationswerte zurück
- * Fallback: DEFAULT_CONFIG wenn keine Konfiguration verfügbar ist
+ * Initialisiert den Config-Cache beim App-Start
+ * Muss beim App-Start aufgerufen werden!
+ */
+export async function initApiConfigCache() {
+  try {
+    console.log('🔧 Initialisiere API-Config-Cache...')
+    const config = await loadConfigFromIndexedDB()
+
+    if (config) {
+      configCache = config
+      console.log('✅ API-Config-Cache initialisiert:', config)
+    } else {
+      configCache = { ...DEFAULT_CONFIG }
+      console.log('⚠️ Keine Config in IndexedDB, verwende Defaults:', configCache)
+    }
+
+    return true
+  } catch (error) {
+    console.error('❌ Fehler bei API-Config-Cache-Initialisierung:', error)
+    configCache = { ...DEFAULT_CONFIG }
+    return false
+  }
+}
+
+/**
+ * Aktualisiert den Config-Cache
+ * Sollte aufgerufen werden, wenn Config geändert wird
+ */
+export async function refreshApiConfigCache() {
+  return await initApiConfigCache()
+}
+
+/**
+ * Gibt die aktuellen API-Konfigurationswerte zurück (synchron)
+ * Verwendet den In-Memory Cache
  *
  * @returns {Object} { apiTimeout: number, maxRetries: number }
  */
 export function getApiConfig() {
-  const storedConfig = loadConfigFromStorage()
-
-  if (storedConfig) {
-    console.log('📋 API-Config geladen:', storedConfig)
-    return storedConfig
+  // Falls Cache noch nicht initialisiert, verwende Defaults
+  if (!configCache) {
+    console.warn('⚠️ API-Config-Cache noch nicht initialisiert, verwende Defaults')
+    return { ...DEFAULT_CONFIG }
   }
 
-  console.log('📋 API-Config Fallback verwendet:', DEFAULT_CONFIG)
-  return { ...DEFAULT_CONFIG }
+  return { ...configCache }
 }
 
 /**
@@ -85,16 +124,6 @@ export function getMaxRetries(customRetries = null) {
  * @returns {boolean}
  */
 export function isOfflineMode() {
-  try {
-    const onlineStatusString = localStorage.getItem('wls_online_status')
-    if (onlineStatusString) {
-      const onlineStatus = JSON.parse(onlineStatusString)
-      return !onlineStatus.isOnline
-    }
-  } catch (error) {
-    console.warn('⚠️ Fehler beim Prüfen des Online-Status:', error)
-  }
-
   // Fallback auf Navigator-Online-Status
   return !navigator.onLine
 }
@@ -137,6 +166,8 @@ export function useApiConfigHelper() {
     getMaxRetries,
     getRequestOptions,
     isOfflineMode,
+    initApiConfigCache,
+    refreshApiConfigCache,
     DEFAULT_CONFIG
   }
 }
@@ -147,6 +178,8 @@ export default {
   getMaxRetries,
   getRequestOptions,
   isOfflineMode,
+  initApiConfigCache,
+  refreshApiConfigCache,
   useApiConfigHelper,
   DEFAULT_CONFIG
 }

@@ -76,7 +76,13 @@ class OfflineFlushSyncService {
     }
 
     const { storage } = useOfflineFlushStorage()
-    const syncQueue = storage.getSyncQueue()
+    const syncQueue = await storage.getSyncQueue()
+
+    // Sicherstellen, dass syncQueue ein Array ist
+    if (!Array.isArray(syncQueue)) {
+      console.warn('⚠️ syncQueue ist kein Array:', typeof syncQueue)
+      return
+    }
 
     if (syncQueue.length === 0) {
       console.log('✅ Keine ausstehenden Spülungen zum Synchronisieren')
@@ -147,11 +153,11 @@ class OfflineFlushSyncService {
       if (result.success) {
         // Apartment-Daten aktualisieren falls vom Server zurückgegeben
         if (result.data && result.data.apartment) {
-          apartmentStorage.storage.addOrUpdateApartment(flush.buildingId, result.data.apartment)
+          await apartmentStorage.storage.addOrUpdateApartment(flush.buildingId, result.data.apartment)
         }
 
         // Aus Sync-Queue entfernen und als synchronisiert markieren
-        offlineStorage.removeFromSyncQueue(flush.id)
+        await offlineStorage.removeFromSyncQueue(flush.id)
 
         return result
       } else {
@@ -168,7 +174,12 @@ class OfflineFlushSyncService {
    */
   async syncFlushImmediately(flushId) {
     const { storage } = useOfflineFlushStorage()
-    const syncQueue = storage.getSyncQueue()
+    const syncQueue = await storage.getSyncQueue()
+
+    if (!Array.isArray(syncQueue)) {
+      throw new Error('Sync-Queue konnte nicht geladen werden')
+    }
+
     const flush = syncQueue.find(f => f.id === flushId)
 
     if (!flush) {
@@ -206,9 +217,9 @@ class OfflineFlushSyncService {
    * Gibt den aktuellen Sync-Status zurück
    * HINWEIS: isOnline wird nun vom OnlineStatus Store verwaltet
    */
-  getSyncStatus() {
+  async getSyncStatus() {
     const { storage } = useOfflineFlushStorage()
-    const stats = storage.getStats()
+    const stats = await storage.getStats()
 
     return {
       isSyncing: this.isSyncing,

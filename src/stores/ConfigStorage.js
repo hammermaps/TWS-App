@@ -8,6 +8,14 @@ import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 const CONFIG_KEY = 'wls_config_cache'
 const LAST_UPDATE_KEY = 'wls_config_last_update'
 
+/**
+ * Serialisiert ein Objekt zu einem klonbaren Plain Object
+ * Entfernt reactive refs, Promises, Funktionen etc.
+ */
+function serializeForIndexedDB(data) {
+  return JSON.parse(JSON.stringify(data))
+}
+
 export class ConfigStorage {
   constructor() {
     // No instance variables needed with IndexedDB
@@ -18,15 +26,30 @@ export class ConfigStorage {
    */
   async saveConfig(config) {
     try {
+      // Serialisiere die Config bevor sie gespeichert wird
+      const serializedConfig = serializeForIndexedDB(config)
+
       await indexedDBHelper.set(STORES.CONFIG, {
         key: CONFIG_KEY,
-        value: config
+        value: serializedConfig
       })
       await indexedDBHelper.set(STORES.CONFIG, {
         key: LAST_UPDATE_KEY,
         value: new Date().toISOString()
       })
+
       console.log('💾 Konfiguration in IndexedDB gespeichert')
+
+      // ✅ Aktualisiere API-Config-Cache für sofortige Verwendung
+      if (typeof window !== 'undefined' && window.refreshApiConfigCache) {
+        try {
+          await window.refreshApiConfigCache()
+          console.log('✅ API-Config-Cache aktualisiert')
+        } catch (error) {
+          console.warn('⚠️ Konnte API-Config-Cache nicht aktualisieren:', error)
+        }
+      }
+
       return true
     } catch (error) {
       console.error('❌ Fehler beim Speichern der Konfiguration:', error)
@@ -42,6 +65,7 @@ export class ConfigStorage {
       const result = await indexedDBHelper.get(STORES.CONFIG, CONFIG_KEY)
       if (result && result.value) {
         console.log('📦 Konfiguration aus IndexedDB geladen')
+
         return result.value
       }
     } catch (error) {
@@ -110,13 +134,35 @@ export class ConfigStorage {
   async getStats() {
     const config = await this.getConfig()
     const lastUpdate = await this.getLastUpdateTime()
-    
+
     return {
       hasConfig: await this.hasConfig(),
       lastUpdate: lastUpdate,
       lastUpdateFormatted: lastUpdate ? lastUpdate.toLocaleString('de-DE') : 'Nie',
       configKeys: config ? Object.keys(config).length : 0,
       shouldRefresh: await this.shouldRefreshConfig()
+    }
+  }
+
+  /**
+   * Initialisiert ConfigStorage beim App-Start
+   * Lädt Config aus IndexedDB
+   */
+  async init() {
+    try {
+      console.log('🔧 Initialisiere ConfigStorage...')
+      const config = await this.getConfig()
+
+      if (config) {
+        console.log('✅ ConfigStorage initialisiert')
+      } else {
+        console.log('⚠️ Keine Config in IndexedDB gefunden')
+      }
+
+      return true
+    } catch (error) {
+      console.error('❌ Fehler bei ConfigStorage-Initialisierung:', error)
+      return false
     }
   }
 }
@@ -132,7 +178,7 @@ export function useConfigStorage() {
   const config = ref(null)
   const lastUpdate = ref(null)
   const loading = ref(false)
-  
+
   const saveConfig = async (newConfig) => {
     loading.value = true
     try {

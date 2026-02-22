@@ -6,6 +6,12 @@ import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 
+// Eager load kritische Offline-Komponenten
+import Dashboard from '@/views/dashboard/Dashboard.vue'
+import ApartmentFlushing from '@/views/apartments/ApartmentFlushing.vue'
+import BuildingApartments from '@/views/buildings/BuildingApartments.vue'
+import BuildingsOverview from '@/views/buildings/BuildingsOverview.vue'
+
 const routes = [
   {
     path: '/',
@@ -18,13 +24,7 @@ const routes = [
         path: '/dashboard',
         name: 'Dashboard',
         meta: { requiresAuth: true, requiresOnline: false },
-        // route level code-splitting
-        // this generates a separate chunk (about.[hash].js) for this route
-        // which is lazy-loaded when the route is visited.
-        component: () =>
-          import(
-            /* webpackChunkName: "dashboard" */ '@/views/dashboard/Dashboard.vue'
-          ),
+        component: Dashboard, // Eager loaded - kritisch nach Login
       },
       {
         path: '/health-status',
@@ -77,29 +77,20 @@ const routes = [
         path: '/buildings',
         name: 'BuildingsOverview',
         meta: { requiresAuth: true, requiresOnline: false }, // Gebäude offline verfügbar (gecacht)
-        component: () =>
-          import(
-            /* webpackChunkName: "buildings" */ '@/views/buildings/BuildingsOverview.vue'
-          ),
+        component: BuildingsOverview, // Eager loaded für Offline-Support
       },
       {
         path: '/buildings/:id/apartments',
         name: 'BuildingApartments',
         meta: { requiresAuth: true, requiresOnline: false }, // Apartments offline verfügbar (gecacht)
-        component: () =>
-          import(
-            /* webpackChunkName: "building-apartments" */ '@/views/buildings/BuildingApartments.vue'
-          ),
+        component: BuildingApartments, // Eager loaded für Offline-Support
       },
       // Apartment Flushing routes
       {
         path: '/buildings/:buildingId/apartments/:apartmentId/flush',
         name: 'ApartmentFlushing',
         meta: { requiresAuth: true, requiresOnline: false }, // Spülungen offline möglich!
-        component: () =>
-          import(
-            /* webpackChunkName: "apartment-flushing" */ '@/views/apartments/ApartmentFlushing.vue'
-          ),
+        component: ApartmentFlushing, // Eager loaded für Offline-Support
       },
       {
         path: '/apartments/:id/flush-history',

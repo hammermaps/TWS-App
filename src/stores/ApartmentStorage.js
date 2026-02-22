@@ -10,6 +10,14 @@ const STORAGE_VERSION = '1.0'
 const METADATA_KEY = 'wls_apartments_metadata'
 
 /**
+ * Serialisiert ein Objekt zu einem klonbaren Plain Object
+ * Entfernt reactive refs, Promises, Funktionen etc.
+ */
+function serializeForIndexedDB(data) {
+  return JSON.parse(JSON.stringify(data))
+}
+
+/**
  * Metadaten für die Datenbank
  */
 class StorageMetadata {
@@ -52,6 +60,9 @@ class ApartmentStorageManager {
    */
   async setApartmentsForBuilding(buildingId, apartments) {
     try {
+      // Serialisiere Apartments vor dem Speichern
+      const serializedApartments = serializeForIndexedDB(apartments)
+
       // First, delete all existing apartments for this building
       const existing = await this.getApartmentsForBuilding(buildingId)
       for (const apt of existing) {
@@ -59,7 +70,7 @@ class ApartmentStorageManager {
       }
 
       // Then add all new apartments
-      for (const apartment of apartments) {
+      for (const apartment of serializedApartments) {
         await indexedDBHelper.set(STORES.APARTMENTS, {
           id: `${buildingId}_${apartment.id}`,
           buildingId: String(buildingId),
@@ -71,7 +82,7 @@ class ApartmentStorageManager {
       // Update metadata
       await this.updateMetadata(buildingId)
 
-      console.log(`💾 ${apartments.length} Apartments für Gebäude ${buildingId} in IndexedDB gespeichert`)
+      console.log(`💾 ${serializedApartments.length} Apartments für Gebäude ${buildingId} in IndexedDB gespeichert`)
       return true
     } catch (error) {
       console.error('❌ Failed to set apartments for building:', error)
@@ -88,7 +99,7 @@ class ApartmentStorageManager {
       if (!metadata) {
         metadata = { key: METADATA_KEY, value: new StorageMetadata() }
       }
-      
+
       metadata.value.lastUpdate = new Date().toISOString()
       if (!metadata.value.buildingIds) {
         metadata.value.buildingIds = []
@@ -96,7 +107,7 @@ class ApartmentStorageManager {
       if (!metadata.value.buildingIds.includes(String(buildingId))) {
         metadata.value.buildingIds.push(String(buildingId))
       }
-      
+
       await indexedDBHelper.set(STORES.METADATA, metadata)
     } catch (error) {
       console.error('❌ Failed to update metadata:', error)
@@ -141,15 +152,23 @@ class ApartmentStorageManager {
             console.log('🔄 globalApartments reactive ref synchronized for building', buildingId)
           }
         }
-
-        // Dispatch a DOM event for other listeners (components) within the same window
-        try {
-          window.dispatchEvent(new CustomEvent('wls_apartment_updated', { detail: { buildingId, apartment } }))
-        } catch (e) {
-          // ignore
-        }
       } catch (e) {
         console.warn('⚠️ Fehler beim Synchronisieren des globalApartments refs:', e)
+      }
+
+      // Dispatch a DOM event for other listeners (components) within the same window
+      // WICHTIG: Dieses Event wird immer dispatched, auch bei Fehlern oben
+      try {
+        console.log('📢 Dispatching wls_apartment_updated event for apartment', apartment.id, 'in building', buildingId)
+        window.dispatchEvent(new CustomEvent('wls_apartment_updated', {
+          detail: {
+            buildingId: String(buildingId),
+            apartment: apartment
+          }
+        }))
+        console.log('✅ Event wls_apartment_updated erfolgreich dispatched')
+      } catch (e) {
+        console.error('❌ Fehler beim Dispatchen des wls_apartment_updated Events:', e)
       }
 
       return true
@@ -295,15 +314,21 @@ export function useApartmentStorage() {
   }
 
   const updateApartment = async (buildingId, apartment) => {
+    console.log('🔄 updateApartment aufgerufen für Building:', buildingId, 'Apartment:', apartment.id)
     const success = await storageManager.addOrUpdateApartment(buildingId, apartment)
     if (success) {
+      console.log('✅ updateApartment erfolgreich - globalApartments wird aktualisiert')
       // Aktualisiere die reactive Liste
       const index = globalApartments.value.findIndex(apt => apt.id === apartment.id)
       if (index >= 0) {
         globalApartments.value[index] = apartment
+        console.log('✅ Apartment in globalApartments aktualisiert (Index:', index, ')')
       } else {
         globalApartments.value.push(apartment)
+        console.log('✅ Apartment zu globalApartments hinzugefügt')
       }
+    } else {
+      console.error('❌ updateApartment fehlgeschlagen')
     }
     return success
   }

@@ -115,7 +115,7 @@ class IndexedDBHelper {
   async get(storeName, key) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readonly')
         const store = transaction.objectStore(storeName)
@@ -139,7 +139,7 @@ class IndexedDBHelper {
   async set(storeName, value) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readwrite')
         const store = transaction.objectStore(storeName)
@@ -163,7 +163,7 @@ class IndexedDBHelper {
   async delete(storeName, key) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readwrite')
         const store = transaction.objectStore(storeName)
@@ -186,7 +186,7 @@ class IndexedDBHelper {
   async getAll(storeName) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readonly')
         const store = transaction.objectStore(storeName)
@@ -211,15 +211,38 @@ class IndexedDBHelper {
   async getAllByIndex(storeName, indexName, query) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readonly')
         const store = transaction.objectStore(storeName)
         const index = store.index(indexName)
-        const request = index.getAll(query)
 
-        request.onsuccess = () => resolve(request.result || [])
-        request.onerror = () => reject(request.error)
+        // Für Boolean-Werte: Verwende Cursor-basierte Filterung
+        // IndexedDB's getAll() funktioniert nicht zuverlässig mit Boolean-Werten
+        if (typeof query === 'boolean') {
+          const results = []
+          const request = index.openCursor()
+
+          request.onsuccess = (event) => {
+            const cursor = event.target.result
+            if (cursor) {
+              // Prüfe ob der Wert mit der Query übereinstimmt
+              if (cursor.value[indexName] === query) {
+                results.push(cursor.value)
+              }
+              cursor.continue()
+            } else {
+              // Alle Einträge verarbeitet
+              resolve(results)
+            }
+          }
+          request.onerror = () => reject(request.error)
+        } else {
+          // Für andere Werte: Standard getAll
+          const request = index.getAll(query)
+          request.onsuccess = () => resolve(request.result || [])
+          request.onerror = () => reject(request.error)
+        }
       })
     } catch (error) {
       console.error(`❌ Error getting from index "${indexName}" in store "${storeName}":`, error)
@@ -235,7 +258,7 @@ class IndexedDBHelper {
   async clear(storeName) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readwrite')
         const store = transaction.objectStore(storeName)
@@ -258,7 +281,7 @@ class IndexedDBHelper {
   async count(storeName) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readonly')
         const store = transaction.objectStore(storeName)
@@ -282,7 +305,7 @@ class IndexedDBHelper {
   async transaction(storeName, callback) {
     try {
       await this.init()
-      
+
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([storeName], 'readwrite')
         const store = transaction.objectStore(storeName)
@@ -317,17 +340,17 @@ class IndexedDBHelper {
 
       return new Promise((resolve, reject) => {
         const request = indexedDB.deleteDatabase(DB_NAME)
-        
+
         request.onsuccess = () => {
           console.log('✅ Database deleted successfully')
           resolve()
         }
-        
+
         request.onerror = () => {
           console.error('❌ Error deleting database:', request.error)
           reject(request.error)
         }
-        
+
         request.onblocked = () => {
           console.warn('⚠️ Database deletion blocked - close all connections')
         }
@@ -345,7 +368,7 @@ class IndexedDBHelper {
   async getStats() {
     try {
       await this.init()
-      
+
       const stats = {
         name: DB_NAME,
         version: DB_VERSION,

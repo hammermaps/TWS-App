@@ -62,6 +62,8 @@ export default defineConfig({
       // Workbox / navigation fallback: serve index.html for SPA navigation requests
       workbox: {
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         navigateFallback: '/index.php',
         // exclude API and static resource paths from navigation fallback
         navigateFallbackDenylist: [
@@ -70,16 +72,22 @@ export default defineConfig({
           /^\/workbox-.*\.js$/,
           /\/.+\.[a-zA-Z0-9]{1,5}$/ // files with extensions (images, css, js)
         ],
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Im Dev-Modus keine Dateien precachen (vermeidet Warnungen)
+        // Im Production-Build werden alle relevanten Assets automatisch erkannt
+        globPatterns: process.env.NODE_ENV === 'production'
+          ? ['**/*.{js,css,html,ico,png,svg,woff,woff2}']
+          : [],
         runtimeCaching: [
           {
-            urlPattern: /^\/api\/.*$/i,
-            handler: 'NetworkFirst',
+            // Cache JavaScript chunks (dynamically imported modules)
+            urlPattern: /\.js$/,
+            handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'api-cache',
+              cacheName: 'js-cache',
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 Stunden
+                maxEntries: 50, // Reduziert von 200
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 Tage
+                purgeOnQuotaError: true
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -87,17 +95,70 @@ export default defineConfig({
             }
           },
           {
+            // Cache CSS chunks
+            urlPattern: /\.css$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'css-cache',
+              expiration: {
+                maxEntries: 30, // Reduziert von 100
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 Tage
+                purgeOnQuotaError: true
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Match both relative and absolute API URLs
+            urlPattern: ({ url }) => {
+              return url.pathname.startsWith('/api/') || url.href.includes('/api/')
+            },
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50, // Reduziert von 100
+                maxAgeSeconds: 60 * 60 * 24, // 24 Stunden
+                purgeOnQuotaError: true
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              },
+              networkTimeoutSeconds: 10
+            }
+          },
+          {
             // Cache same-origin /stats routes as well (server API now lives on root /stats)
-            urlPattern: /^\/stats\/.*$/i,
+            // Match both relative and absolute Stats URLs
+            urlPattern: ({ url }) => {
+              return url.pathname.startsWith('/stats/') || url.href.includes('/stats/')
+            },
             handler: 'NetworkFirst',
             options: {
               cacheName: 'stats-cache',
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24
+                maxEntries: 30, // Reduziert von 100
+                maxAgeSeconds: 60 * 60 * 24,
+                purgeOnQuotaError: true
               },
               cacheableResponse: {
                 statuses: [0, 200]
+              },
+              networkTimeoutSeconds: 10
+            }
+          },
+          {
+            // Cache images and fonts with CacheFirst strategy
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf|eot)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'assets-cache',
+              expiration: {
+                maxEntries: 100, // Reduziert von 200
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Tage
+                purgeOnQuotaError: true
               }
             }
           }
@@ -105,7 +166,10 @@ export default defineConfig({
       },
       devOptions: {
         enabled: true, // PWA auch im Development-Modus aktivieren
-        type: 'module'
+        type: 'module',
+        navigateFallback: '/index.html',
+        // Keine Precaching-Warnungen im Dev-Modus
+        suppressWarnings: true
       }
     })
   ],

@@ -251,6 +251,7 @@ import { formatDate, formatDateTime, formatTime } from '@/utils/dateFormatter.js
 import { useApiApartment } from '../../api/ApiApartment.js'
 import { useApiRecords } from '../../api/ApiRecords.js'
 import { getCurrentUser } from '../../stores/GlobalUser.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import { useI18n } from 'vue-i18n'
 import {
   CRow,
@@ -355,22 +356,23 @@ export default {
         }
 
         // 2. Versuche zunächst den aktuellen Benutzer aus GlobalUser zu laden
-        const currentUser = getCurrentUser()
+        const currentUser = await getCurrentUser()  // ✅ await hinzugefügt
         if (currentUser && currentUser.id === userId && currentUser.name) {
           userCache.value.set(userId, currentUser.name)
           userNames.value.set(userId, currentUser.name)
           return currentUser.name
         }
 
-        // 3. Fallback: Versuche Benutzer direkt aus LocalStorage zu laden
-        const userDataStr = localStorage.getItem('wls_current_user')
-        if (userDataStr) {
-          const userData = JSON.parse(userDataStr)
-          if (userData.id === userId && userData.name) {
-            userCache.value.set(userId, userData.name)
-            userNames.value.set(userId, userData.name)
-            return userData.name
+        // 3. Fallback: Versuche Benutzer direkt aus IndexedDB zu laden
+        try {
+          const userResult = await indexedDBHelper.get(STORES.USER, 'wls_current_user')
+          if (userResult && userResult.value && userResult.value.id === userId && userResult.value.name) {
+            userCache.value.set(userId, userResult.value.name)
+            userNames.value.set(userId, userResult.value.name)
+            return userResult.value.name
           }
+        } catch (error) {
+          console.warn('⚠️ Fehler beim Laden aus IndexedDB:', error)
         }
 
         // 4. Setze erstmal Fallback, damit UI nicht leer ist
