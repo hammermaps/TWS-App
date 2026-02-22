@@ -234,6 +234,22 @@ export class OfflineDataPreloader {
         }))
       })
 
+      // Aktualisiere Stats-Cache sofort nach erfolgreichem Preloading
+      await this.refreshStatsCache()
+      console.log('✅ Stats-Cache nach Preloading aktualisiert')
+
+      // Feuere ein CustomEvent damit alle Komponenten aktualisiert werden
+      try {
+        window.dispatchEvent(new CustomEvent('wls:preload:complete', {
+          detail: {
+            buildingsCount: buildings.length,
+            apartmentsCount: totalApartmentsLoaded
+          }
+        }))
+      } catch (e) {
+        console.warn('⚠️ Fehler beim Feuern des wls:preload:complete Events:', e)
+      }
+
       // Warte 2 Sekunden, damit Benutzer die Erfolgs-Nachricht sehen kann
       await new Promise(resolve => setTimeout(resolve, 2000))
 
@@ -300,9 +316,6 @@ export class OfflineDataPreloader {
       })
       console.log('✅ Metadaten in IndexedDB gespeichert')
 
-      // Auch in localStorage als Fallback
-      localStorage.setItem('wls_preload_metadata', JSON.stringify(metadata))
-      console.log('✅ Metadaten in localStorage gespeichert')
 
       // Aktualisiere reaktiven Zeitstempel damit UIs neu gerendert werden
       if (metadata && metadata.timestamp && this.lastPreloadTime) {
@@ -342,7 +355,6 @@ export class OfflineDataPreloader {
   async getPreloadMetadata() {
     try {
       console.log('🔍 getPreloadMetadata - Suche in IndexedDB...')
-      // Zuerst aus IndexedDB versuchen (primary storage)
       const result = await indexedDBHelper.get(STORES.METADATA, PRELOAD_METADATA_KEY)
       console.log('🔍 IndexedDB Ergebnis:', result)
 
@@ -351,28 +363,7 @@ export class OfflineDataPreloader {
         return result.value
       }
 
-      console.log('⚠️ Keine Metadaten in IndexedDB, prüfe localStorage...')
-      // Fallback auf localStorage
-      const localStorageData = localStorage.getItem('wls_preload_metadata')
-      console.log('🔍 localStorage Daten:', localStorageData ? 'gefunden' : 'nicht gefunden')
-
-      if (localStorageData) {
-        try {
-          const parsed = JSON.parse(localStorageData)
-          console.log('✅ Metadaten aus localStorage geladen:', parsed)
-          // Migriere zu IndexedDB für zukünftige Zugriffe
-          await indexedDBHelper.set(STORES.METADATA, {
-            key: PRELOAD_METADATA_KEY,
-            value: parsed
-          })
-          console.log('🔄 Preload-Metadaten von localStorage nach IndexedDB migriert')
-          return parsed
-        } catch (parseError) {
-          console.warn('⚠️ Fehler beim Parsen der localStorage-Metadaten:', parseError)
-        }
-      }
-
-      console.log('❌ Keine Metadaten gefunden (weder IndexedDB noch localStorage)')
+      console.log('❌ Keine Preload-Metadaten in IndexedDB gefunden')
       return null
     } catch (error) {
       console.error('❌ Fehler beim Laden der Preload-Metadaten:', error)

@@ -1,5 +1,27 @@
 import { ref } from 'vue'
 import { getAuthHeaders } from '../stores/GlobalToken.js'
+import { PRODUCTION_API_URL } from '../config/apiConfig.js'
+
+/**
+ * Gibt die Basis-URL für Stats-Endpunkte zurück.
+ * Stats hat keinen /api Prefix, sondern zeigt direkt auf /stats/...
+ * Im Dev-Modus wird der Vite-Proxy verwendet (leere String → relative URL),
+ * in Production (und Android/Capacitor) die absolute URL.
+ */
+function getStatsBaseUrl() {
+  // Capacitor/Android erkennen: kein localhost Dev-Server vorhanden
+  const isCapacitor = typeof window !== 'undefined' &&
+    (window.location.protocol === 'capacitor:' ||
+     window.location.hostname === 'localhost' && typeof window.Capacitor !== 'undefined' ||
+     window.location.hostname === 'app')
+
+  if (import.meta.env.DEV && !isCapacitor) {
+    // Im Dev-Modus: relative URL (Vite-Proxy übernimmt Weiterleitung)
+    return ''
+  }
+  // In Production und Android: absolute URL ohne /api Prefix
+  return PRODUCTION_API_URL
+}
 
 /**
  * Composable für Statistics API
@@ -24,14 +46,19 @@ export function useApiStats() {
 
     try {
       const headers = getAuthHeaders()
+      const baseUrl = getStatsBaseUrl()
 
       console.log(`🚀 Lade Arbeitsstatistiken für Benutzer ${userId}`)
 
       // Endpoint: /stats/work/{userId} (ohne /api Prefix)
-      const response = await fetch(`/stats/work/${userId}`, {
+      const response = await fetch(`${baseUrl}/stats/work/${userId}`, {
         method: 'GET',
+        credentials: 'include',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
           ...headers
         }
       })
@@ -40,7 +67,21 @@ export function useApiStats() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const data = await response.json()
+      // Versuche JSON zu parsen (auch wenn Content-Type nicht application/json ist)
+      let data
+      try {
+        const text = await response.text()
+        // Prüfe ob es wie JSON aussieht
+        const trimmed = text.trim()
+        if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+          console.error('❌ Keine JSON-Antwort erhalten:', trimmed.substring(0, 200))
+          throw new Error('Server hat keine JSON-Antwort zurückgegeben')
+        }
+        data = JSON.parse(trimmed)
+      } catch (parseErr) {
+        console.error('❌ JSON-Parsing fehlgeschlagen:', parseErr.message)
+        throw new Error('JSON-Parsing fehlgeschlagen: ' + parseErr.message)
+      }
 
       if (data.success) {
         workStats.value = data.data
@@ -74,14 +115,19 @@ export function useApiStats() {
 
     try {
       const headers = getAuthHeaders()
+      const baseUrl = getStatsBaseUrl()
 
       console.log(`🚀 Exportiere Daten für Monat ${month}`)
 
       // Endpoint: /stats/export/{month} (ohne /api Prefix)
-      const response = await fetch(`/stats/export/${month}`, {
+      const response = await fetch(`${baseUrl}/stats/export/${month}`, {
         method: 'GET',
+        credentials: 'include',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
           ...headers
         }
       })
@@ -90,7 +136,20 @@ export function useApiStats() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const data = await response.json()
+      // Versuche JSON zu parsen (auch ohne application/json Content-Type)
+      let data
+      try {
+        const text = await response.text()
+        const trimmed = text.trim()
+        if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+          console.error('❌ Keine JSON-Antwort erhalten:', trimmed.substring(0, 200))
+          throw new Error('Server hat keine JSON-Antwort zurückgegeben')
+        }
+        data = JSON.parse(trimmed)
+      } catch (parseErr) {
+        console.error('❌ JSON-Parsing fehlgeschlagen:', parseErr.message)
+        throw new Error('JSON-Parsing fehlgeschlagen: ' + parseErr.message)
+      }
 
       if (data.success) {
         console.log('✅ Export erfolgreich:', data.data)

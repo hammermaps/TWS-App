@@ -3,6 +3,8 @@ import { getAuthHeaders } from '../stores/GlobalToken.js'
 import { parseCookiesFromResponse } from '../stores/CookieManager.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
+import BuildingStorage from '../stores/BuildingStorage.js'
+import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
 
 // Einzelnes Gebäude-Element
 export class BuildingItem {
@@ -176,7 +178,28 @@ export class ApiBuilding {
      * GET /buildings/list - Alle Gebäude auflisten
      */
     async list(options = {}) {
-        const { timeout = null, headers = {} } = options // Timeout auf 120 Sekunden erhöht
+        const { timeout = null, headers = {} } = options
+
+        // Offline-Check: Im Offline-Modus nur IndexedDB nutzen
+        let isOffline = !navigator.onLine
+        try {
+            const onlineStatus = useOnlineStatusStore()
+            if (!onlineStatus.isFullyOnline) {
+                isOffline = true
+            }
+        } catch (e) {
+            // Store noch nicht initialisiert - navigator.onLine als Fallback
+        }
+
+        if (isOffline) {
+            console.log('📴 Offline-Modus: Lade Gebäude aus IndexedDB')
+            const cached = await BuildingStorage.getBuildings()
+            return new ApiBuildingListResponse({
+                items: Array.isArray(cached) ? cached : [],
+                success: true,
+                error: ''
+            })
+        }
 
         const request = new ApiRequest({
             endpoint: "/buildings/list",

@@ -1,12 +1,42 @@
 // BuildingStorage.js - Verwendet IndexedDB statt localStorage
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+import { toRaw } from 'vue'
 
 /**
  * Serialisiert ein Objekt zu einem klonbaren Plain Object
  * Entfernt reactive refs, Promises, Funktionen etc.
  */
 function serializeForIndexedDB(data) {
-  return JSON.parse(JSON.stringify(data))
+  try {
+    // Robustester Ansatz: JSON round-trip mit toRaw auf jedem Element
+    if (Array.isArray(data) || (data && typeof data === 'object')) {
+      // JSON.stringify/parse entfernt zuverlässig alle Proxy-Wrapper und nicht-klonbare Objekte
+      const raw = toRaw(data)
+      const serialized = JSON.parse(JSON.stringify(raw, (key, value) => {
+        // Promises und Funktionen herausfiltern
+        if (value instanceof Promise || typeof value === 'function') {
+          return undefined
+        }
+        return value
+      }))
+      return serialized
+    }
+    return data
+  } catch (e) {
+    // Fallback: Jedes Element einzeln serialisieren
+    try {
+      if (Array.isArray(data) || (data && data[Symbol.iterator])) {
+        const arr = Array.from(data)
+        return arr.map(item => {
+          try { return JSON.parse(JSON.stringify(toRaw(item))) } catch { return Object.assign({}, toRaw(item)) }
+        })
+      }
+      return JSON.parse(JSON.stringify(toRaw(data)))
+    } catch (e2) {
+      console.error('❌ Serialisierung fehlgeschlagen:', e2)
+      return Array.isArray(data) ? [] : {}
+    }
+  }
 }
 
 const BuildingStorage = {
@@ -18,7 +48,30 @@ const BuildingStorage = {
 
     try {
       // Serialisiere die Daten bevor sie gespeichert werden
-      const serializedBuildings = serializeForIndexedDB(buildings)
+      // Doppelter JSON round-trip um sicherzustellen dass keine reaktiven Proxies übrig bleiben
+      let serializedBuildings
+      try {
+        // Erster Versuch: strukturierter Clone via JSON
+        const raw = JSON.parse(JSON.stringify(Array.from(buildings), (key, value) => {
+          if (value instanceof Promise || typeof value === 'function') return undefined
+          if (value !== null && typeof value === 'object' && typeof value.then === 'function') return undefined
+          return value
+        }))
+        serializedBuildings = raw
+      } catch (e) {
+        // Fallback: jedes Element einzeln serialisieren
+        serializedBuildings = Array.from(buildings).map(b => {
+          try {
+            const plain = {}
+            for (const k of Object.keys(Object(b))) {
+              const v = b[k]
+              if (v instanceof Promise || typeof v === 'function') continue
+              plain[k] = (typeof v === 'object' && v !== null) ? JSON.parse(JSON.stringify(v)) : v
+            }
+            return plain
+          } catch { return {} }
+        })
+      }
 
       // Store as a single document with key 'buildings'
       await indexedDBHelper.set(STORES.BUILDINGS, {

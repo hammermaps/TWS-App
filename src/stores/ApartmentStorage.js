@@ -42,6 +42,11 @@ class ApartmentStorageManager {
    */
   async getApartmentsForBuilding(buildingId) {
     try {
+      // Validiere buildingId
+      if (buildingId === null || buildingId === undefined || buildingId === '' || buildingId === 'undefined' || buildingId === 'null') {
+        console.warn('⚠️ getApartmentsForBuilding: Ungültige buildingId:', buildingId)
+        return []
+      }
       const apartments = await indexedDBHelper.getAllByIndex(
         STORES.APARTMENTS,
         'buildingId',

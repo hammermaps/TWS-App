@@ -333,67 +333,6 @@
           </CCardBody>
         </CCard>
 
-        <!-- Berechtigungen -->
-        <CCard>
-          <CCardHeader>
-            <h6 class="mb-0">
-              <CIcon icon="cil-shield-alt" class="me-2" />
-              Berechtigungen
-            </h6>
-          </CCardHeader>
-          <CCardBody>
-            <div class="permission-list">
-              <div class="permission-item d-flex align-items-center mb-2">
-                <CIcon
-                  :icon="canEditProfile ? 'cil-check' : 'cil-ban'"
-                  :class="canEditProfile ? 'text-success' : 'text-danger'"
-                  class="me-2"
-                />
-                Profil bearbeiten
-              </div>
-              <div class="permission-item d-flex align-items-center mb-2">
-                <CIcon
-                  :icon="canChangePassword ? 'cil-check' : 'cil-ban'"
-                  :class="canChangePassword ? 'text-success' : 'text-danger'"
-                  class="me-2"
-                />
-                Passwort ändern
-              </div>
-              <div class="permission-item d-flex align-items-center mb-2">
-                <CIcon
-                  :icon="canAccessDashboard ? 'cil-check' : 'cil-ban'"
-                  :class="canAccessDashboard ? 'text-success' : 'text-danger'"
-                  class="me-2"
-                />
-                Dashboard zugriff
-              </div>
-              <div class="permission-item d-flex align-items-center mb-2">
-                <CIcon
-                  :icon="canAccessAdminArea ? 'cil-check' : 'cil-ban'"
-                  :class="canAccessAdminArea ? 'text-success' : 'text-danger'"
-                  class="me-2"
-                />
-                Admin-Bereich
-              </div>
-              <div class="permission-item d-flex align-items-center mb-2">
-                <CIcon
-                  :icon="canManageUsers ? 'cil-check' : 'cil-ban'"
-                  :class="canManageUsers ? 'text-success' : 'text-danger'"
-                  class="me-2"
-                />
-                Benutzer verwalten
-              </div>
-              <div class="permission-item d-flex align-items-center mb-2">
-                <CIcon
-                  :icon="canViewReports ? 'cil-check' : 'cil-ban'"
-                  :class="canViewReports ? 'text-success' : 'text-danger'"
-                  class="me-2"
-                />
-                Berichte anzeigen
-              </div>
-            </div>
-          </CCardBody>
-        </CCard>
       </CCol>
     </CRow>
   </div>
@@ -414,19 +353,13 @@ import {
   CAvatar,
   CSpinner
 } from '@coreui/vue'
-import CIcon from '@coreui/icons-vue'
+import { CIcon } from '@coreui/icons-vue'
 import {
   currentUser,
   setUser,
   getCurrentUser as getStoredUser,
   isAdmin,
-  isSupervisor,
-  canEditProfile,
-  canChangePassword,
-  canAccessDashboard,
-  canAccessAdminArea,
-  canManageUsers,
-  canViewReports
+  isSupervisor
 } from '../../stores/GlobalUser.js'
 
 const { t } = useI18n()

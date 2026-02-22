@@ -47,7 +47,7 @@
           :value="progressPercent"
           color="primary"
           class="mb-2"
-          height="25px"
+          style="height: 25px"
         >
           <span class="text-white fw-bold small">{{ progressPercent }}%</span>
         </CProgress>

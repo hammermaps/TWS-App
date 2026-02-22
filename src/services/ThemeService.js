@@ -19,12 +19,12 @@ class ThemeService {
   /**
    * Initialisiert den Theme-Service mit CoreUI ColorModes
    */
-  initialize() {
+  async initialize() {
     if (this.isInitialized.value) return
 
     // Lade Theme aus Konfiguration
     const configStorage = useConfigStorage()
-    const config = configStorage.loadConfig()
+    const config = await configStorage.loadConfig()
 
     if (config && config.ui && config.ui.theme) {
       this.currentTheme.value = config.ui.theme
@@ -69,7 +69,7 @@ class ThemeService {
       const apiConfig = useApiConfig()
 
       // Lade aktuelle Konfiguration
-      let config = configStorage.loadConfig()
+      let config = await configStorage.loadConfig()
 
       // Wenn keine Config vorhanden, erstelle Standard-Config
       if (!config) {
@@ -85,14 +85,27 @@ class ThemeService {
       if (!config.ui) config.ui = {}
       config.ui.theme = theme
 
+      // Serialisiere config zu plain object um DataCloneError zu vermeiden
+      let plainConfig
+      try {
+        plainConfig = JSON.parse(JSON.stringify(config, (key, value) => {
+          if (value instanceof Promise || typeof value === 'function') return undefined
+          if (value !== null && typeof value === 'object' && typeof value.then === 'function') return undefined
+          return value
+        }))
+      } catch (e) {
+        plainConfig = { ...config }
+        if (plainConfig.ui) plainConfig.ui = { ...plainConfig.ui }
+      }
+
       // Speichere lokal
-      configStorage.saveConfig(config)
+      await configStorage.saveConfig(plainConfig)
       console.log('💾 Theme lokal gespeichert:', theme)
 
       // Synchronisiere zum Server wenn online
       if (onlineStatusStore.isFullyOnline) {
         console.log('🔄 Synchronisiere Theme zum Server...')
-        const result = await apiConfig.set(config)
+        const result = await apiConfig.set(plainConfig)
 
         if (result) {
           console.log('✅ Theme erfolgreich zum Server synchronisiert')
@@ -115,9 +128,9 @@ class ThemeService {
   /**
    * Lädt das Theme aus der Konfiguration
    */
-  loadTheme() {
+  async loadTheme() {
     const configStorage = useConfigStorage()
-    const config = configStorage.loadConfig()
+    const config = await configStorage.loadConfig()
 
     if (config && config.ui && config.ui.theme) {
       this.currentTheme.value = config.ui.theme
@@ -166,8 +179,8 @@ export function useThemeSync() {
   /**
    * Lädt das Theme aus der Konfiguration und wendet es an
    */
-  const loadAndApplyTheme = () => {
-    const theme = themeService.loadTheme()
+  const loadAndApplyTheme = async () => {
+    const theme = await themeService.loadTheme()
     if (theme !== colorMode.value) {
       setColorMode(theme)
     }

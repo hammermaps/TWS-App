@@ -25,7 +25,7 @@
             </div>
 
             <!-- Fortschrittsbalken -->
-            <CProgress class="mb-3" :height="25">
+            <CProgress class="mb-3" style="height: 25px">
               <CProgressBar
                 :value="overallProgress"
                 :color="progressColor"

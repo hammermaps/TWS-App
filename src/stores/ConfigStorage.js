@@ -3,6 +3,7 @@
  * Verwendet IndexedDB statt localStorage für bessere Performance und Speicherkapazität
  */
 import { ref } from 'vue'
+import { toRaw } from 'vue'
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 
 const CONFIG_KEY = 'wls_config_cache'
@@ -13,7 +14,58 @@ const LAST_UPDATE_KEY = 'wls_config_last_update'
  * Entfernt reactive refs, Promises, Funktionen etc.
  */
 function serializeForIndexedDB(data) {
-  return JSON.parse(JSON.stringify(data))
+  try {
+    // Konvertiere Vue-Proxys zu raw und mache tiefen JSON-Roundtrip
+    const replacer = (key, value) => {
+      if (value === null || value === undefined) return value
+      if (typeof value === 'function') return undefined
+      // Promise oder thenable erkennen
+      if (value instanceof Promise) return undefined
+      if (typeof value === 'object' && value !== null && typeof value.then === 'function') return undefined
+      // Vue ref/reactive entfernen: Wenn es ein Proxy mit __v_isRef ist, extrahiere value
+      if (typeof value === 'object' && value !== null && value.__v_isRef === true) {
+        return value.value
+      }
+      return value
+    }
+    // Erst toRaw anwenden, dann JSON-Roundtrip
+    const raw = toRaw(data)
+    return JSON.parse(JSON.stringify(raw, replacer))
+  } catch (e) {
+    console.warn('⚠️ Fehler beim Serialisieren der Config (erster Versuch):', e.message)
+    try {
+      // Zweiter Versuch ohne toRaw
+      return JSON.parse(JSON.stringify(data, (key, value) => {
+        if (typeof value === 'function') return undefined
+        if (value instanceof Promise) return undefined
+        if (value !== null && typeof value === 'object' && typeof value.then === 'function') return undefined
+        if (value !== null && typeof value === 'object' && value.__v_isRef) return value.value
+        return value
+      }))
+    } catch (e2) {
+      console.error('❌ Config konnte nicht serialisiert werden:', e2)
+      // Letzter Notfallversuch: versuche manuell die Felder zu extrahieren
+      try {
+        if (data && typeof data === 'object') {
+          const plain = {}
+          for (const key of Object.keys(data)) {
+            try {
+              const val = data[key]
+              if (val instanceof Promise || typeof val === 'function') continue
+              if (val !== null && typeof val === 'object' && typeof val.then === 'function') continue
+              if (val && typeof val === 'object') {
+                plain[key] = JSON.parse(JSON.stringify(val))
+              } else {
+                plain[key] = val
+              }
+            } catch { /* skip problematic key */ }
+          }
+          return plain
+        }
+      } catch { /* ignore */ }
+      return {}
+    }
+  }
 }
 
 export class ConfigStorage {

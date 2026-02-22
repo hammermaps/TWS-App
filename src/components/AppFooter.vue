@@ -1,5 +1,5 @@
 <template>
-  <CFooter class="px-4">
+  <CFooter class="safe-area-bottom px-4">
     <div>
 WLS
       <span class="ms-1"
@@ -19,4 +19,3 @@ WLS
 <script setup>
 const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0'
 </script>
-

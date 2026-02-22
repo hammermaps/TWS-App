@@ -156,6 +156,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { formatDateTime } from '@/utils/dateFormatter.js'
 import { defineAsyncComponent } from 'vue'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 const QRCodeScanner = defineAsyncComponent(() => import('@/components/QRCodeScanner.vue'))
 import {
   CButton,
@@ -177,12 +178,12 @@ const router = useRouter()
 const showScanner = ref(false)
 const scanHistory = ref([])
 
-// Lade Scan-Historie aus LocalStorage
-const loadScanHistory = () => {
+// Lade Scan-Historie aus IndexedDB
+const loadScanHistory = async () => {
   try {
-    const stored = localStorage.getItem('qr_scan_history')
-    if (stored) {
-      scanHistory.value = JSON.parse(stored)
+    const result = await indexedDBHelper.get(STORES.SETTINGS, 'qr_scan_history')
+    if (result?.value) {
+      scanHistory.value = result.value
     }
   } catch (error) {
     console.error('Fehler beim Laden der Scan-Historie:', error)
@@ -190,7 +191,7 @@ const loadScanHistory = () => {
 }
 
 // Speichere Scan in Historie
-const saveScanToHistory = (scan) => {
+const saveScanToHistory = async (scan) => {
   try {
     scanHistory.value.unshift({
       ...scan,
@@ -202,7 +203,7 @@ const saveScanToHistory = (scan) => {
       scanHistory.value = scanHistory.value.slice(0, 10)
     }
 
-    localStorage.setItem('qr_scan_history', JSON.stringify(scanHistory.value))
+    await indexedDBHelper.set(STORES.SETTINGS, { key: 'qr_scan_history', value: scanHistory.value })
   } catch (error) {
     console.error('Fehler beim Speichern der Scan-Historie:', error)
   }

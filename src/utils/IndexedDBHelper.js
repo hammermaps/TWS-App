@@ -5,7 +5,7 @@
  */
 
 const DB_NAME = 'TWS_APP_DB'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 // Object stores (tables) definition
 const STORES = {
@@ -59,7 +59,8 @@ class IndexedDBHelper {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result
-        console.log('🔧 Upgrading IndexedDB schema...')
+        const oldVersion = event.oldVersion
+        console.log(`🔧 Upgrading IndexedDB schema from v${oldVersion} to v${DB_VERSION}...`)
 
         // Create object stores if they don't exist
         if (!db.objectStoreNames.contains(STORES.CONFIG)) {
@@ -81,6 +82,20 @@ class IndexedDBHelper {
           flushStore.createIndex('apartmentId', 'apartmentId', { unique: false })
           flushStore.createIndex('buildingId', 'buildingId', { unique: false })
           flushStore.createIndex('synced', 'synced', { unique: false })
+        } else if (oldVersion < 2) {
+          // Store existiert bereits - fehlende Indizes nachrüsten
+          const transaction = event.target.transaction
+          const flushStore = transaction.objectStore(STORES.OFFLINE_FLUSHES)
+          if (!flushStore.indexNames.contains('synced')) {
+            flushStore.createIndex('synced', 'synced', { unique: false })
+            console.log('✅ synced-Index für offline_flushes erstellt')
+          }
+          if (!flushStore.indexNames.contains('apartmentId')) {
+            flushStore.createIndex('apartmentId', 'apartmentId', { unique: false })
+          }
+          if (!flushStore.indexNames.contains('buildingId')) {
+            flushStore.createIndex('buildingId', 'buildingId', { unique: false })
+          }
         }
 
         if (!db.objectStoreNames.contains(STORES.AUTH)) {

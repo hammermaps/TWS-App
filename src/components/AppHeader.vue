@@ -40,9 +40,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <CHeader position="sticky" :class="headerClassNames">
+  <CHeader position="sticky" :class="['safe-area-top', headerClassNames]">
     <CContainer class="border-bottom px-4" fluid>
-      <CHeaderToggler @click="sidebar.toggleVisible()" style="margin-inline-start: -14px">
+      <CHeaderToggler @click="sidebar.toggleVisible()" style="margin-inline-start: calc(env(safe-area-inset-left, 0px) + 8px)">
         <CIcon icon="cil-menu" size="lg" />
       </CHeaderToggler>
       <CHeaderNav class="d-none d-md-flex">

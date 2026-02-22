@@ -9,6 +9,9 @@ import CoreuiVue from '@coreui/vue'
 import CIcon from '@coreui/icons-vue'
 import { iconsSet as icons } from '@/assets/icons'
 
+// Remote logging (frontend -> backend)
+import RemoteLogger from '@/utils/RemoteLogger.js'
+
 // PWA Service Worker Registration
 import { registerSW } from 'virtual:pwa-register'
 
@@ -118,19 +121,41 @@ async function initializeApp() {
     }
 
     // Step 6: Register PWA Service Worker
+    // Nur im Production-Mode den Service Worker registrieren. Im Dev-Modus
+    // verhindert das Laden eines aktiven SW viele Entwicklungsprobleme
+    // (z. B. veraltete Assets, mehrfaches SW-Registration, IDB-Konflikte).
+    if (import.meta.env.PROD) {
+      try {
+        registerSW({
+          onNeedRefresh() {
+            console.log('🔄 Neue Version verfügbar')
+          },
+          onOfflineReady() {
+            console.log('📴 App ist offline-bereit')
+          },
+          immediate: true
+        })
+        console.log('✅ PWA Service Worker registered (production)')
+      } catch (error) {
+        console.warn('⚠️ PWA Service Worker registration failed:', error)
+      }
+    } else {
+      console.log('ℹ️ Skipping PWA Service Worker registration in development mode')
+    }
+
+    // Initialize Remote Logger (optional, controlled by env var VITE_REMOTE_LOG_ENABLE)
     try {
-      const updateSW = registerSW({
-        onNeedRefresh() {
-          console.log('🔄 Neue Version verfügbar')
-        },
-        onOfflineReady() {
-          console.log('📴 App ist offline-bereit')
-        },
-        immediate: true
-      })
-      console.log('✅ PWA Service Worker registered')
-    } catch (error) {
-      console.warn('⚠️ PWA Service Worker registration failed:', error)
+      const enableRemote = import.meta.env.VITE_REMOTE_LOG_ENABLE === 'true'
+      if (enableRemote) {
+        console.log('🔒 Remote logging enabled')
+        // RemoteLogger is already active via console proxies on import
+        // Log a small startup message so the import is 'used' (avoids linter unused-import warnings)
+        try { RemoteLogger.log('info', 'RemoteLogger initialized', { mode: import.meta.env.MODE || 'unknown' }) } catch (e) { /* ignore */ }
+      } else {
+        console.log('ℹ️ Remote logging disabled (VITE_REMOTE_LOG_ENABLE != true)')
+      }
+    } catch (e) {
+      console.warn('⚠️ RemoteLogger initialization error', e)
     }
 
     // Step 7: Cleanup on page unload
@@ -167,4 +192,3 @@ async function initializeApp() {
 
 // Start initialization
 initializeApp()
-

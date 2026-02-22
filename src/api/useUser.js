@@ -101,26 +101,26 @@ export function useUser(baseUrl = null) {
         setUser(result.user)
         loginInfo.value = result
 
-        // Benutzer und userId im LocalStorage speichern
-        localStorage.setItem('user', JSON.stringify(result.user))
-        localStorage.setItem('auth_token', result.token)
-
-        // Wichtig: userId separat speichern für Dashboard und andere Komponenten
+        // ✅ Synchron userId als globale Variable setzen (schnellster Fallback)
         if (result.user.id) {
-          const userIdString = result.user.id.toString()
-          localStorage.setItem('userId', userIdString)
-          localStorage.setItem('wls_user_id', userIdString)
+          window._wls_userId = result.user.id
+        }
 
-          // Auch in IndexedDB speichern für bessere Offline-Unterstützung
-          try {
+        // Benutzer und userId in IndexedDB speichern
+        try {
+          await indexedDBHelper.set(STORES.USER, {
+            key: 'wls_current_user',
+            value: result.user
+          })
+          if (result.user.id) {
             await indexedDBHelper.set(STORES.CONFIG, {
               key: 'currentUserId',
               value: result.user.id
             })
-            console.log('💾 User-ID in IndexedDB gespeichert:', result.user.id)
-          } catch (error) {
-            console.warn('⚠️ Fehler beim Speichern der User-ID in IndexedDB:', error)
           }
+          console.log('💾 User-Daten in IndexedDB gespeichert')
+        } catch (error) {
+          console.warn('⚠️ Fehler beim Speichern der User-Daten in IndexedDB:', error)
         }
 
         return {

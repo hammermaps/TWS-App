@@ -372,6 +372,7 @@ import { useOfflineFlushStorage } from '@/stores/OfflineFlushStorage.js'
 import { useOfflineFlushSync } from '@/stores/OfflineFlushSyncService.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import { useApiApartment } from '@/api/ApiApartment.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import {
   CButton,
   CCard,
@@ -416,8 +417,7 @@ const currentApartment = ref(null)
 const allApartments = ref([])
 const autoNavigate = ref(true)
 // Verzögerung für die automatische Weiterleitung nach einer Spülung (in ms)
-// Standard: 500ms für schnellere Navigation; kann optional über localStorage konfiguriert werden
-const autoNavigateDelay = ref(Number(localStorage.getItem('wls_auto_navigate_delay_ms')) || 500)
+const autoNavigateDelay = ref(500)
 
 // Offline/Sync State - Verwende Online-Status-Store als einzige Quelle
 const isOnline = computed(() => onlineStatusStore.isFullyOnline)
@@ -507,10 +507,18 @@ const loadApartmentData = async () => {
     if (apartment) {
       currentApartment.value = apartment
 
-      // Auto-Navigation Einstellung aus LocalStorage laden
-      const storedAutoNav = localStorage.getItem('wls_auto_navigate_apartments')
-      if (storedAutoNav !== null) {
-        autoNavigate.value = JSON.parse(storedAutoNav)
+      // Auto-Navigation Einstellung aus IndexedDB laden
+      try {
+        const navSetting = await indexedDBHelper.get(STORES.SETTINGS, 'wls_auto_navigate_apartments')
+        if (navSetting !== null && navSetting !== undefined) {
+          autoNavigate.value = navSetting.value !== undefined ? navSetting.value : JSON.parse(navSetting)
+        }
+        const delaySetting = await indexedDBHelper.get(STORES.SETTINGS, 'wls_auto_navigate_delay_ms')
+        if (delaySetting?.value) {
+          autoNavigateDelay.value = Number(delaySetting.value) || 500
+        }
+      } catch (e) {
+        console.warn('⚠️ Fehler beim Laden der Auto-Navigation-Einstellung:', e)
       }
 
       // Offline-Spülungen laden
@@ -628,6 +636,19 @@ const stopFlushing = async () => {
           console.warn('⚠️ Fehler beim Emittieren des apartment-updated Events:', e)
         }
 
+        // Custom Window Event für BuildingApartments.vue Aktualisierung
+        try {
+          window.dispatchEvent(new CustomEvent('wls_apartment_updated', {
+            detail: {
+              buildingId: buildingId.value,
+              apartment: { ...currentApartment.value }
+            }
+          }))
+          console.log('📡 wls_apartment_updated Event gefeuert (online)')
+        } catch (e) {
+          console.warn('⚠️ Fehler beim Feuern des wls_apartment_updated Events:', e)
+        }
+
         // Füge neue Spülung zur Historie hinzu
         const newFlush = {
           id: result.data?.id || Date.now(),
@@ -684,6 +705,19 @@ const stopFlushing = async () => {
         // Emit event für zentrale Komponenten (z.B. Apartments-Overview, Header Badges)
         // so diese die geladenen Statistiken / Karten aktualisieren können
         emit('apartment-updated', { apartmentId: apartmentId.value, update: apartmentUpdate })
+
+        // Custom Window Event für BuildingApartments.vue Aktualisierung
+        try {
+          window.dispatchEvent(new CustomEvent('wls_apartment_updated', {
+            detail: {
+              buildingId: buildingId.value,
+              apartment: { ...currentApartment.value }
+            }
+          }))
+          console.log('📡 wls_apartment_updated Event gefeuert (offline)')
+        } catch (e) {
+          console.warn('⚠️ Fehler beim Feuern des wls_apartment_updated Events:', e)
+        }
       } catch (err) {
         console.error('Fehler bei lokaler Apartment-Aktualisierung nach Offline-Save:', err)
       }
@@ -800,7 +834,7 @@ const goBack = () => {
   router.push({
     name: 'BuildingApartments',
     params: { id: buildingId.value },
-    query: { buildingName: buildingName.value }
+    query: { buildingName: buildingName.value, refresh: '1' }
   })
 }
 
@@ -848,8 +882,12 @@ onMounted(async () => {
   autoSyncInterval = syncService.startAutoSync(2) // Alle 2 Minuten
 
   // Auto-Navigation Einstellung speichern wenn geändert
-  const stopAutoNavWatch = watch(autoNavigate, (newValue) => {
-    localStorage.setItem('wls_auto_navigate_apartments', JSON.stringify(newValue))
+  const stopAutoNavWatch = watch(autoNavigate, async (newValue) => {
+    try {
+      await indexedDBHelper.set(STORES.SETTINGS, { key: 'wls_auto_navigate_apartments', value: newValue })
+    } catch (e) {
+      console.warn('⚠️ Fehler beim Speichern der Auto-Navigation:', e)
+    }
     console.log('💾 Auto-Navigation gespeichert:', newValue)
   })
 
@@ -893,31 +931,46 @@ onMounted(async () => {
     updateSyncStatus()
   }, 10000) // Alle 10 Sekunden
 
-  // ✅ WICHTIG: Lifecycle-Hooks VOR dem ersten await registrieren!
-  // Cleanup bei Component-Unmount
-  onUnmounted(() => {
-    console.log('🧹 ApartmentFlushing cleanup')
+  // Cleanup-Referenzen für onUnmounted speichern
+  mountedCleanups.autoSyncInterval = autoSyncInterval
+  mountedCleanups.statusInterval = statusInterval
+  mountedCleanups.stopAutoNavWatch = stopAutoNavWatch
+  mountedCleanups.stopOnlineWatch = stopOnlineWatch
+  mountedCleanups.unsubscribeSyncListener = unsubscribeSyncListener
 
-    clearTimer()
-
-    if (autoSyncInterval) {
-      syncService.stopAutoSync(autoSyncInterval)
-    }
-
-    if (statusInterval) {
-      clearInterval(statusInterval)
-    }
-
-    // Stoppe die Watchers
-    stopAutoNavWatch()
-    stopOnlineWatch()
-
-    // Unsubscribe vom Sync-Listener
-    unsubscribeSyncListener()
-  })
-
-  // Apartment-Daten laden (NACH onUnmounted-Registrierung)
+  // Apartment-Daten laden (NACH Cleanup-Registrierung)
   await loadApartmentData()
+})
+
+// Cleanup-Referenzen (außerhalb onMounted für zuverlässiges onUnmounted)
+const mountedCleanups = {
+  autoSyncInterval: null,
+  statusInterval: null,
+  stopAutoNavWatch: null,
+  stopOnlineWatch: null,
+  unsubscribeSyncListener: null
+}
+
+// ✅ Top-Level onUnmounted (nicht in async-Context)
+onUnmounted(() => {
+  console.log('🧹 ApartmentFlushing cleanup')
+
+  clearTimer()
+
+  if (mountedCleanups.autoSyncInterval) {
+    syncService.stopAutoSync(mountedCleanups.autoSyncInterval)
+  }
+
+  if (mountedCleanups.statusInterval) {
+    clearInterval(mountedCleanups.statusInterval)
+  }
+
+  // Stoppe die Watchers
+  if (mountedCleanups.stopAutoNavWatch) mountedCleanups.stopAutoNavWatch()
+  if (mountedCleanups.stopOnlineWatch) mountedCleanups.stopOnlineWatch()
+
+  // Unsubscribe vom Sync-Listener
+  if (mountedCleanups.unsubscribeSyncListener) mountedCleanups.unsubscribeSyncListener()
 })
 
 // Hilfsfunktionen für Timer und Status
@@ -1072,9 +1125,13 @@ watch(() => apartmentId.value, () => {
   loadApartmentData()
 })
 
-// Watch für autoNavigate Änderungen - speichere in LocalStorage
-watch(autoNavigate, (newValue) => {
-  localStorage.setItem('wls_auto_navigate_apartments', JSON.stringify(newValue))
+// Watch für autoNavigate Änderungen - speichere in IndexedDB
+watch(autoNavigate, async (newValue) => {
+  try {
+    await indexedDBHelper.set(STORES.SETTINGS, { key: 'wls_auto_navigate_apartments', value: newValue })
+  } catch (e) {
+    console.warn('⚠️ Fehler beim Speichern der Auto-Navigation:', e)
+  }
   console.log('🔄 Auto-Navigation Einstellung gespeichert:', newValue)
 })
 
@@ -1083,14 +1140,6 @@ watch(flushError, (newError) => {
   if (newError) {
     error.value = newError
   }
-})
-
-onMounted(() => {
-  loadApartmentData()
-})
-
-onUnmounted(() => {
-  clearTimer()
 })
 </script>
 

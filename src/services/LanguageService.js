@@ -4,17 +4,15 @@
  */
 
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { changeLanguage } from '@/i18n'
+import i18n, { changeLanguage } from '@/i18n'
 import { useConfigStorage } from '@/stores/ConfigStorage.js'
 import { useApiConfig } from '@/api/ApiConfig.js'
 
 export function useLanguageService() {
-  const { locale } = useI18n()
   const configStorage = useConfigStorage()
   const apiConfig = useApiConfig()
 
-  const currentLanguage = ref(locale.value)
+  const currentLanguage = ref(i18n.global.locale.value)
   const isChanging = ref(false)
 
   /**

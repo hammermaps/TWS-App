@@ -296,6 +296,28 @@ export class ApiUser {
   async get(id = null, options = {}) {
     const { timeout = null, headers = {} } = options
 
+    // Offline-Check: Lade aus IndexedDB wenn offline
+    let isOffline = !navigator.onLine
+    try {
+      const onlineStatus = useOnlineStatusStore()
+      if (!onlineStatus.isFullyOnline || onlineStatus.manualOfflineMode) {
+        isOffline = true
+      }
+    } catch (e) {
+      // Store nicht verfügbar, navigator.onLine als Fallback
+    }
+    if (isOffline) {
+      console.log('📴 Offline-Modus: Lade User aus IndexedDB...')
+      try {
+        const { getCurrentUser } = await import('../stores/GlobalUser.js')
+        const user = await getCurrentUser()
+        if (user) return user
+      } catch (e) {
+        console.warn('⚠️ Konnte User nicht aus IndexedDB laden:', e)
+      }
+      return null
+    }
+
     const endpoint = id == null || id === "" ? "/user/get" : `/user/get/${encodeURIComponent(id)}`
     const request = new ApiRequest({
       endpoint,
@@ -309,8 +331,11 @@ export class ApiUser {
   }
 
   /**
-   * GET /user/list - Alle Benutzer auflisten
+   * Alias für get() ohne Parameter
    */
+  async getCurrentUser(options = {}) {
+    return await this.get(null, options)
+  }
   async list(options = {}) {
     const { timeout = null, headers = {} } = options
 
@@ -372,10 +397,15 @@ export class ApiUser {
    */
   async getRole(options = {}) {
     const { timeout = null, headers = {} } = options
-    const onlineStatus = useOnlineStatusStore()
 
     // ✅ NEU: Im Offline-Modus Rolle aus LocalStorage (currentUser) zurückgeben
-    if (!onlineStatus.isFullyOnline) {
+    let isOffline = !navigator.onLine
+    try {
+      const onlineStatus = useOnlineStatusStore()
+      if (!onlineStatus.isFullyOnline) isOffline = true
+    } catch (e) { /* Store nicht verfügbar */ }
+
+    if (isOffline) {
       console.log('📴 Offline-Modus: Verwende Rolle aus LocalStorage, kein API-Call')
 
       // Versuche Rolle aus currentUser zu holen
@@ -534,7 +564,6 @@ export class ApiUser {
       return { success: false, data: null, error: 'No userId provided' }
     }
 
-    const cacheKey = `user_profile_image_${userId}` // nur für legacy localStorage fallback
     try {
       // Prüfe IndexedDB Cache zuerst
       try {
@@ -556,25 +585,6 @@ export class ApiUser {
         console.warn('Fehler beim Lesen aus ImageCache:', e)
       }
 
-      // Fallback: Prüfe localStorage (ältere Implementationen)
-      try {
-        const cachedRaw = localStorage.getItem(cacheKey)
-        if (cachedRaw) {
-          const cached = JSON.parse(cachedRaw)
-          if (cached && cached.base64) {
-            const ageMinutes = Math.floor((Date.now() - (cached.ts || 0)) / 60000)
-            if (ageMinutes <= ttlMinutes) {
-              return { success: true, data: { base64: cached.base64 }, error: null }
-            }
-            const onlineStatus = useOnlineStatusStore()
-            if (!onlineStatus.isFullyOnline || onlineStatus.manualOfflineMode) {
-              return { success: true, data: { base64: cached.base64 }, error: null }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Fehler beim Parsen des Profilbild-Caches aus localStorage', e)
-      }
 
       // Wenn wir offline sind, aber kein Cache oder Cache ungültig -> Fehler
       const onlineStatus = useOnlineStatusStore()
@@ -604,13 +614,6 @@ export class ApiUser {
         console.warn('Konnte Profilbild nicht in ImageCache speichern', e)
       }
 
-      // Auch localStorage als optionalen Fallback schreiben
-      try {
-        const storeObj = { base64, ts: Date.now() }
-        localStorage.setItem(cacheKey, JSON.stringify(storeObj))
-      } catch (e) {
-        // Ignoriere localStorage Fehler
-      }
 
       return { success: true, data: { base64 }, error: null }
     } catch (error) {

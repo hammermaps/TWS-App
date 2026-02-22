@@ -7,6 +7,7 @@ import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
 import { getApiTimeout, getMaxRetries } from '../utils/ApiConfigHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
 import indexedDBHelper, { STORES } from '../utils/IndexedDBHelper.js'
+import { getCurrentUser } from '../stores/GlobalUser.js'
 
 // Apartment-Element mit Leerstandsspülung
 export class ApartmentItem {
@@ -537,10 +538,43 @@ export class ApiApartment {
         // Hole aktuelle User-ID aus GlobalUser Store
         let currentUserId = null
 
+        // Direkter Zugriff auf currentUser reactive ref (synchron, kein await nötig)
         try {
-            // Hole User aus GlobalUser Store (async!)
-            const { getCurrentUser } = await import('../stores/GlobalUser.js')
-            const currentUser = await getCurrentUser()  // ✅ await hinzugefügt!
+            const { currentUser } = await import('../stores/GlobalUser.js')
+            if (currentUser.value && currentUser.value.id) {
+                currentUserId = currentUser.value.id
+                console.log('✅ User-ID direkt aus currentUser ref:', currentUserId)
+            }
+        } catch (e) {
+            console.warn('⚠️ Konnte User-ID nicht aus currentUser ref lesen:', e)
+        }
+
+        // Erster Versuch: direkt aus in-memory Token dekodieren (schnellster Weg)
+        try {
+            const { getToken, loadTokenFromStorage } = await import('../stores/GlobalToken.js')
+            let token = getToken()
+            // Falls Token noch nicht geladen, jetzt laden
+            if (!token) {
+                await loadTokenFromStorage()
+                token = getToken()
+            }
+            if (token) {
+                const parts = token.split('.')
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]))
+                    if (payload.userId) {
+                        currentUserId = payload.userId
+                        console.log('✅ User-ID direkt aus in-memory JWT:', currentUserId)
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ Konnte User-ID nicht aus in-memory Token lesen:', e)
+        }
+
+        if (!currentUserId) {
+        try {
+            const currentUser = await getCurrentUser()
             if (currentUser && currentUser.id) {
                 currentUserId = currentUser.id
                 console.log('✅ User-ID aus GlobalUser Store:', currentUserId)
@@ -549,20 +583,82 @@ export class ApiApartment {
             console.warn('⚠️ Konnte User nicht aus GlobalUser laden:', error)
         }
 
-        // Fallback: Prüfe IndexedDB direkt
+        // Fallback: Prüfe IndexedDB USER store
         if (!currentUserId) {
             try {
                 const userResult = await indexedDBHelper.get(STORES.USER, 'wls_current_user')
                 if (userResult && userResult.value && userResult.value.id) {
                     currentUserId = userResult.value.id
-                    console.log('✅ User-ID aus IndexedDB:', currentUserId)
+                    console.log('✅ User-ID aus IndexedDB USER:', currentUserId)
                 }
             } catch (error) {
-                console.warn('⚠️ Konnte User nicht aus IndexedDB laden:', error)
+                console.warn('⚠️ Konnte User nicht aus IndexedDB USER laden:', error)
+            }
+        }
+
+        // Fallback: Prüfe IndexedDB CONFIG 'currentUserId'
+        if (!currentUserId) {
+            try {
+                const configResult = await indexedDBHelper.get(STORES.CONFIG, 'currentUserId')
+                if (configResult && configResult.value) {
+                    currentUserId = configResult.value
+                    console.log('✅ User-ID aus IndexedDB CONFIG:', currentUserId)
+                }
+            } catch (error) {
+                console.warn('⚠️ Konnte User-ID nicht aus IndexedDB CONFIG laden:', error)
+            }
+        }
+
+        // Fallback: JWT-Token aus IndexedDB dekodieren
+        if (!currentUserId) {
+            try {
+                const authResult = await indexedDBHelper.get(STORES.AUTH, 'jwt_token')
+                const token = authResult?.value
+                if (token) {
+                    const parts = token.split('.')
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]))
+                        if (payload.userId) {
+                            currentUserId = payload.userId
+                            console.log('✅ User-ID aus JWT-Token:', currentUserId)
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Konnte User-ID nicht aus JWT-Token laden:', error)
+            }
+        }
+        } // end if (!currentUserId) GlobalUser block
+
+        // Letzter Fallback: Versuche User-ID aus globalem authToken (in-memory ref) zu lesen
+        if (!currentUserId) {
+            try {
+                const { authToken } = await import('../stores/GlobalToken.js')
+                const token = authToken.value
+                if (token) {
+                    const parts = token.split('.')
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]))
+                        if (payload.userId) {
+                            currentUserId = payload.userId
+                            console.log('✅ User-ID aus globalem authToken ref:', currentUserId)
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ Konnte User-ID nicht aus globalem authToken lesen:', e)
             }
         }
 
         // Wenn immer noch keine User-ID, Fehler werfen
+        if (!currentUserId) {
+            // Letzter Notfall-Fallback: globale window Variable (beim Login synchron gesetzt)
+            if (typeof window !== 'undefined' && window._wls_userId) {
+                currentUserId = window._wls_userId
+                console.log('✅ User-ID aus window._wls_userId:', currentUserId)
+            }
+        }
+
         if (!currentUserId) {
             console.error('❌ Keine User-ID gefunden - weder in GlobalUser noch in IndexedDB')
             throw new Error('Keine User-ID gefunden. Bitte einloggen.')

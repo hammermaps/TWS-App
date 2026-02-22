@@ -30,7 +30,7 @@ class OfflineFlushStorage {
       duration: flushData.duration || this.calculateDuration(flushData.startTime, flushData.endTime),
       isOffline: true,
       createdAt: new Date().toISOString(),
-      synced: false
+      synced: 0  // 0 = nicht synchronisiert, 1 = synchronisiert (Integer für IDB-Kompatibilität)
     }
 
     console.log('💾 Speichere Offline-Spülung:', flush)
@@ -73,12 +73,17 @@ class OfflineFlushStorage {
    */
   async getOfflineFlushesForApartment(apartmentId) {
     try {
+      const parsedId = parseInt(apartmentId)
+      if (isNaN(parsedId)) {
+        console.warn('⚠️ getOfflineFlushesForApartment: Ungültige apartmentId:', apartmentId)
+        return []
+      }
       const flushes = await indexedDBHelper.getAllByIndex(
         STORES.OFFLINE_FLUSHES,
         'apartmentId',
-        parseInt(apartmentId)
+        parsedId
       )
-      return flushes
+      return Array.isArray(flushes) ? flushes : []
     } catch (error) {
       console.error('❌ Fehler beim Laden der Apartment-Spülungen:', error)
       return []
@@ -107,11 +112,11 @@ class OfflineFlushStorage {
    */
   async getSyncQueue() {
     try {
-      const flushes = await indexedDBHelper.getAllByIndex(
-        STORES.OFFLINE_FLUSHES,
-        'synced',
-        false
-      )
+      // Lade alle und filtere - robusteste Methode für boolean/integer synced-Werte
+      const all = await indexedDBHelper.getAll(STORES.OFFLINE_FLUSHES)
+      const flushes = Array.isArray(all)
+        ? all.filter(f => f.synced === 0 || f.synced === false || f.synced === '0')
+        : []
       console.log(`📤 ${flushes.length} Spülungen in der Sync-Queue`)
       return flushes
     } catch (error) {
@@ -141,7 +146,7 @@ class OfflineFlushStorage {
     try {
       const flush = await indexedDBHelper.get(STORES.OFFLINE_FLUSHES, flushId)
       if (flush) {
-        flush.synced = true
+        flush.synced = 1  // 1 = synchronisiert
         flush.syncedAt = new Date().toISOString()
         await indexedDBHelper.set(STORES.OFFLINE_FLUSHES, flush)
         console.log('✅ Spülung als synchronisiert markiert:', flushId)
@@ -183,7 +188,7 @@ class OfflineFlushStorage {
     try {
       const allFlushes = await this.getOfflineFlushes()
       const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000))
-      
+
       let deletedCount = 0
       for (const flush of allFlushes) {
         if (flush.synced && flush.syncedAt) {
@@ -223,7 +228,7 @@ class OfflineFlushStorage {
     try {
       const allFlushes = await this.getOfflineFlushes()
       const syncQueue = await this.getSyncQueue()
-      const syncedFlushes = allFlushes.filter(f => f.synced)
+      const syncedFlushes = allFlushes.filter(f => f.synced === 1 || f.synced === true)
 
       return {
         totalOfflineFlushes: allFlushes.length,

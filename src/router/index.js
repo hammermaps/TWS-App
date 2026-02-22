@@ -160,30 +160,33 @@ setRouter(router)
 
 // Navigation Guards für Authentication und Token-Validierung
 router.beforeEach(async (to, from, next) => {
-  // Sicherstellen, dass Token aus localStorage geladen wurde
+  // Sicherstellen, dass Token aus IndexedDB geladen wurde
   // (Schutz gegen Race Condition beim App-Start)
-  const tokenFromStorage = localStorage.getItem('jwt_token')
   const token = getToken()
 
-  // Wenn Token im Storage, aber nicht in State -> laden
-  if (tokenFromStorage && !token) {
-    console.warn('⚠️ Token im localStorage gefunden, aber nicht im State. Lade Token...')
-    const { loadTokenFromStorage } = await import('@/stores/GlobalToken.js')
-    loadTokenFromStorage()
-    // Token erneut abrufen nach dem Laden
-    const reloadedToken = getToken()
-    console.log('🔄 Token neu geladen:', !!reloadedToken)
+  // Wenn kein Token im State -> versuche aus IndexedDB zu laden
+  if (!token) {
+    try {
+      const { loadTokenFromStorage } = await import('@/stores/GlobalToken.js')
+      await loadTokenFromStorage()
+      const reloadedToken = getToken()
+      if (reloadedToken) {
+        console.log('🔄 Token aus IndexedDB nachgeladen')
+      }
+    } catch (e) {
+      console.warn('⚠️ Konnte Token nicht aus IndexedDB laden:', e)
+    }
   }
 
-  const isAuthenticated = !!getToken() // Nach potentiellem Nachladen erneut prüfen
+  const isAuthenticated = !!getToken()
 
   console.log(`🧭 Navigation von "${from.name || 'Startseite'}" zu "${to.name || to.path}"`)
-  console.log(`🔑 Token vorhanden: ${!!getToken()}, isAuthenticated: ${isAuthenticated}`)
+  console.log(`🔑 Token vorhanden: ${isAuthenticated}`)
 
   // Routen die Authentication erfordern
   if (to.meta.requiresAuth && !isAuthenticated) {
     console.error('❌ Route erfordert Authentication, aber Token fehlt! weiterleitung zu /login')
-    console.error('🔍 Token-Status Debug:', { token: getToken() ? 'exists' : 'missing', length: getToken()?.length, localStorage: !!tokenFromStorage })
+    console.error('🔍 Token-Status Debug:', { token: isAuthenticated ? 'exists' : 'missing' })
     next('/login')
     return
   }

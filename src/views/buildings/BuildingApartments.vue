@@ -203,11 +203,12 @@
 </template>
 
 <script setup>
-import { onMounted, computed, watch, nextTick, onUnmounted, onBeforeUnmount, ref } from 'vue'
+import { onMounted, computed, watch, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
 import { useApiApartment } from '@/api/ApiApartment.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import {
   CButton,
   CCard,
@@ -226,11 +227,13 @@ import {
   CTableDataCell
 } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
+import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const { apartments, loading, error, list, storage } = useApiApartment()
+const onlineStatusStore = useOnlineStatusStore()
 
 const buildingId = computed(() => route.params.id)
 const buildingName = computed(() => route.query.buildingName)
@@ -239,15 +242,30 @@ const buildingName = computed(() => route.query.buildingName)
 const isPreloading = ref(false)
 const cacheAge = ref(null)
 
-// Berechne das Alter des Caches
-const calculateCacheAge = () => {
-  const cacheKey = `apartments_${buildingId.value}_timestamp`
-  const timestamp = localStorage.getItem(cacheKey)
-  if (timestamp) {
-    const ageInMinutes = Math.floor((Date.now() - parseInt(timestamp)) / 60000)
-    cacheAge.value = ageInMinutes
-  } else {
+// Berechne das Alter des Caches (async via IndexedDB)
+const calculateCacheAge = async () => {
+  try {
+    const cacheKey = `apartments_${buildingId.value}_timestamp`
+    const result = await indexedDBHelper.get(STORES.METADATA, cacheKey)
+    const timestamp = result?.value
+    if (timestamp) {
+      const ageInMinutes = Math.floor((Date.now() - parseInt(timestamp)) / 60000)
+      cacheAge.value = ageInMinutes
+    } else {
+      cacheAge.value = null
+    }
+  } catch {
     cacheAge.value = null
+  }
+}
+
+// Speichert Cache-Timestamp in IndexedDB
+const saveCacheTimestamp = async () => {
+  try {
+    const cacheKey = `apartments_${buildingId.value}_timestamp`
+    await indexedDBHelper.set(STORES.METADATA, { key: cacheKey, value: Date.now().toString() })
+  } catch (e) {
+    console.warn('⚠️ Fehler beim Speichern des Cache-Timestamps:', e)
   }
 }
 
@@ -313,6 +331,22 @@ const upcomingFlushes = computed(() => {
 const loadApartments = async (forceRefresh = false) => {
   console.log('Loading apartments for building:', buildingId.value)
 
+  // Im Offline-Modus nur aus Cache laden
+  const isOnline = onlineStatusStore.isFullyOnline
+
+  if (!isOnline) {
+    const cachedApartments = await storage.storage.getApartmentsForBuilding(buildingId.value)
+    if (Array.isArray(cachedApartments) && cachedApartments.length > 0) {
+      apartments.value = cachedApartments
+      calculateCacheAge()
+      console.log('📴 Offline: Apartments aus Cache geladen:', cachedApartments.length)
+    } else {
+      console.warn('📴 Offline: Keine gecachten Apartments gefunden')
+      apartments.value = []
+    }
+    return
+  }
+
   // Wenn nicht erzwungen, versuche Cache zu laden
   if (!forceRefresh) {
     const cachedApartments = await storage.storage.getApartmentsForBuilding(buildingId.value)
@@ -320,12 +354,11 @@ const loadApartments = async (forceRefresh = false) => {
       apartments.value = cachedApartments
       calculateCacheAge()
 
-      // Im Hintergrund aktualisieren
+      // Im Hintergrund aktualisieren (nur wenn online)
       isPreloading.value = true
       try {
         await list({ building_id: buildingId.value })
-        const cacheKey = `apartments_${buildingId.value}_timestamp`
-        localStorage.setItem(cacheKey, Date.now().toString())
+        await saveCacheTimestamp()
         calculateCacheAge()
       } catch (err) {
         console.warn('Hintergrund-Aktualisierung fehlgeschlagen:', err)
@@ -338,8 +371,7 @@ const loadApartments = async (forceRefresh = false) => {
 
   // Ansonsten normales Laden
   await list({ building_id: buildingId.value })
-  const cacheKey = `apartments_${buildingId.value}_timestamp`
-  localStorage.setItem(cacheKey, Date.now().toString())
+  await saveCacheTimestamp()
   calculateCacheAge()
 }
 
@@ -568,15 +600,16 @@ let storageHandler = null
 let refreshInterval = null
 
 const setupEventListeners = () => {
-  // Window focus event - lädt Daten wenn Benutzer zur Seite zurückkehrt
+  // Window focus event - lädt Daten wenn Benutzer zur Seite zurückkehrt (nur online)
   focusHandler = () => {
+    if (!onlineStatusStore.isFullyOnline) return
     console.log('Window focused, reloading apartments data')
     loadApartments()
   }
 
-  // Visibility change event - lädt Daten wenn Tab wieder sichtbar wird
+  // Visibility change event - lädt Daten wenn Tab wieder sichtbar wird (nur online)
   visibilityHandler = () => {
-    if (!document.hidden) {
+    if (!document.hidden && onlineStatusStore.isFullyOnline) {
       console.log('Page became visible, reloading apartments data')
       loadApartments()
     }
@@ -590,9 +623,9 @@ const setupEventListeners = () => {
     }
   }
 
-  // Periodische Aktualisierung alle 30 Sekunden
+  // Periodische Aktualisierung alle 30 Sekunden (nur online)
   refreshInterval = setInterval(() => {
-    if (!document.hidden) {
+    if (!document.hidden && onlineStatusStore.isFullyOnline) {
       console.log('Periodic refresh of apartments data')
       loadApartments()
     }
@@ -620,11 +653,13 @@ const removeEventListeners = () => {
 
 onMounted(() => {
   console.log('Component mounted, loading apartments data')
-  loadApartments()
+  // Wenn zurück von Spülung: forceRefresh um aktuelle Daten zu laden
+  const forceRefreshOnMount = route.query.refresh === '1' || route.query.refresh === 'true'
+  loadApartments(forceRefreshOnMount)
   setupEventListeners()
 
   // Listen for apartment updates from storage and other components
-  const apartmentUpdatedHandler = (e) => {
+  const apartmentUpdatedHandler = async (e) => {
     try {
       console.log('🔔 wls_apartment_updated Event empfangen:', e.detail)
       const detail = e?.detail || {}
@@ -657,8 +692,7 @@ onMounted(() => {
 
       // Refresh cache timestamp to indicate recent change
       try {
-        const cacheKey = `apartments_${buildingId.value}_timestamp`
-        localStorage.setItem(cacheKey, Date.now().toString())
+        await saveCacheTimestamp()
         calculateCacheAge()
         console.log('✅ Cache-Timestamp aktualisiert')
       } catch (err) {
@@ -696,12 +730,34 @@ onBeforeUnmount(() => {
 watch(() => route.fullPath, (newPath) => {
   // Nur neu laden wenn wir zu dieser Route navigieren (nicht weg von ihr)
   if (newPath.includes('/buildings/') && newPath.includes('/apartments')) {
-    console.log('Route changed, reloading apartments data')
+    const forceRefresh = route.query.refresh === '1' || route.query.refresh === 'true'
+    console.log('Route changed, reloading apartments data, forceRefresh:', forceRefresh)
     nextTick(() => {
-      loadApartments()
+      loadApartments(forceRefresh)
     })
   }
 }, { immediate: false })
+
+// Spezifischer Watch auf refresh-Parameter: lädt Daten wenn refresh=1 gesetzt wird
+watch(() => route.query.refresh, (newVal) => {
+  if (newVal === '1' || newVal === 'true') {
+    console.log('🔄 refresh-Parameter erkannt - lade Apartments neu')
+    nextTick(() => {
+      loadApartments(true)
+    })
+  }
+}, { immediate: false })
+
+// Reagiere auf wls_apartment_updated aus dem Storage (nach Spülung)
+window.addEventListener('wls_apartment_updated', async (e) => {
+  const detail = e?.detail || {}
+  if (String(detail.buildingId) === String(buildingId.value) && detail.apartment) {
+    const idx = apartments.value.findIndex(a => a.id === detail.apartment.id)
+    if (idx >= 0) {
+      apartments.value.splice(idx, 1, detail.apartment)
+    }
+  }
+})
 
 // Auch auf buildingId-Änderungen reagieren
 watch(buildingId, (newId, oldId) => {

@@ -21,7 +21,7 @@
           :value="preloadProgressPercent"
           color="primary"
           class="mb-2"
-          height="20px"
+          :height="20"
         >
           <span class="text-white fw-bold">{{ preloadProgressPercent }}%</span>
         </CProgress>
@@ -192,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import {
@@ -251,11 +251,46 @@ function onPreloadCleared() {
 window.addEventListener('wls:preload:complete', onPreloadComplete)
 window.addEventListener('wls:preload:cleared', onPreloadCleared)
 
+// Initiales Laden und Poll-Interval als Fallback
+let pollInterval = null
+onMounted(async () => {
+  // Initial Stats-Cache laden wenn Preloader bereit
+  if (onlineStatusStore.dataPreloader?.refreshStatsCache) {
+    try {
+      await onlineStatusStore.dataPreloader.refreshStatsCache()
+      localRefreshKey.value++
+    } catch (e) {
+      console.warn('⚠️ Initiales refreshStatsCache fehlgeschlagen:', e)
+    }
+  }
+  // Poll alle 3 Sekunden bis Daten da sind (Fallback)
+  pollInterval = setInterval(() => {
+    if (onlineStatusStore.dataPreloader?.isReady?.value) {
+      localRefreshKey.value++
+      // Stoppe Poll wenn Daten vorhanden
+      if (onlineStatusStore.dataPreloader?.cachedStats?.value?.preloaded) {
+        clearInterval(pollInterval)
+        pollInterval = null
+      }
+    }
+  }, 3000)
+  // Nach 30 Sekunden auf jeden Fall stoppen
+  setTimeout(() => {
+    if (pollInterval) {
+      clearInterval(pollInterval)
+      pollInterval = null
+    }
+  }, 30000)
+})
+
 // cleanup on unmount
-import { onBeforeUnmount } from 'vue'
 onBeforeUnmount(() => {
   window.removeEventListener('wls:preload:complete', onPreloadComplete)
   window.removeEventListener('wls:preload:cleared', onPreloadCleared)
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
 })
 
 // Computed
@@ -269,15 +304,14 @@ const progress = computed(() => {
 const preloadStats = computed(() => {
   // Verwende localRefreshKey als Abhängigkeit
   localRefreshKey.value
-  console.log('🔍 preloadStats computed wird ausgewertet, localRefreshKey:', localRefreshKey.value)
 
   if (!onlineStatusStore.dataPreloader) {
-    console.log('⚠️ dataPreloader ist nicht verfügbar')
     return { preloaded: false, message: 'Initialisierung...' }
   }
 
   try {
-    const stats = onlineStatusStore.dataPreloader?.getPreloadStats() ?? { preloaded: false, message: 'Initialisierung...' }
+    // Direkt auf cachedStats.value zugreifen (reaktiv!) statt über nicht-reaktive Methode
+    const stats = onlineStatusStore.dataPreloader.cachedStats?.value ?? onlineStatusStore.dataPreloader.getPreloadStats?.() ?? { preloaded: false, message: 'Initialisierung...' }
     console.log('📊 preloadStats Ergebnis:', stats)
     return stats
   } catch (e) {
@@ -328,34 +362,21 @@ const isPreloading = computed(() => {
   return onlineStatusStore.dataPreloader.isPreloading?.value ?? false
 })
 
-// Watchers: Reagiert auf Änderungen im Preloader-Service
-if (onlineStatusStore.dataPreloader) {
-  // Wenn sich der lastPreloadTime ändert, erhöhe localRefreshKey damit Computeds neu ausgewertet werden
-  watch(() => onlineStatusStore.dataPreloader.lastPreloadTime?.value, (newVal) => {
-    console.log('🔁 Preloader lastPreloadTime changed', newVal)
-    localRefreshKey.value++
-  })
+// Hilfsfunktion zum Einrichten der Preloader-Watchers
+const preloaderWatchersSetup = ref(false)
+const setupPreloaderWatchers = (preloader) => {
+  if (!preloader || preloaderWatchersSetup.value) return
+  preloaderWatchersSetup.value = true
 
-  // Wenn sich der preloadProgress.status verändert, triggert das eine Aktualisierung (z.B. nach Erfolg)
-  watch(() => onlineStatusStore.dataPreloader.preloadProgress?.value?.status, (newVal) => {
-    console.log('🔁 Preloader status changed', newVal)
-    // leichte Verzögerung damit gespeicherte Metadaten bereits verfügbar sind
+  watch(() => preloader.lastPreloadTime?.value, () => { localRefreshKey.value++ })
+  watch(() => preloader.preloadProgress?.value?.status, () => {
     setTimeout(() => { localRefreshKey.value++ }, 200)
   })
-
-  // Watch auf isPreloading um UI-Aktualisierung sicherzustellen
-  watch(() => onlineStatusStore.dataPreloader.isPreloading?.value, (newVal, oldVal) => {
-    console.log('🔁 Preloader isPreloading:', newVal, '(war:', oldVal, ')')
-
-    // Wenn Preloading gerade beendet wurde (von true zu false)
+  watch(() => preloader.isPreloading?.value, async (newVal, oldVal) => {
     if (oldVal === true && newVal === false) {
-      console.log('🎉 Preloading beendet - aktualisiere Stats-Cache...')
-
-      // Warte kurz, damit savePreloadMetadata abgeschlossen ist
       setTimeout(async () => {
-        if (onlineStatusStore.dataPreloader && onlineStatusStore.dataPreloader.refreshStatsCache) {
-          await onlineStatusStore.dataPreloader.refreshStatsCache()
-          console.log('✅ Stats-Cache nach Preloading-Ende aktualisiert')
+        if (preloader.refreshStatsCache) {
+          await preloader.refreshStatsCache()
           localRefreshKey.value++
         }
       }, 500)
@@ -363,7 +384,25 @@ if (onlineStatusStore.dataPreloader) {
       localRefreshKey.value++
     }
   })
+  watch(() => preloader.cachedStats?.value, () => { localRefreshKey.value++ }, { deep: true })
+  watch(() => preloader.isReady?.value, (newVal) => { if (newVal) localRefreshKey.value++ })
 }
+
+// Einmalig wenn bereits verfügbar
+if (onlineStatusStore.dataPreloader) {
+  setupPreloaderWatchers(onlineStatusStore.dataPreloader)
+}
+
+// Auch wenn dataPreloader später gesetzt wird (asynchrone Initialisierung)
+watch(() => onlineStatusStore.dataPreloader, (newPreloader) => {
+  if (newPreloader) {
+    setupPreloaderWatchers(newPreloader)
+    if (newPreloader.refreshStatsCache) {
+      newPreloader.refreshStatsCache().then(() => { localRefreshKey.value++ }).catch(() => {})
+    }
+    localRefreshKey.value++
+  }
+})
 
 function formatLastUpdate(timestamp) {
   if (!timestamp) return t('offlinePreload.time.never')

@@ -188,7 +188,9 @@ const loadBuildings = async (forceRefresh = false) => {
       isPreloading.value = true
       try {
         await list()
-        await BuildingStorage.saveBuildings(buildings.value)
+        if (buildings.value?.length > 0) {
+          await BuildingStorage.saveBuildings(JSON.parse(JSON.stringify(buildings.value)))
+        }
         await calculateCacheAge()
       } catch (err) {
         console.warn('Hintergrund-Aktualisierung fehlgeschlagen:', err)
@@ -202,7 +204,7 @@ const loadBuildings = async (forceRefresh = false) => {
   // Ansonsten normales Laden (nur wenn online)
   await list()
   if (buildings.value && buildings.value.length > 0) {
-    await BuildingStorage.saveBuildings(buildings.value)
+    await BuildingStorage.saveBuildings(JSON.parse(JSON.stringify(buildings.value)))
     await calculateCacheAge()
   }
 }

@@ -8,7 +8,8 @@ import { ApiBuilding } from '@/api/ApiBuilding'
 import { useConfigStorage } from '@/stores/ConfigStorage.js'
 import { useConfigSyncService } from '@/services/ConfigSyncService.js'
 import { useAutoSyncService } from '@/services/AutoSyncService.js'
-import { getToken } from '@/stores/GlobalToken.js' // <-- Token-Check import
+import { getToken } from '@/stores/GlobalToken.js'
+import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 
 const { isColorModeSet, setColorMode } = useColorModes(
   'coreui-free-vue-admin-template-theme',
@@ -23,7 +24,7 @@ const preloadBuildings = async () => {
 
     if (response.items && response.items.length > 0) {
       BuildingStorage.saveBuildings(response.items)
-      localStorage.setItem('buildings_timestamp', Date.now().toString())
+      await indexedDBHelper.set(STORES.METADATA, { key: 'buildings_timestamp', value: Date.now().toString() })
       console.log('✅ Gebäude erfolgreich vorgeladen:', response.items.length)
     }
   } catch (error) {

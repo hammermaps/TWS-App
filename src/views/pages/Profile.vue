@@ -92,42 +92,27 @@
 
               <CRow class="mt-3">
                 <CCol :md="6">
-                  <CFormSelect
-                    v-model="profileForm.role"
-                    :label="t('profile.userRole')"
-                    :disabled="profileLoading || !canChangeRole"
-                    :invalid="!!validationErrors.role"
-                  >
-                    <option value="" disabled>{{ t('profile.selectRole') }}</option>
-                    <option
-                      v-for="role in availableRoles"
-                      :key="role.value"
-                      :value="role.value"
-                    >
-                      {{ role.label }}
-                    </option>
-                  </CFormSelect>
-                  <CFormFeedback :invalid="true">
-                    {{ validationErrors.role }}
-                  </CFormFeedback>
-                  <CFormText>
-                    <span v-if="!canChangeRole">
-                      <small class="text-muted">
-                        {{ getRoleChangePermissionText() }}
-                      </small>
-                    </span>
-                    <span v-else>
-                      Ihre aktuelle Rolle: <strong>{{ getRoleDisplayName(currentUser?.role) }}</strong>
-                    </span>
+                  <CFormInput
+                    v-model="profileForm.indent"
+                    :label="t('profile.identification')"
+                    :placeholder="t('profile.identificationPlaceholder')"
+                    :disabled="profileLoading"
+                    :readonly="!isAdmin"
+                  />
+                  <CFormText v-if="!isAdmin">
+                    <small class="text-muted">{{ t('profile.identificationHelp') }}</small>
                   </CFormText>
                 </CCol>
                 <CCol :md="6">
                   <div class="mb-3">
-                    <CFormLabel>Status</CFormLabel>
+                    <CFormLabel>{{ t('profile.userRole') }}</CFormLabel>
                     <div>
-                      <CBadge :color="currentUser?.enabled ? 'success' : 'danger'">
-                        {{ currentUser?.enabled ? 'Aktiviert' : 'Deaktiviert' }}
+                      <CBadge :color="getRoleColor(currentUser?.role)" class="py-2 px-3">
+                        {{ getRoleDisplayName(currentUser?.role) }}
                       </CBadge>
+                      <div class="mt-1">
+                        <small class="text-muted">{{ t('profile.roleChangeInfo') }}</small>
+                      </div>
                     </div>
                   </div>
                 </CCol>
@@ -282,6 +267,27 @@
             </h5>
           </CCardHeader>
           <CCardBody>
+            <!-- Profilbild -->
+            <div class="text-center mb-4">
+              <div class="position-relative d-inline-block">
+                <CAvatar
+                  :src="avatar"
+                  size="xl"
+                  class="mb-2"
+                />
+                <CSpinner
+                  v-if="avatarLoading"
+                  class="position-absolute top-50 start-50 translate-middle"
+                  color="primary"
+                  size="sm"
+                />
+              </div>
+              <div>
+                <CBadge :color="getRoleColor(currentUser?.role)">
+                  {{ getRoleDisplayName(currentUser?.role) }}
+                </CBadge>
+              </div>
+            </div>
             <div class="mb-3">
               <strong>ID:</strong> {{ currentUser?.id || 'N/A' }}
             </div>
@@ -305,27 +311,6 @@
               >
                 {{ currentUser?.enabled ? t('profile.active') : t('profile.inactive') }}
               </CBadge>
-            </div>
-            <div class="mb-3">
-              <strong>{{ t('profile.permissions') }}:</strong>
-              <ul class="list-unstyled mt-2">
-                <li>
-                  <CIcon
-                    :icon="canEdit ? 'cil-check' : 'cil-x'"
-                    :class="canEdit ? 'text-success' : 'text-danger'"
-                    class="me-2"
-                  />
-                  {{ t('profile.editProfile') }}
-                </li>
-                <li>
-                  <CIcon
-                    :icon="canChangePass ? 'cil-check' : 'cil-x'"
-                    :class="canChangePass ? 'text-success' : 'text-danger'"
-                    class="me-2"
-                  />
-                  {{ t('profile.changePassword') }}
-                </li>
-              </ul>
             </div>
 
             <!-- Letzte Token-Prüfung -->
@@ -369,14 +354,14 @@ import {
   CCardBody,
   CForm,
   CFormInput,
-  CFormLabel,
   CFormText,
   CFormFeedback,
   CButton,
   CAlert,
   CSpinner,
   CBadge,
-  CFormSelect
+  CFormLabel,
+  CAvatar
 } from '@coreui/vue'
 import CIcon from '@coreui/icons-vue'
 import OnlineRequiredWrapper from '@/components/OnlineRequiredWrapper.vue'
@@ -385,6 +370,7 @@ import { getUserDebugInfo, setUser, getCurrentUser as getStoredUser, currentUser
 import { lastTokenCheck } from '../../stores/TokenManager.js'
 import { ApiUser } from '../../api/ApiUser.js'
 import { useOnlineStatusStore } from '../../stores/OnlineStatus.js'
+import defaultAvatar from '@/assets/images/avatars/8.jpg'
 
 const { t } = useI18n()
 
@@ -408,6 +394,27 @@ const apiUser = new ApiUser()
 const onlineStatus = useOnlineStatusStore()
 const loadingUserData = ref(false)
 const userDataError = ref('')
+
+// Avatar
+const avatar = ref(defaultAvatar)
+const avatarLoading = ref(false)
+
+const loadProfileImage = async () => {
+  if (!currentUser.value?.id) return
+  avatarLoading.value = true
+  try {
+    const result = await apiUser.getProfileImage(currentUser.value.id, { ttlMinutes: 24 * 60 })
+    if (result.success && result.data?.base64) {
+      avatar.value = result.data.base64
+    } else {
+      avatar.value = defaultAvatar
+    }
+  } catch (e) {
+    avatar.value = defaultAvatar
+  } finally {
+    avatarLoading.value = false
+  }
+}
 
 // Form States
 const profileForm = reactive({
@@ -434,41 +441,6 @@ const passwordValidationErrors = ref({})
 // Development Mode Check
 const isDev = computed(() => import.meta.env.DEV)
 
-// Admin-Berechtigung prüfen
-const isAdmin = computed(() => {
-  return currentUser.value?.role === 'admin'
-})
-
-// Supervisor-Berechtigung prüfen
-const isSupervisor = computed(() => {
-  return currentUser.value?.role === 'supervisor'
-})
-
-// Berechtigung zum Ändern von Rollen
-const canChangeRole = computed(() => {
-  return isAdmin.value || isSupervisor.value
-})
-
-// Verfügbare Rollen basierend auf Berechtigungen
-const availableRoles = computed(() => {
-  const roles = [
-    { value: 'user', label: 'Benutzer' },
-    { value: 'supervisor', label: 'Supervisor' },
-    { value: 'admin', label: 'Administrator' }
-  ]
-
-  if (isAdmin.value) {
-    // Admin kann alle Rollen setzen
-    return roles
-  } else if (isSupervisor.value) {
-    // Supervisor kann nur Benutzer und Supervisor setzen
-    return roles.filter(role => role.value !== 'admin')
-  } else {
-    // Normale Benutzer können keine Rollen ändern
-    return []
-  }
-})
-
 // Rolle-Anzeigename
 const getRoleDisplayName = (role) => {
   switch (role) {
@@ -479,18 +451,12 @@ const getRoleDisplayName = (role) => {
   }
 }
 
-// Text für Rollenwechsel-Berechtigung
-const getRoleChangePermissionText = () => {
-  const userRole = currentUser.value?.role
-  switch (userRole) {
-    case 'user':
-      return 'Nur Supervisoren und Administratoren können Rollen ändern'
-    case 'supervisor':
-      return 'Sie können Benutzer- und Supervisor-Rollen verwalten'
-    case 'admin':
-      return 'Sie können alle Rollen verwalten'
-    default:
-      return 'Keine Berechtigung zum Ändern von Rollen'
+const getRoleColor = (role) => {
+  switch (role) {
+    case 'admin': return 'danger'
+    case 'supervisor': return 'warning'
+    case 'user': return 'primary'
+    default: return 'secondary'
   }
 }
 
@@ -627,8 +593,7 @@ const handleProfileUpdate = async () => {
   const result = await updateProfile({
     name: profileForm.name,
     email: profileForm.email,
-    indent: profileForm.indent,
-    role: profileForm.role
+    indent: profileForm.indent
   })
 
   if (result.success) {
@@ -669,16 +634,6 @@ const resetPasswordForm = () => {
   passwordValidationErrors.value = {}
 }
 
-// Rollen-Farbe bestimmen
-const getRoleColor = (role) => {
-  switch (role) {
-    case 'admin': return 'danger'
-    case 'supervisor': return 'warning'
-    case 'user': return 'primary'
-    default: return 'secondary'
-  }
-}
-
 // Debug-Informationen anzeigen
 const showDebugInfo = () => {
   const debugInfo = getUserDebugInfo()
@@ -691,6 +646,11 @@ onMounted(async () => {
 
   // Prüfe beim Mount ob Benutzerdaten vorhanden sind
   await loadUserDataIfNeeded()
+
+  // Profilbild laden
+  if (currentUser.value?.id) {
+    await loadProfileImage()
+  }
 })
 </script>
 

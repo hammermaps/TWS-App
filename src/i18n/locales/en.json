@@ -354,6 +354,7 @@
     "identificationHelp": "Only administrators can change the identification",
     "userRole": "User Role",
     "selectRole": "Select role",
+    "roleChangeInfo": "Roles can only be changed by administrators",
     "passwordSection": "Change Password",
     "currentPassword": "Current Password",
     "currentPasswordPlaceholder": "Enter current password",

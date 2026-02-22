@@ -2,6 +2,49 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import fs from 'fs'
+
+// Load backend/.env into process.env so Vite proxy can forward LOG_API_KEY when present
+function loadEnvFile(absPath) {
+  try {
+    if (!fs.existsSync(absPath)) return;
+    const content = fs.readFileSync(absPath, 'utf8');
+    const lines = content.split(/\r?\n/);
+    for (const line of lines) {
+      const l = line.trim();
+      if (!l || l.startsWith('#') || !l.includes('=')) continue;
+      const [name, ...rest] = l.split('=');
+      let value = rest.join('=').trim();
+      if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.substring(1, value.length - 1);
+      }
+      if (name) {
+        // Only set if not already present in process.env to allow shell overrides
+        if (typeof process.env[name] === 'undefined' || process.env[name] === '') {
+          process.env[name] = value;
+        }
+      }
+    }
+  } catch (e) {
+    // ignore errors while loading optional env
+    console.warn('Could not load backend/.env:', e && e.message);
+  }
+}
+// attempt to load backend/.env (optional)
+loadEnvFile(path.resolve(__dirname, 'backend', '.env'))
+
+// If backend/.env contains LOG_API_KEY, expose it to Vite client env as VITE_REMOTE_LOG_API_KEY
+try {
+  if (process.env.LOG_API_KEY && !process.env.VITE_REMOTE_LOG_API_KEY) {
+    process.env.VITE_REMOTE_LOG_API_KEY = process.env.LOG_API_KEY;
+  }
+  // Enable remote logging in dev automatically when a key exists
+  if (process.env.LOG_API_KEY && !process.env.VITE_REMOTE_LOG_ENABLE) {
+    process.env.VITE_REMOTE_LOG_ENABLE = 'true';
+  }
+} catch (e) {
+  // ignore
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -165,9 +208,12 @@ export default defineConfig({
         ]
       },
       devOptions: {
-        enabled: true, // PWA auch im Development-Modus aktivieren
+        // Dev-Service-Worker deaktiviert: verhindert, dass ein alter/geloggter
+        // Service Worker im Browser weiterhin veraltete Vite-Optimized-Dep-URLs
+        // (z. B. "Outdated Optimize Dep") ausliefert und 504s verursacht.
+        enabled: false,
         type: 'module',
-        navigateFallback: '/index.html',
+        navigateFallback: '/index.php',
         // Keine Precaching-Warnungen im Dev-Modus
         suppressWarnings: true
       }
@@ -185,11 +231,14 @@ export default defineConfig({
     proxy: {
       // API-Proxy für Backend-Anfragen
       '/api': {
-        target: 'https://wls.dk-automation.de',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-        configure: (proxy, options) => {
+        // Allow overriding proxy target in development. Set DEV_PROXY_LOCAL=true to proxy to a local PHP dev server.
+        target: process.env.DEV_PROXY_LOCAL === 'true' ? 'http://localhost:8001' : 'https://wls.dk-automation.de',
+         changeOrigin: true,
+         autoRewrite: true,
+         followRedirects: true,
+         secure: false,
+         rewrite: (path) => path.replace(/^\/api/, ''),
+         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.log('🚨 Proxy Error:', err)
           })
@@ -200,10 +249,48 @@ export default defineConfig({
             proxyReq.setHeader('Accept', 'application/json')
             // X-Requested-With Header für Backend-Erkennung
             proxyReq.setHeader('X-Requested-With', 'XMLHttpRequest')
+            // If a LOG API key is provided in the dev environment, forward it to the backend
+            // so the remote endpoint accepts proxied dev requests. Set LOG_API_KEY or
+            // VITE_REMOTE_LOG_API_KEY in your shell / .env when starting the dev server.
+            try {
+              const key = process.env.LOG_API_KEY || process.env.VITE_REMOTE_LOG_API_KEY;
+              if (key) {
+                proxyReq.setHeader('X-LOG-API-KEY', key);
+                console.log('🔑 Forwarding X-LOG-API-KEY from dev env');
+              }
+            } catch (e) {
+              // ignore
+            }
           })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             console.log('📥 Received Response:', proxyRes.statusCode, req.url)
             console.log('📋 Response Headers:', proxyRes.headers)
+            // Wenn das Backend einen absoluten Location-Header zurückgibt (z.B. https://wls.dk-automation.de/...),
+            // ersetzen wir die Origin durch eine relative Pfad-Antwort, damit der Browser nicht direkt auf die
+            // Remote-Domain redirected (verhindert CORS-Redirect-Following im Dev).
+            try {
+              const headers = proxyRes.headers || {};
+              if (headers.location) {
+                // Ersetze absolute Backend-Origins durch den proxied Pfad
+                // Beispiel: Location: https://wls.dk-automation.de/logs/ -> /logs/
+                const newLocation = headers.location.replace(/https?:\/\/wls\.dk-automation\.de/gi, '');
+                // Set the outgoing response header (res is the real server response object)
+                try { res.setHeader('Location', newLocation); } catch (e) { /* ignore */ }
+                console.log('🔁 Rewrote Location header to', newLocation);
+              }
+
+              // Ensure the proxied response includes an Access-Control-Allow-Origin header so
+              // the browser won't block responses coming from the dev server origin.
+              try {
+                const origin = req.headers.origin || 'http://localhost:3001';
+                res.setHeader('Access-Control-Allow-Origin', origin);
+                res.setHeader('Access-Control-Allow-Credentials', 'true');
+              } catch (e) {
+                // ignore
+              }
+            } catch (e) {
+              // Ignore rewrite errors
+            }
           })
         }
       },

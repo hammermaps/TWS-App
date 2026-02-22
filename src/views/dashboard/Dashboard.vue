@@ -379,6 +379,8 @@ const lastExportData = ref(null)
 // QR-Scanner State
 const showQRScanner = ref(false)
 const currentUserId = ref(null)
+// Reaktiver Buildings-Lookup für groupedApartmentStats
+const buildingsFromStorage = ref([])
 
 // Prüfung ob Statistiken verfügbar sind
 const statisticsAvailable = computed(() => {
@@ -386,47 +388,47 @@ const statisticsAvailable = computed(() => {
   return onlineStatusStore.isFullyOnline
 })
 
-// User-ID laden (async beim Mount)
+// User-ID laden (async beim Mount) - nur noch IndexedDB/GlobalUser
 async function loadUserId() {
-  // Zuerst versuchen wir LocalStorage (synchron und schnell)
-  const userIdFromLS = localStorage.getItem('userId') || localStorage.getItem('wls_user_id')
-  if (userIdFromLS) {
-    currentUserId.value = parseInt(userIdFromLS, 10)
-    console.log('✅ User-ID aus LocalStorage geladen:', currentUserId.value)
-    return
+  // Zuerst: GlobalUser Store (zuverlässigste Quelle)
+  try {
+    const user = await getCurrentUser()
+    if (user && user.id) {
+      currentUserId.value = user.id
+      console.log('✅ User-ID aus GlobalUser Store geladen:', currentUserId.value)
+      return
+    }
+  } catch (error) {
+    console.warn('⚠️ Fehler beim Laden der User-ID aus GlobalUser Store:', error)
   }
 
-  // Zweiter Versuch: IndexedDB
+  // Zweiter Versuch: IndexedDB (USER store)
   try {
     const indexedDBHelper = (await import('@/utils/IndexedDBHelper.js')).default
-    const STORES = (await import('@/utils/IndexedDBHelper.js')).STORES
-    const result = await indexedDBHelper.get(STORES.CONFIG, 'currentUserId')
-    if (result && result.value) {
-      currentUserId.value = parseInt(result.value, 10)
-      // Speichere in localStorage für zukünftige Zugriffe
-      localStorage.setItem('userId', currentUserId.value.toString())
-      localStorage.setItem('wls_user_id', currentUserId.value.toString())
-      console.log('✅ User-ID aus IndexedDB geladen:', currentUserId.value)
+    const { STORES } = await import('@/utils/IndexedDBHelper.js')
+    const result = await indexedDBHelper.get(STORES.USER, 'wls_current_user')
+    if (result && result.value && result.value.id) {
+      currentUserId.value = result.value.id
+      console.log('✅ User-ID aus IndexedDB (USER) geladen:', currentUserId.value)
       return
     }
   } catch (error) {
     console.warn('⚠️ Fehler beim Laden der User-ID aus IndexedDB:', error)
   }
 
-  // Dritter Versuch: GlobalUser Store (async)
+  console.warn('⚠️ Kein eingeloggter Benutzer gefunden')
+}
+
+// Buildings aus IndexedDB laden für groupedApartmentStats
+async function loadBuildingsFromStorage() {
   try {
-    const user = await getCurrentUser()
-    if (user && user.id) {
-      currentUserId.value = user.id
-      // Speichere in localStorage für zukünftige Zugriffe
-      localStorage.setItem('userId', user.id.toString())
-      localStorage.setItem('wls_user_id', user.id.toString())
-      console.log('✅ User-ID aus GlobalUser Store geladen:', currentUserId.value)
-    } else {
-      console.warn('⚠️ Kein User im GlobalUser Store gefunden')
+    const { default: BuildingStorage } = await import('@/stores/BuildingStorage.js')
+    const buildings = await BuildingStorage.getBuildings()
+    if (Array.isArray(buildings)) {
+      buildingsFromStorage.value = buildings
     }
-  } catch (error) {
-    console.error('❌ Fehler beim Laden der User-ID:', error)
+  } catch (e) {
+    console.warn('⚠️ Fehler beim Laden der Gebäude aus IndexedDB:', e)
   }
 }
 
@@ -469,38 +471,20 @@ const recentDays = computed(() => {
   return workStats.value.daily_statistics.slice(-10)
 })
 
-// Neue Gruppierung: Apartment-Statistiken nach Gebäude (mit Lookup aus localStorage 'buildings')
+// Neue Gruppierung: Apartment-Statistiken nach Gebäude (mit Lookup aus IndexedDB 'buildings')
 const groupedApartmentStats = computed(() => {
   const arr = (workStats.value && workStats.value.apartment_statistics) ? workStats.value.apartment_statistics : []
 
-  // Versuche buildings-Namen aus localStorage zu laden
+  // Buildings-Lookup aus reaktiver Ref (geladen aus IndexedDB in loadBuildingsFromStorage)
   let buildingsLookup = null
-  try {
-    const raw = localStorage.getItem('buildings')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) {
-        buildingsLookup = {}
-        parsed.forEach(b => {
-          const id = b.id ?? b.building_id ?? b["id"]
-          const name = b.name ?? b.title ?? b.building_name ?? null
-          if (id != null) buildingsLookup[String(id)] = name || ''
-        })
-      } else if (parsed && typeof parsed === 'object') {
-        buildingsLookup = {}
-        Object.keys(parsed).forEach(k => {
-          const item = parsed[k]
-          if (item && typeof item === 'object') {
-            buildingsLookup[String(k)] = item.name ?? item.title ?? item.building_name ?? String(k)
-          } else {
-            buildingsLookup[String(k)] = String(item)
-          }
-        })
-      }
-    }
-  } catch (e) {
-    // Wenn parsing fehlschlägt, weiter mit Fallback-Labeling
-    console.warn('Could not parse buildings from localStorage', e)
+  const buildings = buildingsFromStorage.value
+  if (Array.isArray(buildings) && buildings.length > 0) {
+    buildingsLookup = {}
+    buildings.forEach(b => {
+      const id = b.id ?? b.building_id
+      const name = b.name ?? b.title ?? b.building_name ?? null
+      if (id != null) buildingsLookup[String(id)] = name || ''
+    })
   }
 
   const groups = {}
@@ -649,6 +633,9 @@ async function exportCurrentMonth() {
 // Initial laden beim Mount
 onMounted(async () => {
   console.log('🚀 Dashboard geladen')
+
+  // Gebäude aus IndexedDB laden (für groupedApartmentStats)
+  loadBuildingsFromStorage()
 
   // Zuerst User-ID laden
   await loadUserId()
