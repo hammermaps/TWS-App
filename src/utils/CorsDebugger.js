@@ -51,7 +51,6 @@ export class CorsDebugger {
       const response = await fetch(`${this.baseUrl}/health/status`, {
         method: 'OPTIONS',
         headers: {
-          'Origin': 'http://localhost:3001',
           'Access-Control-Request-Method': 'GET',
           'Access-Control-Request-Headers': 'Content-Type'
         }

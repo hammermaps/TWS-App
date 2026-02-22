@@ -69,7 +69,6 @@ export class ApiConfig {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Origin': 'http://localhost:3001',
                 ...request.headers,
                 ...getAuthHeaders()
             }

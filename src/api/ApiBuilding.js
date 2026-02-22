@@ -115,7 +115,6 @@ export class ApiBuilding {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Origin': 'http://localhost:3001', // Explizit Origin setzen
                 ...request.headers,
                 ...getAuthHeaders()
             }
