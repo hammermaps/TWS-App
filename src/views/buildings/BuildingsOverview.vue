@@ -16,7 +16,7 @@
               <CIcon icon="cil-sync" class="me-1" size="sm" />
               {{ $t('buildings.updating') }}
             </CBadge>
-            <CButton color="primary" @click="refreshBuildings" :disabled="loading">
+            <CButton color="primary" @click="refreshBuildings" :disabled="loading || !onlineStatus.isFullyOnline">
               <CIcon icon="cil-reload" class="me-2" />
               {{ $t('common.refresh') }}
             </CButton>
@@ -143,20 +143,22 @@ import {
 import { CIcon } from '@coreui/icons-vue'
 import { useApiBuilding } from '@/api/ApiBuilding'
 import BuildingStorage from '@/stores/BuildingStorage'
+import { useOnlineStatusStore } from '@/stores/OnlineStatus'
 
 const router = useRouter()
 const { t } = useI18n()
 const { buildings, loading, error, list } = useApiBuilding()
+const onlineStatus = useOnlineStatusStore()
 
 // Lokale States für besseres UX
 const isPreloading = ref(false)
 const cacheAge = ref(null)
 
 // Berechne das Alter des Caches
-const calculateCacheAge = () => {
-  const timestamp = localStorage.getItem('buildings_timestamp')
-  if (timestamp) {
-    const ageInMinutes = Math.floor((Date.now() - parseInt(timestamp)) / 60000)
+const calculateCacheAge = async () => {
+  const stored = await BuildingStorage.getTimestamp()
+  if (stored) {
+    const ageInMinutes = Math.floor((Date.now() - stored) / 60000)
     cacheAge.value = ageInMinutes
   } else {
     cacheAge.value = null
@@ -165,20 +167,29 @@ const calculateCacheAge = () => {
 
 // Initialer Ladevorgang mit Cache
 const loadBuildings = async (forceRefresh = false) => {
-  // Wenn nicht erzwungen, versuche Cache zu laden
-  if (!forceRefresh) {
-    const cachedBuildings = BuildingStorage.getBuildings()
+  // Offline-Modus: nur aus IndexedDB laden, kein API-Call
+  if (!onlineStatus.isFullyOnline) {
+    const cachedBuildings = await BuildingStorage.getBuildings()
     if (cachedBuildings && cachedBuildings.length > 0) {
       buildings.value = cachedBuildings
-      calculateCacheAge()
+      await calculateCacheAge()
+    }
+    return
+  }
 
-      // Im Hintergrund aktualisieren
+  // Wenn nicht erzwungen, versuche Cache zu laden
+  if (!forceRefresh) {
+    const cachedBuildings = await BuildingStorage.getBuildings()
+    if (cachedBuildings && cachedBuildings.length > 0) {
+      buildings.value = cachedBuildings
+      await calculateCacheAge()
+
+      // Im Hintergrund aktualisieren (nur wenn online)
       isPreloading.value = true
       try {
         await list()
-        BuildingStorage.saveBuildings(buildings.value)
-        localStorage.setItem('buildings_timestamp', Date.now().toString())
-        calculateCacheAge()
+        await BuildingStorage.saveBuildings(buildings.value)
+        await calculateCacheAge()
       } catch (err) {
         console.warn('Hintergrund-Aktualisierung fehlgeschlagen:', err)
       } finally {
@@ -188,12 +199,11 @@ const loadBuildings = async (forceRefresh = false) => {
     }
   }
 
-  // Ansonsten normales Laden
+  // Ansonsten normales Laden (nur wenn online)
   await list()
   if (buildings.value && buildings.value.length > 0) {
-    BuildingStorage.saveBuildings(buildings.value)
-    localStorage.setItem('buildings_timestamp', Date.now().toString())
-    calculateCacheAge()
+    await BuildingStorage.saveBuildings(buildings.value)
+    await calculateCacheAge()
   }
 }
 

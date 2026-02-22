@@ -381,9 +381,10 @@ import {
 import CIcon from '@coreui/icons-vue'
 import OnlineRequiredWrapper from '@/components/OnlineRequiredWrapper.vue'
 import { useProfile } from '../../api/useProfile.js'
-import { getUserDebugInfo, setUser, currentUser as globalCurrentUser } from '../../stores/GlobalUser.js'
+import { getUserDebugInfo, setUser, getCurrentUser as getStoredUser, currentUser as globalCurrentUser } from '../../stores/GlobalUser.js'
 import { lastTokenCheck } from '../../stores/TokenManager.js'
 import { ApiUser } from '../../api/ApiUser.js'
+import { useOnlineStatusStore } from '../../stores/OnlineStatus.js'
 
 const { t } = useI18n()
 
@@ -404,6 +405,7 @@ const {
 
 // API-Client für Daten-Reload
 const apiUser = new ApiUser()
+const onlineStatus = useOnlineStatusStore()
 const loadingUserData = ref(false)
 const userDataError = ref('')
 
@@ -531,6 +533,19 @@ const loadUserDataIfNeeded = async () => {
   if (currentUser.value && currentUser.value.id) {
     console.log('👤 Benutzerdaten bereits vorhanden:', currentUser.value.username)
     loadProfileData() // Form mit vorhandenen Daten füllen
+    return
+  }
+
+  // Offline-Modus: Versuche Daten aus IndexedDB zu laden, kein API-Call
+  if (!onlineStatus.isFullyOnline) {
+    console.log('📴 Offline-Modus: Lade Benutzerdaten aus IndexedDB...')
+    const storedUser = await getStoredUser()
+    if (storedUser && storedUser.id) {
+      setUser(storedUser)
+      loadProfileData()
+    } else {
+      userDataError.value = 'Keine gespeicherten Benutzerdaten verfügbar (Offline-Modus)'
+    }
     return
   }
 

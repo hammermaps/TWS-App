@@ -418,6 +418,7 @@ import CIcon from '@coreui/icons-vue'
 import {
   currentUser,
   setUser,
+  getCurrentUser as getStoredUser,
   isAdmin,
   isSupervisor,
   canEditProfile,
@@ -628,6 +629,18 @@ const loadUserDataIfNeeded = async () => {
   // Prüfe ob Benutzerdaten vorhanden sind
   if (currentUser.value && currentUser.value.id) {
     console.log('👤 Benutzerdaten bereits vorhanden:', currentUser.value.username)
+    return
+  }
+
+  // Offline-Modus: Lade aus IndexedDB, kein API-Call
+  if (!onlineStatusStore.isFullyOnline) {
+    console.log('📴 Offline-Modus: Lade Benutzerdaten aus IndexedDB...')
+    const storedUser = await getStoredUser()
+    if (storedUser && storedUser.id) {
+      setUser(storedUser)
+    } else {
+      userDataError.value = 'Keine gespeicherten Benutzerdaten verfügbar (Offline-Modus)'
+    }
     return
   }
 

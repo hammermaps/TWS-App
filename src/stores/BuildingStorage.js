@@ -56,6 +56,15 @@ const BuildingStorage = {
       console.error('❌ Fehler beim Löschen der Buildings:', error);
       return false;
     }
+  },
+
+  async getTimestamp() {
+    try {
+      const result = await indexedDBHelper.get(STORES.BUILDINGS, 'buildings');
+      return result?.timestamp || null;
+    } catch {
+      return null;
+    }
   }
 };
 

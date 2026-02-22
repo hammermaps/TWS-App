@@ -11,6 +11,7 @@ import {
   updateUserProfile,
   updateUserRole
 } from '../stores/GlobalUser.js'
+import { useOnlineStatusStore } from '../stores/OnlineStatus.js'
 
 /**
  * Vue Composable für Profil-Management
@@ -25,6 +26,8 @@ export function useProfile() {
     error,
     clearError
   } = useUser()
+
+  const onlineStatus = useOnlineStatusStore()
 
   const profileLoading = ref(false)
   const profileError = ref(null)
@@ -125,6 +128,13 @@ export function useProfile() {
    * Benutzer-Rolle abrufen
    */
   const fetchUserRole = async () => {
+    // Offline-Modus: Rolle aus currentUser nehmen, kein API-Call
+    if (!onlineStatus.isFullyOnline) {
+      const offlineRole = currentUser.value?.role || 'user'
+      console.log('📴 Offline-Modus: Verwende gespeicherte Rolle:', offlineRole)
+      return { success: true, role: offlineRole, enabled: true }
+    }
+
     roleLoading.value = true
     roleError.value = null
 
