@@ -16,9 +16,9 @@
     "build": "vite build",
     "lint": "eslint",
     "preview": "vite preview",
-    "android:build": "npm run build && npx cap sync android",
+    "android:build": "bash android-build.sh",
     "android:open": "npx cap open android",
-    "android:run": "npm run build && npx cap sync android && npx cap run android",
+    "android:run": "bash android-build.sh && npx cap run android",
     "android:sync": "npx cap sync android"
   },
   "dependencies": {
