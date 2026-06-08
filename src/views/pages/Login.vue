@@ -12,22 +12,70 @@
                       <h1>{{ $t('auth.login') }}</h1>
                       <p class="text-body-secondary mb-0">{{ $t('auth.loginSubtitle') }}</p>
                     </div>
-                    <!-- Language Selector -->
-                    <CDropdown variant="btn-group" placement="bottom-end" class="language-selector">
-                      <CDropdownToggle color="light" size="sm" class="border">
-                        {{ currentLocale.flag }}
-                      </CDropdownToggle>
-                      <CDropdownMenu>
-                        <CDropdownItem
-                          v-for="locale in availableLocales"
-                          :key="locale.code"
-                          @click="switchLanguage(locale.code)"
-                          :active="locale.code === currentLocale.code"
-                        >
-                          {{ locale.flag }} {{ locale.name }}
-                        </CDropdownItem>
-                      </CDropdownMenu>
-                    </CDropdown>
+                    <div class="d-flex gap-2">
+                      <!-- Server Settings Button -->
+                      <CButton
+                        color="light"
+                        size="sm"
+                        class="border"
+                        @click="showServerConfig = !showServerConfig"
+                        :title="$t('auth.serverUrlConfigTitle')"
+                      >
+                        <CIcon icon="cilSettings" />
+                      </CButton>
+                      <!-- Language Selector -->
+                      <CDropdown variant="btn-group" placement="bottom-end" class="language-selector">
+                        <CDropdownToggle color="light" size="sm" class="border">
+                          {{ currentLocale.flag }}
+                        </CDropdownToggle>
+                        <CDropdownMenu>
+                          <CDropdownItem
+                            v-for="locale in availableLocales"
+                            :key="locale.code"
+                            @click="switchLanguage(locale.code)"
+                            :active="locale.code === currentLocale.code"
+                          >
+                            {{ locale.flag }} {{ locale.name }}
+                          </CDropdownItem>
+                        </CDropdownMenu>
+                      </CDropdown>
+                    </div>
+                  </div>
+
+                  <!-- Server Configuration (collapsible) -->
+                  <div v-if="showServerConfig" class="border rounded p-3 mb-4 bg-light text-dark">
+                    <h5 class="mb-3">{{ $t('auth.serverUrlConfigTitle') }}</h5>
+                    <CInputGroup class="mb-3">
+                      <CInputGroupText>
+                        <CIcon icon="cilGlobeAlt" />
+                      </CInputGroupText>
+                      <CFormInput
+                        v-model="serverUrlInput"
+                        :placeholder="$t('auth.serverUrlPlaceholder')"
+                        :disabled="isLoading"
+                      />
+                    </CInputGroup>
+                    <div class="d-flex gap-2 justify-content-end">
+                      <CButton
+                        color="secondary"
+                        size="sm"
+                        variant="outline"
+                        @click="handleResetServerUrl"
+                        :disabled="isLoading"
+                      >
+                        <CIcon icon="cilReload" class="me-1" />
+                        {{ $t('common.reset') }}
+                      </CButton>
+                      <CButton
+                        color="primary"
+                        size="sm"
+                        @click="handleSaveServerUrl"
+                        :disabled="isLoading || !serverUrlInput"
+                      >
+                        <CIcon icon="cilCheck" class="me-1" />
+                        {{ $t('auth.saveServerUrl') }}
+                      </CButton>
+                    </div>
                   </div>
 
                   <!-- Error Alert -->
@@ -132,6 +180,7 @@ import {
 import CIcon from '@coreui/icons-vue'
 import { useUser } from '../../api/useUser.js'
 import { availableLocales, changeLanguage } from '../../i18n/index.js'
+import { getApiBaseUrl } from '../../config/apiConfig.js'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -153,6 +202,36 @@ const loginForm = reactive({
 })
 
 const successMessage = ref('')
+
+const showServerConfig = ref(false)
+const serverUrlInput = ref(getApiBaseUrl())
+
+const handleSaveServerUrl = () => {
+  if (serverUrlInput.value) {
+    let url = serverUrlInput.value.trim()
+    if (url.endsWith('/')) {
+      url = url.slice(0, -1)
+    }
+    localStorage.setItem('custom_api_url', url)
+    successMessage.value = t('auth.serverUrlSaved')
+    setTimeout(() => {
+      if (successMessage.value === t('auth.serverUrlSaved')) {
+        successMessage.value = ''
+      }
+    }, 4000)
+  }
+}
+
+const handleResetServerUrl = () => {
+  localStorage.removeItem('custom_api_url')
+  serverUrlInput.value = getApiBaseUrl()
+  successMessage.value = t('auth.serverUrlReset')
+  setTimeout(() => {
+    if (successMessage.value === t('auth.serverUrlReset')) {
+      successMessage.value = ''
+    }
+  }, 4000)
+}
 
 // Computed Properties
 const canSubmit = computed(() => {

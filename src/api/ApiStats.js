@@ -15,6 +15,13 @@ function getStatsBaseUrl() {
      window.location.hostname === 'localhost' && typeof window.Capacitor !== 'undefined' ||
      window.location.hostname === 'app')
 
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const customUrl = window.localStorage.getItem('custom_api_url')
+    if (customUrl) {
+      return customUrl.endsWith('/api') ? customUrl.slice(0, -4) : customUrl
+    }
+  }
+
   if (import.meta.env.DEV && !isCapacitor) {
     // Im Dev-Modus: relative URL (Vite-Proxy übernimmt Weiterleitung)
     return ''

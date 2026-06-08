@@ -333,7 +333,13 @@
     "logoutSuccess": "Erfolgreich abgemeldet",
     "register": "Registrieren",
     "registerText": "Noch kein Konto? Registrieren Sie sich jetzt und erhalten Sie Zugriff auf alle Funktionen.",
-    "registerNow": "Jetzt registrieren!"
+    "registerNow": "Jetzt registrieren!",
+    "serverUrl": "Server-URL",
+    "serverUrlPlaceholder": "Server-URL eingeben (z.B. https://wls.dk-automation.de)",
+    "saveServerUrl": "Speichern",
+    "serverUrlSaved": "Server-URL erfolgreich gespeichert!",
+    "serverUrlReset": "Server-URL auf Standard zurückgesetzt",
+    "serverUrlConfigTitle": "Server-Konfiguration"
   },
   "profile": {
     "title": "Benutzer-Profil",
