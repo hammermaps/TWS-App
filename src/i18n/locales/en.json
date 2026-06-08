@@ -333,7 +333,13 @@
     "logoutSuccess": "Successfully logged out",
     "register": "Sign Up",
     "registerText": "Don't have an account yet? Register now and get access to all features.",
-    "registerNow": "Register now!"
+    "registerNow": "Register now!",
+    "serverUrl": "Server URL",
+    "serverUrlPlaceholder": "Enter server URL (e.g., https://wls.dk-automation.de)",
+    "saveServerUrl": "Save",
+    "serverUrlSaved": "Server URL successfully saved!",
+    "serverUrlReset": "Server URL reset to default",
+    "serverUrlConfigTitle": "Server Configuration"
   },
   "profile": {
     "title": "User Profile",

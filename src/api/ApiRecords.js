@@ -136,7 +136,11 @@ function toPlainRecord(value, { allowPartial = false } = {}) {
  */
 export class ApiRecords {
     constructor(baseUrl = null) {
-        this.baseUrl = baseUrl || getApiBaseUrl()
+        this._baseUrl = baseUrl
+    }
+
+    get baseUrl() {
+        return this._baseUrl || getApiBaseUrl()
     }
 
     /**
