@@ -221,7 +221,7 @@ export class PingResponse {
 export class ApiHealthClient {
   constructor(baseUrl = null) {
     // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-    this.baseUrl = baseUrl || getApiBaseUrl()
+    this._baseUrl = baseUrl
 
     // Axios-Instanz mit Cookie-Unterstützung konfigurieren
     // Verwendet kürzeren Timeout für Health-Checks (3 Sekunden)
@@ -250,12 +250,17 @@ export class ApiHealthClient {
     )
   }
 
+  get baseUrl() {
+    return this._baseUrl || getApiBaseUrl()
+  }
+
   /**
    * Ruft den Health Status ab
    * @returns {Promise<HealthStatusResponse>}
    */
   async getStatus() {
     try {
+      this.client.defaults.baseURL = this.baseUrl
       const response = await this.client.get('/health/status')
       return new HealthStatusResponse(response.data)
     } catch (error) {
@@ -276,6 +281,7 @@ export class ApiHealthClient {
    */
   async ping() {
     try {
+      this.client.defaults.baseURL = this.baseUrl
       const response = await this.client.get('/health/ping')
       return new PingResponse(response.data)
     } catch (error) {

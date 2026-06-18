@@ -143,7 +143,11 @@ function toPlainChangePassword(value = {}) {
 export class ApiUser {
   constructor(baseUrl = null) {
     // Im Development-Mode verwenden wir den Vite-Proxy, in Production die direkte URL
-    this.baseUrl = baseUrl || getApiBaseUrl()
+    this._baseUrl = baseUrl
+  }
+
+  get baseUrl() {
+    return this._baseUrl || getApiBaseUrl()
   }
 
   /**
