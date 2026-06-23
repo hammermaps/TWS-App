@@ -294,9 +294,9 @@ export default defineConfig({
           })
         }
       },
-      // Proxy für /stats - leitet gleiche Pfade an Backend weiter (keine Pfad-Rewrite nötig)
+      // Proxy für /stats - leitet gleiche Pfade an ProxyServer-Backend weiter
       '/stats': {
-        target: 'https://wls.dk-automation.de',
+        target: 'https://rmi.dk-automation.de',
         changeOrigin: true,
         secure: false,
         configure: (proxy, options) => {
