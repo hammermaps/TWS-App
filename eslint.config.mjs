@@ -2,7 +2,7 @@ import eslintPluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
 
 export default [
-  { ignores: ['dist/', 'dev-dist/', 'eslint.config.mjs'] },
+  { ignores: ['dist/', 'dev-dist/', 'eslint.config.mjs', 'android/', 'ios/'] },
   ...eslintPluginVue.configs['flat/essential'],
   {
     files: ['src/**/*.{js,vue}'],

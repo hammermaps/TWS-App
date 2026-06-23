@@ -41,7 +41,7 @@ export default [
     component: 'CNavItem',
     name: 'nav.meters',
     to: '/meters',
-    icon: { icon: 'cil-speedometer', size: 'xl' },
+    icon: 'cilSpeedometer',
     badge: { color: 'info', text: 'PWA' },
     meta: { offline: true },
     requiresOnline: false,

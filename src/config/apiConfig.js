@@ -19,7 +19,7 @@ export const DEVELOPMENT_API_URL = '/api'
  * @returns {string} Die Base URL für API-Requests
  */
 export function getApiBaseUrl() {
-  if (typeof window !== 'undefined' && window.localStorage) {
+  if (!import.meta.env.DEV && typeof window !== 'undefined' && window.localStorage) {
     const customUrl = window.localStorage.getItem('custom_api_url')
     if (customUrl) {
       return customUrl
