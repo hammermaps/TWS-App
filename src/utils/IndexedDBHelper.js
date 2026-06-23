@@ -5,7 +5,7 @@
  */
 
 const DB_NAME = 'TWS_APP_DB'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 // Object stores (tables) definition
 const STORES = {
@@ -17,7 +17,9 @@ const STORES = {
   USER: 'user',
   SETTINGS: 'settings',
   METADATA: 'metadata',
-  IMAGES: 'images'
+  IMAGES: 'images',
+  METERS: 'meters',
+  OFFLINE_METER_READINGS: 'offline_meter_readings',
 }
 
 class IndexedDBHelper {
@@ -117,6 +119,18 @@ class IndexedDBHelper {
 
         if (!db.objectStoreNames.contains(STORES.IMAGES)) {
           db.createObjectStore(STORES.IMAGES, { keyPath: 'key' })
+        }
+
+        if (oldVersion < 4) {
+          if (!db.objectStoreNames.contains(STORES.METERS)) {
+            db.createObjectStore(STORES.METERS, { keyPath: 'id' })
+          }
+          if (!db.objectStoreNames.contains(STORES.OFFLINE_METER_READINGS)) {
+            const meterReadingStore = db.createObjectStore(STORES.OFFLINE_METER_READINGS, { keyPath: 'localId' })
+            meterReadingStore.createIndex('meterId', 'meterId', { unique: false })
+            meterReadingStore.createIndex('synced', 'synced', { unique: false })
+            meterReadingStore.createIndex('meter_type', 'meter_type', { unique: false })
+          }
         }
 
         console.log('✅ IndexedDB schema upgrade complete')

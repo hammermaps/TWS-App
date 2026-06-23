@@ -101,6 +101,43 @@ const routes = [
             /* webpackChunkName: "flush-history" */ '@/views/apartments/ApartmentFlushHistory.vue'
           ),
       },
+      // Meter routes
+      {
+        path: '/meters',
+        name: 'MetersList',
+        meta: { requiresAuth: true, requiresOnline: false },
+        component: () =>
+          import(
+            /* webpackChunkName: "meters-list" */ '@/views/meters/MetersList.vue'
+          ),
+      },
+      {
+        path: '/meters/building/:buildingId',
+        name: 'MetersListBuilding',
+        meta: { requiresAuth: true, requiresOnline: false },
+        component: () =>
+          import(
+            /* webpackChunkName: "meters-list" */ '@/views/meters/MetersList.vue'
+          ),
+      },
+      {
+        path: '/meters/:meterId/reading/new',
+        name: 'MeterReadingForm',
+        meta: { requiresAuth: true, requiresOnline: false },
+        component: () =>
+          import(
+            /* webpackChunkName: "meter-reading-form" */ '@/views/meters/MeterReadingForm.vue'
+          ),
+      },
+      {
+        path: '/meters/:meterId/history',
+        name: 'MeterHistory',
+        meta: { requiresAuth: true, requiresOnline: false },
+        component: () =>
+          import(
+            /* webpackChunkName: "meter-history" */ '@/views/meters/MeterHistory.vue'
+          ),
+      },
     ],
   },
   // Authentifizierungs-Routen (außerhalb des DefaultLayouts)

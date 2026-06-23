@@ -58,7 +58,9 @@
     "profile": "Profil",
     "profileEdit": "Profil bearbeiten",
     "logout": "Abmelden",
-    "login": "Anmelden"
+    "login": "Anmelden",
+    "meters_title": "Zähler",
+    "meters": "Zählererfassung"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -530,5 +532,41 @@
     "step2": "Erlauben Sie Kamera-Zugriff",
     "step3": "Richten Sie die Kamera auf den QR-Code",
     "step4": "Warten Sie auf automatische Erkennung"
+  },
+  "meter": {
+    "title": "Zähler",
+    "list_title": "Zählerübersicht",
+    "type_water": "Wasser",
+    "type_power": "Strom",
+    "type_heating": "Fernwärme",
+    "type_all": "Alle Typen",
+    "reading": "Ablesung",
+    "readings": "Ablesungen",
+    "reading_new": "Neue Ablesung",
+    "reading_value": "Zählerstand",
+    "reading_date": "Ablesedatum",
+    "reading_time": "Uhrzeit",
+    "reading_note": "Hinweis",
+    "current_reading": "Aktueller Stand",
+    "last_reading": "Letzte Ablesung",
+    "no_reading": "Noch keine Ablesung",
+    "meter_number": "Zählernummer",
+    "location": "Standort",
+    "unit": "Einheit",
+    "history": "Verlauf",
+    "capture": "Ablesung erfassen",
+    "save_offline": "Offline gespeichert",
+    "save_offline_msg": "Die Ablesung wird synchronisiert, sobald eine Verbindung besteht.",
+    "sync_pending": "{count} ausstehend",
+    "sync_complete": "Synchronisierung abgeschlossen",
+    "edit": "Ablesung bearbeiten",
+    "delete": "Ablesung löschen",
+    "delete_confirm": "Ablesung wirklich löschen?",
+    "no_meters": "Keine Zähler gefunden",
+    "loading": "Zähler werden geladen...",
+    "offline_badge": "Offline",
+    "pending_badge": "Ausstehend",
+    "error_value_required": "Bitte Zählerstand eingeben",
+    "error_value_invalid": "Zählerstand muss größer als 0 sein"
   }
 }

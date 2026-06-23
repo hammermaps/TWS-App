@@ -34,6 +34,20 @@ export default [
   },
   {
     component: 'CNavTitle',
+    name: 'nav.meters_title',
+    requiresOnline: false,
+  },
+  {
+    component: 'CNavItem',
+    name: 'nav.meters',
+    to: '/meters',
+    icon: { icon: 'cil-speedometer', size: 'xl' },
+    badge: { color: 'info', text: 'PWA' },
+    meta: { offline: true },
+    requiresOnline: false,
+  },
+  {
+    component: 'CNavTitle',
     name: 'nav.users',
     requiresOnline: false,
   },

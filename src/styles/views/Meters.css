@@ -1,0 +1,32 @@
+.meters-list .meter-card,
+.meter-reading-form .meter-card,
+.meter-history .meter-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.meters-list .meter-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.meter-type-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.meters-list .info-item,
+.meter-reading-form .info-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 575.98px) {
+  .meters-list .meter-card .card-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .meters-list .meter-card .card-footer .btn {
+    width: 100%;
+  }
+}
