@@ -5,7 +5,7 @@
  */
 
 const DB_NAME = 'TWS_APP_DB'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 // Object stores (tables) definition
 const STORES = {
@@ -16,7 +16,8 @@ const STORES = {
   AUTH: 'auth',
   USER: 'user',
   SETTINGS: 'settings',
-  METADATA: 'metadata'
+  METADATA: 'metadata',
+  IMAGES: 'images'
 }
 
 class IndexedDBHelper {
@@ -112,6 +113,10 @@ class IndexedDBHelper {
 
         if (!db.objectStoreNames.contains(STORES.METADATA)) {
           db.createObjectStore(STORES.METADATA, { keyPath: 'key' })
+        }
+
+        if (!db.objectStoreNames.contains(STORES.IMAGES)) {
+          db.createObjectStore(STORES.IMAGES, { keyPath: 'key' })
         }
 
         console.log('✅ IndexedDB schema upgrade complete')

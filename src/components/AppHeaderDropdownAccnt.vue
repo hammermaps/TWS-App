@@ -1,4 +1,5 @@
 <script setup>
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -12,11 +13,24 @@ import {
 } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue';
 import { useUser } from '../api/useUser.js'
-import avatar from '@/assets/images/avatars/8.jpg'
+import { ApiUser } from '../api/ApiUser.js'
+import defaultAvatar from '@/assets/images/avatars/8.jpg'
 
 const router = useRouter()
 const { t } = useI18n()
-const { logout, currentUser, isAuthenticated } = useUser() // Keine hardcodierte URL - verwende automatische Proxy-Erkennung
+const { logout, currentUser, isAuthenticated } = useUser()
+
+const avatar = ref(defaultAvatar)
+const apiUser = new ApiUser()
+
+const loadAvatar = async () => {
+  if (!currentUser.value?.id) return
+  const result = await apiUser.getProfileImage(currentUser.value.id, { ttlMinutes: 24 * 60 })
+  avatar.value = result.success && result.data?.base64 ? result.data.base64 : defaultAvatar
+}
+
+onMounted(loadAvatar)
+watch(() => currentUser.value?.id, loadAvatar)
 
 const handleLogout = async () => {
   try {
@@ -66,7 +80,7 @@ const navigateToProfile = async () => {
 <template>
   <CDropdown placement="bottom-end" variant="nav-item">
     <CDropdownToggle class="py-0 pe-0" :caret="false">
-      <CAvatar :src="avatar" size="md" />
+      <CAvatar :src="avatar" size="md" @error="avatar = defaultAvatar" />
     </CDropdownToggle>
     <CDropdownMenu class="pt-0">
       <CDropdownHeader
