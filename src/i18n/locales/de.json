@@ -43,6 +43,8 @@
     "start": "Start",
     "end": "Ende",
     "total": "Gesamt",
+    "saving": "Speichern...",
+    "offlineNotAvailable": "Nur im Online-Modus verfügbar",
     "average": "Durchschnitt"
   },
   "nav": {
@@ -156,6 +158,7 @@
     "flushHistory": "Spülhistorie",
     "startFlushing": "Spülung starten",
     "stopFlushing": "Spülung beenden",
+    "saveOrder": "Reihenfolge speichern",
     "noApartments": "Keine Wohnungen gefunden",
     "needsFlushing": "Spülung fällig",
     "flushingActive": "Spülung läuft",

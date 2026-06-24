@@ -28,6 +28,15 @@
               <CIcon icon="cil-sync" class="me-1" size="sm" />
               {{ $t('apartments.updating') }}
             </CBadge>
+            <CButton
+              v-if="sortOrderChanged"
+              color="success"
+              @click="saveOrder"
+              :disabled="savingOrder"
+            >
+              <CIcon icon="cil-save" class="me-2" />
+              {{ savingOrder ? $t('common.saving') : $t('apartments.saveOrder') }}
+            </CButton>
             <CButton color="primary" @click="refreshApartments" :disabled="loading">
               <CIcon icon="cil-reload" class="me-2" />
               {{ $t('common.refresh') }}
@@ -60,8 +69,8 @@
         <CTable hover responsive>
           <CTableHead>
             <CTableRow>
+              <CTableHeaderCell style="width:36px"></CTableHeaderCell>
               <CTableHeaderCell>{{ $t('apartments.apartment') }}</CTableHeaderCell>
-              <!-- Floor und Status zusammengefasst in der ersten Spalte -->
               <CTableHeaderCell>{{ $t('apartments.lastFlush') }}</CTableHeaderCell>
               <CTableHeaderCell>{{ $t('apartments.nextFlush') }}</CTableHeaderCell>
               <CTableHeaderCell>{{ $t('apartments.flushStatus') }}</CTableHeaderCell>
@@ -70,10 +79,19 @@
           </CTableHead>
           <CTableBody>
             <CTableRow
-              v-for="apartment in sortedApartments"
+              v-for="(apartment, index) in sortedApartments"
               :key="apartment.id"
-              :class="getRowClass(apartment)"
+              :class="[getRowClass(apartment), dragOverIndex === index ? 'drag-over' : '']"
+              draggable="true"
+              @dragstart="onDragStart(index, $event)"
+              @dragover.prevent="onDragOver(index)"
+              @dragleave="onDragLeave"
+              @drop.prevent="onDrop(index)"
+              @dragend="onDragEnd"
             >
+              <CTableDataCell class="align-middle drag-handle-cell" title="Ziehen zum Sortieren">
+                <span class="drag-handle">⠿</span>
+              </CTableDataCell>
               <!-- Zusammengefasste Zelle: Apartment, Floor und Status nebeneinander -->
               <CTableDataCell class="align-middle" :data-label="$t('apartments.apartment')">
                 <div class="d-flex align-items-center justify-content-between flex-nowrap">
@@ -203,7 +221,7 @@
 </template>
 
 <script setup>
-import { onMounted, computed, watch, nextTick, onBeforeUnmount, ref } from 'vue'
+import { onMounted, computed, watch, nextTick, onBeforeUnmount, ref, reactive } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
@@ -232,7 +250,7 @@ import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { apartments, loading, error, list, storage } = useApiApartment()
+const { apartments, loading, error, list, update, storage } = useApiApartment()
 const onlineStatusStore = useOnlineStatusStore()
 
 const buildingId = computed(() => route.params.id)
@@ -241,6 +259,69 @@ const buildingName = computed(() => route.query.buildingName)
 // Lokale States für besseres UX
 const isPreloading = ref(false)
 const cacheAge = ref(null)
+
+// Drag-and-Drop Sortierung
+const dragIndex = ref(null)
+const dragOverIndex = ref(null)
+const sortOrderChanged = ref(false)
+const savingOrder = ref(false)
+const localOrder = ref([])
+
+function onDragStart(index, event) {
+  dragIndex.value = index
+  event.dataTransfer.effectAllowed = 'move'
+}
+function onDragOver(index) {
+  dragOverIndex.value = index
+}
+function onDragLeave() {
+  dragOverIndex.value = null
+}
+function onDrop(targetIndex) {
+  if (dragIndex.value === null || dragIndex.value === targetIndex) return
+  const items = [...localOrder.value]
+  const [moved] = items.splice(dragIndex.value, 1)
+  items.splice(targetIndex, 0, moved)
+  items.forEach((item, i) => { item.sorted = i + 1 })
+  localOrder.value = items
+  sortOrderChanged.value = true
+  dragIndex.value = null
+  dragOverIndex.value = null
+}
+function onDragEnd() {
+  dragIndex.value = null
+  dragOverIndex.value = null
+}
+
+async function saveOrder() {
+  if (!onlineStatusStore.isFullyOnline) {
+    alert(t('common.offlineNotAvailable') || 'Nur im Online-Modus verfügbar')
+    return
+  }
+  savingOrder.value = true
+  try {
+    const { getAuthHeaders } = await import('@/stores/GlobalToken.js')
+    const { getApiBaseUrl } = await import('@/config/apiConfig.js')
+    const payload = localOrder.value.map(a => ({ id: a.id, sorted: a.sorted }))
+    const res = await fetch(`${getApiBaseUrl()}/apartments/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...getAuthHeaders() },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    })
+    const data = await res.json()
+    if (data.success) {
+      apartments.value = [...localOrder.value]
+      sortOrderChanged.value = false
+    } else {
+      console.error('Reihenfolge speichern fehlgeschlagen:', data.error)
+    }
+  } catch (e) {
+    console.error('Fehler beim Speichern der Reihenfolge:', e)
+  } finally {
+    savingOrder.value = false
+  }
+}
 
 // Berechne das Alter des Caches (async via IndexedDB)
 const calculateCacheAge = async () => {
@@ -280,37 +361,22 @@ const cacheStatusText = computed(() => {
   return t('apartments.updatedHoursAgo', { hours })
 })
 
-const sortedApartments = computed(() => {
-  if (!apartments.value || !Array.isArray(apartments.value)) return []
-  return [...apartments.value].sort((a, b) => {
-    // Wenn beide ein 'sorted' Feld haben, nutze dieses numerisch (aufsteigend)
-    const aHasSorted = a && a.sorted !== undefined && a.sorted !== null && a.sorted !== ''
-    const bHasSorted = b && b.sorted !== undefined && b.sorted !== null && b.sorted !== ''
+const sortedApartments = computed(() => localOrder.value)
 
-    if (aHasSorted && bHasSorted) {
-      const numA = Number(a.sorted)
-      const numB = Number(b.sorted)
-      if (!isNaN(numA) && !isNaN(numB)) {
-        if (numA !== numB) return numA - numB
-      }
-    }
-
-    // Wenn nur eines der Apartments ein 'sorted' hat, soll dieses vorangestellt werden
-    if (aHasSorted && !bHasSorted) return -1
-    if (!aHasSorted && bHasSorted) return 1
-
-    // Fallback: wie bisher nach Etage, dann nach Apartment-Nummer sortieren
-    try {
-      if ((a.floor || '') !== (b.floor || '')) {
-        return (a.floor || '').toString().localeCompare((b.floor || '').toString(), undefined, { numeric: true })
-      }
-      return (a.number || '').toString().localeCompare((b.number || '').toString(), undefined, { numeric: true })
-    } catch (e) {
-      // Falls etwas schief geht, keine Reihenfolgeänderung
-      return 0
-    }
+function initLocalOrder(source) {
+  if (!source || !Array.isArray(source)) return
+  const sorted = [...source].sort((a, b) => {
+    const numA = Number(a.sorted ?? 0)
+    const numB = Number(b.sorted ?? 0)
+    if (numA !== numB) return numA - numB
+    return (a.number || '').toString().localeCompare((b.number || '').toString(), undefined, { numeric: true })
   })
-})
+  sorted.forEach((item, i) => { item.sorted = item.sorted || (i + 1) })
+  localOrder.value = sorted
+  sortOrderChanged.value = false
+}
+
+watch(apartments, (val) => { if (!sortOrderChanged.value) initLocalOrder(val) }, { immediate: true })
 
 const activeApartments = computed(() => {
   if (!apartments.value || !Array.isArray(apartments.value)) return 0
@@ -777,6 +843,14 @@ onBeforeRouteLeave((to, from) => {
 </script>
 
 <style scoped src="@/styles/views/BuildingApartments.css"></style>
+
+<style scoped>
+.drag-handle-cell { width: 36px; text-align: center; }
+.drag-handle { cursor: grab; font-size: 1.2rem; color: #adb5bd; user-select: none; }
+.drag-handle:active { cursor: grabbing; }
+tr[draggable="true"] { cursor: default; }
+tr.drag-over td { background-color: #cfe2ff !important; }
+</style>
 
 <style scoped>
 /* Mobile-first: bei engen Bildschirmen Tabelle in Block-Layout umwandeln, damit kein horizontales Scrollen entsteht */

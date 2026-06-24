@@ -43,6 +43,8 @@
     "start": "Start",
     "end": "End",
     "total": "Total",
+    "saving": "Saving...",
+    "offlineNotAvailable": "Only available in online mode",
     "average": "Average"
   },
   "nav": {
@@ -156,6 +158,7 @@
     "flushHistory": "Flush History",
     "startFlushing": "Start Flushing",
     "stopFlushing": "Stop Flushing",
+    "saveOrder": "Save order",
     "noApartments": "No apartments found",
     "needsFlushing": "Flushing due",
     "flushingActive": "Flushing active",
