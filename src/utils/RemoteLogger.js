@@ -14,9 +14,8 @@ const RemoteLogger = (function() {
   // forwards the request to the real backend (/logs). In production POST directly
   // to the controller path '/logs'.
   const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
-  // Use trailing slash to avoid backend redirect to a slash-appended location
-  // Use '/logs/send/' — backend expects the send action at /logs/send
-  const endpoint = isDev ? '/api/logs/send' : configuredBase.replace(/\/$/, '') + '/logs/send';
+  // Trailing slash prevents nginx from issuing a 301 redirect (POST→GET conversion).
+  const endpoint = isDev ? '/api/logs/send/' : configuredBase.replace(/\/$/, '') + '/logs/send/';
 
   // Optional API key coming from Vite env: set VITE_REMOTE_LOG_API_KEY in .env to include header
   const apiKey = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_REMOTE_LOG_API_KEY)
@@ -117,6 +116,12 @@ const RemoteLogger = (function() {
           originalConsole.warn && originalConsole.warn(`RemoteLogger: pausing remote logging until ${new Date(pausedUntil).toISOString()} due to repeated 403 responses`);
         }
         // do NOT requeue to avoid infinite retry loop on 403
+      } else if (response.status === 404 || response.status === 405) {
+        // Endpoint not found or method not allowed — endpoint is misconfigured.
+        // Pause permanently for this session to avoid flooding the server.
+        pausedUntil = Date.now() + 24 * 60 * 60 * 1000; // 24h
+        originalConsole.warn && originalConsole.warn(`RemoteLogger: ${response.status} from logging endpoint — pausing remote logging (endpoint not available).`);
+        // do NOT requeue
       } else {
         // Non-OK -> schedule retries with backoff instead of immediate requeue
         originalConsole.warn && originalConsole.warn('RemoteLogger: non-ok response, scheduling retries', response.status);

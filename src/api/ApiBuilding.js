@@ -213,7 +213,9 @@ export class ApiBuilding {
         })
 
         const response = await this.send(request)
-        const items = Array.isArray(response.data) ? response.data : []
+        const items = Array.isArray(response.data)
+            ? response.data
+            : (response.data && typeof response.data === 'object' ? Object.values(response.data) : [])
 
         return new ApiBuildingListResponse({
             items,
