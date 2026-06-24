@@ -211,7 +211,7 @@ export class PingResponse {
    * Prüft ob der Ping erfolgreich war
    */
   isPong() {
-    return this.isSuccess() && this.data.isPong()
+    return this.isSuccess() && (this.data.isPong() || this.success)
   }
 }
 
