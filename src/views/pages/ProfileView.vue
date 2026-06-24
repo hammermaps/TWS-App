@@ -366,15 +366,17 @@ const { t } = useI18n()
 import { lastTokenCheck, lastPageTokenCheck, lastActivity } from '../../stores/TokenManager.js'
 import { useOnlineStatusStore } from '../../stores/OnlineStatus.js'
 import { ApiUser } from '../../api/ApiUser.js'
+import { useGlobalAvatar } from '@/composables/useGlobalAvatar.js'
 import defaultAvatar from '@/assets/images/avatars/8.jpg'
 
 const router = useRouter()
 const loading = ref(false)
 const loadingUserData = ref(false)
 const userDataError = ref('')
+const { globalAvatar, setAvatar } = useGlobalAvatar()
 
-// Avatar-Bild laden
-const avatar = ref(defaultAvatar)
+// Avatar-Bild laden — spiegelt globalen State wider
+const avatar = computed(() => globalAvatar.value || defaultAvatar)
 const avatarLoading = ref(false)
 
 // Stores initialisieren
@@ -685,15 +687,15 @@ const loadProfileImage = async () => {
     })
 
     if (result.success && result.data && result.data.base64) {
-      avatar.value = result.data.base64
+      setAvatar(result.data.base64)
       console.log('✅ Profilbild erfolgreich geladen')
     } else {
       console.log('ℹ️ Kein Profilbild verfügbar, verwende Standard-Avatar')
-      avatar.value = defaultAvatar
+      setAvatar(null)
     }
   } catch (error) {
     console.error('❌ Fehler beim Laden des Profilbilds:', error)
-    avatar.value = defaultAvatar
+    setAvatar(null)
   } finally {
     avatarLoading.value = false
   }

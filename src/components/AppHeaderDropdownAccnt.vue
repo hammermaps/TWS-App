@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -14,23 +14,26 @@ import {
 import { CIcon } from '@coreui/icons-vue';
 import { useUser } from '../api/useUser.js'
 import { ApiUser } from '../api/ApiUser.js'
+import { useGlobalAvatar } from '@/composables/useGlobalAvatar.js'
 import defaultAvatar from '@/assets/images/avatars/8.jpg'
 
 const router = useRouter()
 const { t } = useI18n()
 const { logout, currentUser, isAuthenticated } = useUser()
-
-const avatar = ref(defaultAvatar)
+const { globalAvatar, setAvatar } = useGlobalAvatar()
 const apiUser = new ApiUser()
+
+// Zeige globalAvatar wenn gesetzt, sonst Default
+const avatar = computed(() => globalAvatar.value || defaultAvatar)
 
 const loadAvatar = async () => {
   if (!currentUser.value?.id) return
   const result = await apiUser.getProfileImage(currentUser.value.id, { ttlMinutes: 24 * 60 })
-  avatar.value = result.success && result.data?.base64 ? result.data.base64 : defaultAvatar
+  setAvatar(result.success && result.data?.base64 ? result.data.base64 : null)
 }
 
 onMounted(loadAvatar)
-watch(() => currentUser.value?.id, loadAvatar)
+watch(() => currentUser.value?.id, (id) => { if (id) loadAvatar() })
 
 const handleLogout = async () => {
   try {

@@ -387,6 +387,7 @@ import { getUserDebugInfo, setUser, getCurrentUser as getStoredUser, currentUser
 import { lastTokenCheck } from '../../stores/TokenManager.js'
 import { ApiUser } from '../../api/ApiUser.js'
 import { useOnlineStatusStore } from '../../stores/OnlineStatus.js'
+import { useGlobalAvatar } from '@/composables/useGlobalAvatar.js'
 import defaultAvatar from '@/assets/images/avatars/8.jpg'
 
 const { t } = useI18n()
@@ -411,9 +412,10 @@ const apiUser = new ApiUser()
 const onlineStatus = useOnlineStatusStore()
 const loadingUserData = ref(false)
 const userDataError = ref('')
+const { globalAvatar, setAvatar } = useGlobalAvatar()
 
-// Avatar
-const avatar = ref(defaultAvatar)
+// Avatar — lokaler ref spiegelt globalAvatar wider
+const avatar = computed(() => globalAvatar.value || defaultAvatar)
 const avatarLoading = ref(false)
 
 const loadProfileImage = async () => {
@@ -421,13 +423,9 @@ const loadProfileImage = async () => {
   avatarLoading.value = true
   try {
     const result = await apiUser.getProfileImage(currentUser.value.id, { ttlMinutes: 24 * 60 })
-    if (result.success && result.data?.base64) {
-      avatar.value = result.data.base64
-    } else {
-      avatar.value = defaultAvatar
-    }
+    setAvatar(result.success && result.data?.base64 ? result.data.base64 : null)
   } catch (e) {
-    avatar.value = defaultAvatar
+    setAvatar(null)
   } finally {
     avatarLoading.value = false
   }
