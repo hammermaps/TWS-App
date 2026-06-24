@@ -99,6 +99,7 @@
     "apartment": "Wohnung",
     "totalDuration": "Gesamtdauer",
     "avgDuration": "Ø Dauer",
+    "noApartmentStatistics": "Keine Wohnungs-Statistiken verfügbar",
     "noStatisticsAvailable": "Keine Statistiken verfügbar",
     "noStatisticsYet": "Es sind noch keine Arbeitsstatistiken vorhanden.",
     "loadStatistics": "Statistiken laden",

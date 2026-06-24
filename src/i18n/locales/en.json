@@ -99,6 +99,7 @@
     "apartment": "Apartment",
     "totalDuration": "Total Duration",
     "avgDuration": "Avg Duration",
+    "noApartmentStatistics": "No apartment statistics available",
     "noStatisticsAvailable": "No statistics available",
     "noStatisticsYet": "No work statistics available yet.",
     "loadStatistics": "Load Statistics",
