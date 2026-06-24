@@ -118,6 +118,23 @@
                 </CCol>
               </CRow>
 
+              <CRow>
+                <CCol :md="6">
+                  <div class="mb-3">
+                    <CFormLabel>
+                      <CIcon icon="cil-sun" class="me-1" />
+                      {{ t('profile.theme_mode_label') }}
+                    </CFormLabel>
+                    <CFormSelect v-model="profileForm.theme_mode">
+                      <option value="auto">{{ t('profile.theme_auto') }}</option>
+                      <option value="light">{{ t('profile.theme_light') }}</option>
+                      <option value="dark">{{ t('profile.theme_dark') }}</option>
+                    </CFormSelect>
+                    <div class="form-text text-muted">{{ t('profile.theme_mode_hint') }}</div>
+                  </div>
+                </CCol>
+              </CRow>
+
               <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                 <CButton
                   type="submit"
@@ -421,7 +438,8 @@ const profileForm = reactive({
   username: '',
   name: '',
   email: '',
-  indent: ''
+  indent: '',
+  theme_mode: 'auto'
 })
 
 const passwordForm = reactive({
@@ -575,6 +593,7 @@ const loadProfileData = () => {
     profileForm.email = currentUser.value.email || ''
     profileForm.indent = currentUser.value.indent || ''
     profileForm.role = currentUser.value.role || ''
+    profileForm.theme_mode = currentUser.value.theme_mode || 'auto'
     console.log('📝 Profil-Formular mit Benutzerdaten gefüllt')
   }
 }
@@ -593,11 +612,15 @@ const handleProfileUpdate = async () => {
   const result = await updateProfile({
     name: profileForm.name,
     email: profileForm.email,
-    indent: profileForm.indent
+    indent: profileForm.indent,
+    theme_mode: profileForm.theme_mode
   })
 
   if (result.success) {
     profileSuccess.value = 'Profil erfolgreich aktualisiert!'
+    // Theme sofort anwenden
+    const { applyThemeMode } = await import('@/stores/GlobalUser.js')
+    applyThemeMode(profileForm.theme_mode)
     // Aktualisiere Form mit neuen Daten
     loadProfileData()
   }

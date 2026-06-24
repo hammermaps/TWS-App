@@ -20,7 +20,8 @@ class UserItem {
     updated_at,
     logins_total,
     logins_failed,
-    session_time
+    session_time,
+    theme_mode
   } = {}) {
     this.id = typeof id === "string" ? parseInt(id, 10) : (Number.isFinite(id) ? id : 0)
     this.username = typeof username === "string" ? username : ""
@@ -40,6 +41,9 @@ class UserItem {
 
     // Session-Zeit in Sekunden (Differenz zwischen aktueller Zeit und Erstellungszeit)
     this.session_time = typeof session_time === "string" ? parseInt(session_time, 10) : (Number.isFinite(session_time) ? session_time : 0)
+
+    // Theme-Präferenz: 'light' | 'dark' | 'auto'
+    this.theme_mode = ['light', 'dark', 'auto'].includes(theme_mode) ? theme_mode : 'auto'
   }
 
   // Getter für formatierte Datumsangaben
@@ -131,10 +135,29 @@ const isLoggedIn = computed(() => !!currentUser.value)
 const userRole = computed(() => currentUser.value?.role || '')
 const userName = computed(() => currentUser.value?.name || currentUser.value?.username || '')
 
+// Theme-Mode anwenden (wird nach Login und nach Preference-Änderung aufgerufen)
+export function applyThemeMode(mode) {
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const useDark = mode === 'dark' || (mode === 'auto' && prefersDark)
+  if (useDark) {
+    document.documentElement.classList.add('dark-mode')
+    document.documentElement.classList.remove('light-style')
+    document.documentElement.classList.add('dark-style')
+    localStorage.setItem('darkMode', 'enabled')
+  } else {
+    document.documentElement.classList.remove('dark-mode')
+    document.documentElement.classList.add('light-style')
+    document.documentElement.classList.remove('dark-style')
+    localStorage.setItem('darkMode', 'disabled')
+  }
+}
+
 // User setzen
 const setUser = async (userData) => {
   if (userData) {
     currentUser.value = userData instanceof UserItem ? userData : new UserItem(userData)
+    // Theme-Mode sofort anwenden
+    applyThemeMode(currentUser.value.theme_mode || 'auto')
     // Speichere User auch in IndexedDB für Offline-Zugriff
     try {
       await indexedDBHelper.set(STORES.USER, {
