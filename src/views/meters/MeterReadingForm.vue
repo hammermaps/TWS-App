@@ -279,7 +279,7 @@ const loadMeter = async () => {
     // Online: frische Daten laden
     if (isOnline.value) {
       try {
-        const result = await apiMeter.get(meterId.value)
+        const result = await apiMeter.getById(meterId.value)
         if (result) {
           meter.value = result
         }

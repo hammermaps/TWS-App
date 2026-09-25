@@ -272,9 +272,9 @@ const loadMeters = async (forceRefresh = false) => {
       isPreloading.value = true
       try {
         const result = await apiMeter.list(selectedBuildingId.value || undefined)
-        if (result && result.length > 0) {
-          meters.value = result
-          await MeterStorage.setMeters(JSON.parse(JSON.stringify(result)))
+        if (result.success && result.items.length > 0) {
+          meters.value = result.items
+          await MeterStorage.setMeters(JSON.parse(JSON.stringify(result.items)))
         }
       } catch (err) {
         console.warn('Hintergrund-Aktualisierung fehlgeschlagen:', err)
@@ -289,7 +289,10 @@ const loadMeters = async (forceRefresh = false) => {
   error.value = null
   try {
     const result = await apiMeter.list(selectedBuildingId.value || undefined)
-    meters.value = result || []
+    if (!result.success) {
+      error.value = result.error || t('common.error')
+    }
+    meters.value = result.items || []
     if (meters.value.length > 0) {
       await MeterStorage.setMeters(JSON.parse(JSON.stringify(meters.value)))
     }

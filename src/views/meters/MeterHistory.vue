@@ -328,7 +328,9 @@ const loadReadings = async (append = false) => {
   if (!isOnline.value) return
   loading.value = true
   try {
-    const result = await apiMeter.readings(meterId.value, { page: page.value, limit: pageSize })
+    // apiMeter.readings() erwartet {limit, offset}, kein {page} - "Mehr laden"
+    // fragte bisher immer dieselbe erste Seite ab, da page.value hier verpuffte.
+    const result = await apiMeter.readings(meterId.value, { offset: (page.value - 1) * pageSize, limit: pageSize })
     const items = Array.isArray(result) ? result : (result?.items || result?.data || [])
     if (append) {
       readings.value = [...readings.value, ...items]
