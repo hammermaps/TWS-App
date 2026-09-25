@@ -259,18 +259,24 @@ export class ApiHealthClient {
    * @returns {Promise<HealthStatusResponse>}
    */
   async getStatus() {
+    // response_time wird vom Server nie mitgeschickt (twsJsonResponse() setzt
+    // nur server_time) - deshalb clientseitig aus der tatsächlichen
+    // Request-Laufzeit gemessen, statt immer 0 anzuzeigen.
+    const startedAt = performance.now()
     try {
       this.client.defaults.baseURL = this.baseUrl
       const response = await this.client.get('/health/status')
-      return new HealthStatusResponse(response.data)
+      return new HealthStatusResponse({ ...response.data, response_time: performance.now() - startedAt })
     } catch (error) {
+      const responseTime = performance.now() - startedAt
       if (error.response && error.response.data) {
-        return new HealthStatusResponse(error.response.data)
+        return new HealthStatusResponse({ ...error.response.data, response_time: responseTime })
       }
       return new HealthStatusResponse({
         success: false,
         error: error.message || 'Fehler beim Abrufen des Health Status',
-        data: {}
+        data: {},
+        response_time: responseTime
       })
     }
   }
@@ -280,18 +286,21 @@ export class ApiHealthClient {
    * @returns {Promise<PingResponse>}
    */
   async ping() {
+    const startedAt = performance.now()
     try {
       this.client.defaults.baseURL = this.baseUrl
       const response = await this.client.get('/health/ping')
-      return new PingResponse(response.data)
+      return new PingResponse({ ...response.data, response_time: performance.now() - startedAt })
     } catch (error) {
+      const responseTime = performance.now() - startedAt
       if (error.response && error.response.data) {
-        return new PingResponse(error.response.data)
+        return new PingResponse({ ...error.response.data, response_time: responseTime })
       }
       return new PingResponse({
         success: false,
         error: error.message || 'Fehler beim Ping',
-        data: {}
+        data: {},
+        response_time: responseTime
       })
     }
   }
