@@ -62,10 +62,13 @@ jobs:
           COMMIT_SHA: ${{ github.sha }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          curl -sf -X POST "https://dkc.dk-automation.de/api.php?action=wls_app_deploy" \
+          curl -sS -o response.txt -w "HTTP-Status: %{http_code}\n" -X POST "https://dkc.dk-automation.de/api.php?action=wls_app_deploy" \
             -H "Authorization: Bearer ${DEPLOY_TOKEN}" \
             -F "apk=@android/app/build/outputs/apk/debug/app-debug.apk" \
             -F "version=${APP_VERSION}" \
             -F "version_code=${VERSION_CODE}" \
             -F "commit_sha=${COMMIT_SHA}" \
             -F "notes=${COMMIT_MESSAGE}"
+          echo "--- Antwort ---"
+          cat response.txt
+          echo
