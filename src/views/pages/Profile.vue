@@ -92,18 +92,6 @@
 
               <CRow class="mt-3">
                 <CCol :md="6">
-                  <CFormInput
-                    v-model="profileForm.indent"
-                    :label="t('profile.identification')"
-                    :placeholder="t('profile.identificationPlaceholder')"
-                    :disabled="profileLoading"
-                    :readonly="!isAdmin"
-                  />
-                  <CFormText v-if="!isAdmin">
-                    <small class="text-muted">{{ t('profile.identificationHelp') }}</small>
-                  </CFormText>
-                </CCol>
-                <CCol :md="6">
                   <div class="mb-3">
                     <CFormLabel>{{ t('profile.userRole') }}</CFormLabel>
                     <div>
@@ -383,7 +371,7 @@ import {
 import CIcon from '@coreui/icons-vue'
 import OnlineRequiredWrapper from '@/components/OnlineRequiredWrapper.vue'
 import { useProfile } from '../../api/useProfile.js'
-import { getUserDebugInfo, setUser, getCurrentUser as getStoredUser, currentUser as globalCurrentUser } from '../../stores/GlobalUser.js'
+import { getUserDebugInfo, setUser, getCurrentUser as getStoredUser, currentUser as globalCurrentUser, isAdmin } from '../../stores/GlobalUser.js'
 import { lastTokenCheck } from '../../stores/TokenManager.js'
 import { ApiUser } from '../../api/ApiUser.js'
 import { useOnlineStatusStore } from '../../stores/OnlineStatus.js'

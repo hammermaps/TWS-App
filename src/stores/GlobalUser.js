@@ -22,7 +22,8 @@ class UserItem {
     logins_failed,
     session_time,
     theme_mode,
-    language
+    language,
+    permissions
   } = {}) {
     this.id = typeof id === "string" ? parseInt(id, 10) : (Number.isFinite(id) ? id : 0)
     this.username = typeof username === "string" ? username : ""
@@ -49,6 +50,11 @@ class UserItem {
     // Sprache aus dem DKC-Profil (users.language) - App-UI-Sprache folgt dieser
     // Einstellung (siehe App.vue-Watcher), nur 'de'/'en' werden unterstützt.
     this.language = typeof language === 'string' ? language : 'de'
+
+    // Echte DKC-Berechtigungen (wls_view/wls_create/wls_edit/wls_delete/
+    // wls_admin/wls_buildings/wls_users/wls_config, siehe twsFmtUser() in
+    // api.php - admin gewährt dort bereits implizit alle wls_*-Rechte).
+    this.permissions = (permissions && typeof permissions === 'object') ? { ...permissions } : {}
   }
 
   // Getter für formatierte Datumsangaben
@@ -127,7 +133,8 @@ class UserItem {
       logins_failed: this.logins_failed,
       session_time: this.session_time,
       theme_mode: this.theme_mode,
-      language: this.language
+      language: this.language,
+      permissions: this.permissions
     }
   }
 }
@@ -294,8 +301,16 @@ const hasRoleOrHigher = (requiredRole) => {
   return userLevel >= requiredLevel
 }
 
+// Echte DKC-Berechtigung prüfen (wls_view/wls_create/wls_edit/wls_delete/
+// wls_admin/wls_buildings/wls_users/wls_config), statt sich auf die grobe
+// role-Ableitung zu verlassen (server-seitig nur 'admin'/'technician'/'user',
+// 'supervisor' aus der alten Rollenhierarchie unten existiert dort gar nicht).
+const hasPermission = (permissionKey) => {
+  return currentUser.value?.permissions?.[permissionKey] === true
+}
+
 const isSupervisor = computed(() => hasRole('supervisor'))
-const isAdmin = computed(() => hasRole('admin'))
+const isAdmin = computed(() => hasPermission('wls_admin'))
 const isUser = computed(() => hasRole('user'))
 const isEnabled = computed(() => currentUser.value?.enabled === true)
 
@@ -321,8 +336,8 @@ const canAccessAdminArea = computed(() => {
 })
 
 const canManageUsers = computed(() => {
-  // Nur Admin kann Benutzer verwalten
-  return isAdmin.value && isEnabled.value
+  // Admin oder echtes wls_users-Recht kann Benutzer verwalten
+  return (isAdmin.value || hasPermission('wls_users')) && isEnabled.value
 })
 
 const canViewReports = computed(() => {
@@ -413,6 +428,7 @@ export {
   updateUserRole,
   hasRole,
   hasRoleOrHigher,
+  hasPermission,
   getUserDebugInfo,
   UserItem
 }
