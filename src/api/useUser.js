@@ -5,6 +5,7 @@ import { setToken, clearToken, getToken } from '../stores/GlobalToken.js'
 import { setUser, clearUser, setUserLoading, setUserError, UserItem } from '../stores/GlobalUser.js'
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
+import { useGlobalAvatar } from '../composables/useGlobalAvatar.js'
 
 /**
  * Vue Composable für User-Management
@@ -16,6 +17,12 @@ export function useUser(baseUrl = null) {
 
   // API-Client-Instanz
   const apiClient = new ApiUser(apiBaseUrl)
+
+  // Geteilter Avatar-Store (siehe useGlobalAvatar.js) - wird nach dem Login
+  // einmal befüllt, damit z.B. der Header-Avatar (eigene useUser()-Instanz,
+  // deren lokaler currentUser hier nicht gesetzt wird) nicht bis zum
+  // Öffnen des Profils den Standard-Avatar zeigt.
+  const { setAvatar } = useGlobalAvatar()
 
   // Reaktive Zustände
   const loading = ref(false)
@@ -104,6 +111,16 @@ export function useUser(baseUrl = null) {
         // ✅ Synchron userId als globale Variable setzen (schnellster Fallback)
         if (result.user.id) {
           window._wls_userId = result.user.id
+        }
+
+        // Profilbild einmal laden und in den geteilten Avatar-Store schreiben
+        // (nicht awaited - soll den Login/die Weiterleitung nicht verzögern)
+        if (result.user.id) {
+          apiClient.getProfileImage(result.user.id, { ttlMinutes: 24 * 60 })
+            .then((imgResult) => {
+              setAvatar(imgResult.success && imgResult.data?.base64 ? imgResult.data.base64 : null)
+            })
+            .catch(() => setAvatar(null))
         }
 
         // Benutzer und userId in IndexedDB speichern
