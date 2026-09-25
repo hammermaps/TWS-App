@@ -40,4 +40,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- QR-Scanner (@zxing/library) und Foto bei Zählerablesung nutzen
+         getUserMedia() im WebView - ohne deklarierte CAMERA-Berechtigung
+         bietet Android sie in den System-Einstellungen für die App gar nicht
+         erst zum Gewähren an, und jeder Kamerazugriff schlägt fehl. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 </manifest>
