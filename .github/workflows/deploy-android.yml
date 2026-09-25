@@ -62,13 +62,16 @@ jobs:
           COMMIT_SHA: ${{ github.sha }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          curl -sS -o response.txt -w "HTTP-Status: %{http_code}\n" -X POST "https://dkc.dk-automation.de/api.php?action=wls_app_deploy" \
+          status=$(curl -sS -o response.txt -w "%{http_code}" -X POST "https://dkc.dk-automation.de/api.php?action=wls_app_deploy" \
             -H "Authorization: Bearer ${DEPLOY_TOKEN}" \
             -F "apk=@android/app/build/outputs/apk/debug/app-debug.apk" \
             -F "version=${APP_VERSION}" \
             -F "version_code=${VERSION_CODE}" \
             -F "commit_sha=${COMMIT_SHA}" \
-            -F "notes=${COMMIT_MESSAGE}"
-          echo "--- Antwort ---"
+            -F "notes=${COMMIT_MESSAGE}")
+          echo "HTTP-Status: ${status}"
           cat response.txt
           echo
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            exit 1
+          fi
