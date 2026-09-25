@@ -44,7 +44,11 @@ jobs:
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        # android/gradle.properties setzt org.gradle.java.home auf einen lokalen
+        # Entwickler-Pfad, der auf dem Runner nicht existiert - hier mit dem
+        # von setup-java bereitgestellten JAVA_HOME überschreiben, ohne die
+        # Projektdatei anzufassen.
+        run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home="$JAVA_HOME"
 
       - name: Read app version
         id: appver
