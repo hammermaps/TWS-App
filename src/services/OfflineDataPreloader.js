@@ -1,15 +1,17 @@
 /**
  * OfflineDataPreloader.js
- * Service zum Vorladen von Gebäuden und Apartments für den Offline-Modus
+ * Service zum Vorladen von Gebäuden, Apartments und Zählern für den Offline-Modus
  */
 
 import { ref } from 'vue'
 import { ApiBuilding } from '../api/ApiBuilding.js'
 import { ApiApartment } from '../api/ApiApartment.js'
 import { ApiConfig } from '../api/ApiConfig.js'
+import { apiMeter } from '../api/ApiMeter.js'
 import BuildingStorage from '../stores/BuildingStorage.js'
 import { useApartmentStorage } from '../stores/ApartmentStorage.js'
 import configStorage from '../stores/ConfigStorage.js'
+import MeterStorage from '../stores/MeterStorage.js'
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 
 const PRELOAD_METADATA_KEY = 'wls_preload_metadata'
@@ -214,6 +216,26 @@ export class OfflineDataPreloader {
       this.preloadProgress.value.totalApartments = totalApartmentsLoaded
 
       console.log(`✅ Insgesamt ${totalApartmentsLoaded} Apartments geladen`)
+
+      // Schritt 3: Lade alle Zähler (ein Aufruf, unabhängig von der Gebäudeanzahl -
+      // die Zähler-API filtert nicht zwingend nach Gebäude, siehe MeterStorage)
+      console.log('📊 Lade Zähler...')
+      let metersLoaded = 0
+      try {
+        const metersResponse = await apiMeter.list()
+        if (metersResponse.success && metersResponse.items.length > 0) {
+          await MeterStorage.setMeters(JSON.parse(JSON.stringify(metersResponse.items)))
+          await MeterStorage.setTimestamp()
+          metersLoaded = metersResponse.items.length
+          console.log(`✅ ${metersLoaded} Zähler geladen`)
+        } else {
+          console.warn('⚠️ Keine Zähler geladen:', metersResponse.error)
+        }
+      } catch (meterError) {
+        console.warn('⚠️ Fehler beim Laden der Zähler:', meterError)
+        // Zähler-Fehler nicht als kritisch behandeln, wie schon bei der Konfiguration oben
+      }
+
       console.log('🎉 Preloading abgeschlossen!')
 
       this.preloadProgress.value.status = 'success'
@@ -226,6 +248,7 @@ export class OfflineDataPreloader {
         timestamp: this.lastPreloadTime.value,
         buildingsCount: buildings.length,
         apartmentsCount: totalApartmentsLoaded,
+        metersCount: metersLoaded,
         configLoaded: this.preloadProgress.value.config,
         buildingDetails: buildings.map((b, idx) => ({
           id: b.id,
@@ -243,7 +266,8 @@ export class OfflineDataPreloader {
         window.dispatchEvent(new CustomEvent('wls:preload:complete', {
           detail: {
             buildingsCount: buildings.length,
-            apartmentsCount: totalApartmentsLoaded
+            apartmentsCount: totalApartmentsLoaded,
+            metersCount: metersLoaded
           }
         }))
       } catch (e) {
@@ -424,6 +448,7 @@ export class OfflineDataPreloader {
       await BuildingStorage.clearBuildings()
       await this.apartmentStorage.storage.clearAll()
       await configStorage.clearConfig()
+      await MeterStorage.clearMeters()
       await indexedDBHelper.delete(STORES.METADATA, PRELOAD_METADATA_KEY)
       // Reset reaktive Werte
       this.preloadProgress.value = {
