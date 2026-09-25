@@ -20,6 +20,17 @@
               <CIcon icon="cil-sync" class="me-1" size="sm" />
               {{ $t('buildings.updating') }}
             </CBadge>
+            <CButton
+              v-if="pendingCount > 0 && onlineStatus.isFullyOnline"
+              color="info"
+              variant="outline"
+              size="sm"
+              @click="syncPendingReadings"
+              :disabled="isSyncing"
+            >
+              <CIcon icon="cil-reload" class="me-2" />
+              {{ $t('meter.sync_now') }}
+            </CButton>
             <CButton color="primary" @click="refreshMeters" :disabled="loading || !onlineStatus.isFullyOnline">
               <CIcon icon="cil-reload" class="me-2" />
               {{ $t('common.refresh') }}
@@ -181,6 +192,7 @@ import { apiMeter } from '@/api/ApiMeter.js'
 import MeterStorage from '@/stores/MeterStorage.js'
 import { useOfflineMeterStorage } from '@/stores/OfflineMeterStorage.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
+import { useOfflineMeterSync } from '@/stores/OfflineMeterSyncService.js'
 import BuildingStorage from '@/stores/BuildingStorage.js'
 
 const router = useRouter()
@@ -188,6 +200,8 @@ const route = useRoute()
 const { t } = useI18n()
 const onlineStatus = useOnlineStatusStore()
 const offlineMeterStorage = useOfflineMeterStorage()
+const { forceSync } = useOfflineMeterSync()
+const isSyncing = ref(false)
 
 const meters = ref([])
 const buildings = ref([])
@@ -253,6 +267,18 @@ const loadPendingCounts = async () => {
     pendingByMeter.value = byMeter
   } catch (err) {
     console.warn('Fehler beim Laden der Offline-Zähler:', err)
+  }
+}
+
+const syncPendingReadings = async () => {
+  isSyncing.value = true
+  try {
+    await forceSync()
+  } catch (err) {
+    console.warn('Fehler beim manuellen Zählerstand-Sync:', err)
+  } finally {
+    await loadPendingCounts()
+    isSyncing.value = false
   }
 }
 

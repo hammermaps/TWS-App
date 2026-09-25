@@ -570,6 +570,7 @@
     "save_offline": "Offline gespeichert",
     "save_offline_msg": "Die Ablesung wird synchronisiert, sobald eine Verbindung besteht.",
     "sync_pending": "{count} ausstehend",
+    "sync_now": "Jetzt synchronisieren",
     "sync_complete": "Synchronisierung abgeschlossen",
     "edit": "Ablesung bearbeiten",
     "delete": "Ablesung löschen",

@@ -49,6 +49,19 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     return offlineFlushSyncService
   }
 
+  // Lazy-Loading für OfflineMeterSyncService - analog zu OfflineFlushSyncService.
+  // War bisher nirgends zentral angebunden: die Offline-Warteschlange für
+  // Zählerstände (OfflineMeterStorage) wurde zwar beim Erfassen befüllt, aber
+  // nie automatisch bei Wiederverbindung synchronisiert.
+  let offlineMeterSyncServiceRef = null
+  const getMeterSyncService = async () => {
+    if (!offlineMeterSyncServiceRef) {
+      const module = await import('./OfflineMeterSyncService.js')
+      offlineMeterSyncServiceRef = module.default
+    }
+    return offlineMeterSyncServiceRef
+  }
+
   // Konfiguration
   const PING_INTERVAL = 30000 // 30 Sekunden
   const MAX_FAILURES_BEFORE_OFFLINE = 3 // Nach 3 fehlgeschlagenen Pings -> Offline
@@ -145,6 +158,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
           // Synchronisiere ausstehende Offline-Spülungen
           syncFlushData()
+
+          // Synchronisiere ausstehende Offline-Zählerstände
+          syncMeterData()
         }
         return true
       } else {
@@ -204,6 +220,36 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       }
     } catch (error) {
       console.error('❌ Fehler bei Flush-Synchronisation:', error)
+      // Nicht als kritischer Fehler anzeigen, da es nur um Offline-Daten geht
+    }
+  }
+
+  /**
+   * Synchronisiert ausstehende Offline-Zählerstände
+   */
+  async function syncMeterData() {
+    if (!isFullyOnline.value) {
+      console.log('⏸️ Zählerstand-Sync übersprungen - nicht online')
+      return
+    }
+
+    try {
+      const meterSyncService = await getMeterSyncService()
+      console.log('🔄 Starte Zählerstand-Synchronisation...')
+
+      const result = await meterSyncService.attemptSync()
+
+      if (result && !result.skipped && result.total > 0) {
+        if (result.errors === 0) {
+          console.log(`✅ ${result.saved} Zählerstände synchronisiert`)
+          notifyUser(`${result.saved} Zählerstände erfolgreich synchronisiert`, 'success')
+        } else {
+          console.warn(`⚠️ Zählerstand-Sync teilweise fehlgeschlagen: ${result.errors} Fehler`)
+          notifyUser(`${result.saved} von ${result.total} Zählerständen synchronisiert`, 'warning')
+        }
+      }
+    } catch (error) {
+      console.error('❌ Fehler bei Zählerstand-Synchronisation:', error)
       // Nicht als kritischer Fehler anzeigen, da es nur um Offline-Daten geht
     }
   }
@@ -321,6 +367,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
         // Flush-Synchronisation starten
         syncFlushData()
+
+        // Zählerstand-Synchronisation starten
+        syncMeterData()
 
         return true
       } catch (error) {
@@ -512,6 +561,8 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         setTimeout(() => syncConfigChanges(), 3000) // 3 Sekunden Verzögerung
         // Flush-Synchronisation starten
         setTimeout(() => syncFlushData(), 4000) // 4 Sekunden Verzögerung
+        // Zählerstand-Synchronisation starten
+        setTimeout(() => syncMeterData(), 5000) // 5 Sekunden Verzögerung
       }
     })
 
@@ -604,6 +655,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
           // 3. Flush-Synchronisation
           await syncFlushData()
+
+          // 4. Zählerstand-Synchronisation
+          await syncMeterData()
         } catch (error) {
           console.error('❌ Fehler bei automatischer Synchronisation:', error)
         }
@@ -643,6 +697,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     setManualOffline,
     triggerPreloadIfNeeded,
     syncFlushData,
+    syncMeterData,
     forcePreload,
     initialize,
     cleanup

@@ -570,6 +570,7 @@
     "save_offline": "Saved Offline",
     "save_offline_msg": "The reading will be synced when a connection is available.",
     "sync_pending": "{count} pending",
+    "sync_now": "Sync now",
     "sync_complete": "Sync complete",
     "edit": "Edit Reading",
     "delete": "Delete Reading",
