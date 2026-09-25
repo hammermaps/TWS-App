@@ -1,0 +1,65 @@
+name: Deploy Android APK
+
+# Baut bei jedem Push auf master/main eine Debug-APK und veröffentlicht sie im
+# DKC (ProxyServer) unter "WLS Administration → TWS-App" zum Download.
+# Ablauf: hier ändern & lokal testen, dann Push auf GitHub → dieser Workflow
+# baut automatisch und lädt die APK per api.php?action=wls_app_deploy hoch.
+#
+# Benötigtes Repository-Secret: WLS_APP_DEPLOY_TOKEN (muss mit dem Wert von
+# WLS_APP_DEPLOY_TOKEN in der .env des ProxyServer übereinstimmen).
+
+on:
+  push:
+    branches: [master, main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Read app version
+        id: appver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK to DKC (WLS-Bereich)
+        env:
+          DEPLOY_TOKEN: ${{ secrets.WLS_APP_DEPLOY_TOKEN }}
+          APP_VERSION: ${{ steps.appver.outputs.version }}
+          VERSION_CODE: ${{ github.run_number }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          curl -sf -X POST "https://dkc.dk-automation.de/api.php?action=wls_app_deploy" \
+            -H "Authorization: Bearer ${DEPLOY_TOKEN}" \
+            -F "apk=@android/app/build/outputs/apk/debug/app-debug.apk" \
+            -F "version=${APP_VERSION}" \
+            -F "version_code=${VERSION_CODE}" \
+            -F "commit_sha=${COMMIT_SHA}" \
+            -F "notes=${COMMIT_MESSAGE}"
