@@ -46,8 +46,16 @@ try {
   // ignore
 }
 
+// App-Version aus package.json für den In-App-Versionscheck (AppFooter.vue,
+// UpdateChecker) - VITE_APP_VERSION wurde bisher nirgends gesetzt und fiel
+// deshalb immer auf den hartkodierten Fallback '1.0.0' zurück.
+const appVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')).version
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion)
+  },
   plugins: [
     vue(),
     VitePWA({

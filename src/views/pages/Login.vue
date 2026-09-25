@@ -78,6 +78,27 @@
                     </div>
                   </div>
 
+                  <!-- Versionshinweis: nicht mehr unterstützte Version (blockierend) -->
+                  <CAlert
+                    v-if="versionCheck && versionCheck.supported === false"
+                    color="danger"
+                    :visible="true"
+                  >
+                    <strong>{{ $t('auth.versionUnsupportedTitle') }}</strong>
+                    <div>{{ $t('auth.versionUnsupportedText', { version: versionCheck.latestVersion }) }}</div>
+                  </CAlert>
+
+                  <!-- Versionshinweis: Update verfügbar (informativ) -->
+                  <CAlert
+                    v-else-if="versionCheck && versionCheck.updateAvailable"
+                    color="info"
+                    :visible="true"
+                    dismissible
+                  >
+                    <strong>{{ $t('auth.versionUpdateAvailableTitle', { version: versionCheck.latestVersion }) }}</strong>
+                    <div v-if="updateNotes">{{ updateNotes }}</div>
+                  </CAlert>
+
                   <!-- Error Alert -->
                   <CAlert
                     v-if="hasError"
@@ -181,6 +202,7 @@ import CIcon from '@coreui/icons-vue'
 import { useUser } from '../../api/useUser.js'
 import { availableLocales, changeLanguage } from '../../i18n/index.js'
 import { getApiBaseUrl } from '../../config/apiConfig.js'
+import appVersionClient, { CURRENT_APP_VERSION } from '../../api/ApiAppVersion.js'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -277,12 +299,37 @@ const handleLogin = async () => {
   }
 }
 
+// Versionscheck: neue Version verfügbar? Aktuelle Version noch vom Server unterstützt?
+// Schlägt der Check fehl (offline, alter/nicht erreichbarer Server), bleibt
+// versionCheck einfach null - keine Fehlermeldung, analog zu den stillen
+// Health-Checks an anderer Stelle in der App.
+const versionCheck = ref(null)
+
+const updateNotes = computed(() => {
+  if (!versionCheck.value || !versionCheck.value.notes) return ''
+  // Nur die erste Zeile (Commit-Subject) anzeigen - notes kann die volle,
+  // mehrzeilige Commit-Message enthalten (siehe wls_app_deploy in api.php).
+  return versionCheck.value.notes.split('\n')[0]
+})
+
+async function checkAppVersion() {
+  try {
+    const response = await appVersionClient.check(CURRENT_APP_VERSION)
+    if (response.isSuccess()) {
+      versionCheck.value = response.data
+    }
+  } catch (e) {
+    // still, siehe Kommentar oben
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   // Wenn bereits angemeldet, zur Dashboard weiterleiten
   if (isAuthenticated.value) {
     router.push('/dashboard')
   }
+  checkAppVersion()
 })
 </script>
 

@@ -6,8 +6,19 @@
 
 /**
  * Backend Base URL für Production
+ *
+ * Läuft über das DKC (ProxyServer), nicht mehr über den früheren
+ * eigenständigen Backend-Host wls.dk-automation.de. Wichtig: der /api-Pfad
+ * ist erforderlich - auf dkc.dk-automation.de liegen die TWS-REST-Endpunkte
+ * unter /api/... (nginx rewrite auf /api.php/... mit PATH_INFO-Routing),
+ * nicht auf der Domain-Wurzel wie beim früheren dedizierten Host. Ein
+ * bereits lokal gespeicherter custom_api_url ohne /api-Suffix (z.B. manuell
+ * in den Server-Einstellungen der Login-Seite eingetragen, bevor dieser
+ * Rewrite existierte) muss dort zurückgesetzt oder korrigiert werden -
+ * dieser Default greift nur, solange kein custom_api_url in localStorage
+ * steht. /api.php/... (ohne Rewrite) funktioniert weiterhin unverändert.
  */
-export const PRODUCTION_API_URL = 'https://wls.dk-automation.de'
+export const PRODUCTION_API_URL = 'https://dkc.dk-automation.de/api'
 
 /**
  * Backend Base URL für Development (Vite Proxy)

@@ -341,11 +341,14 @@
     "registerText": "Don't have an account yet? Register now and get access to all features.",
     "registerNow": "Register now!",
     "serverUrl": "Server URL",
-    "serverUrlPlaceholder": "Enter server URL (e.g., https://wls.dk-automation.de)",
+    "serverUrlPlaceholder": "Enter server URL (e.g., https://dkc.dk-automation.de/api)",
     "saveServerUrl": "Save",
     "serverUrlSaved": "Server URL successfully saved!",
     "serverUrlReset": "Server URL reset to default",
-    "serverUrlConfigTitle": "Server Configuration"
+    "serverUrlConfigTitle": "Server Configuration",
+    "versionUpdateAvailableTitle": "New version {version} available",
+    "versionUnsupportedTitle": "This app version is no longer supported",
+    "versionUnsupportedText": "Please update to version {version} or newer to keep using the app."
   },
   "profile": {
     "title": "User Profile",
