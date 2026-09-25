@@ -21,7 +21,8 @@ class UserItem {
     logins_total,
     logins_failed,
     session_time,
-    theme_mode
+    theme_mode,
+    language
   } = {}) {
     this.id = typeof id === "string" ? parseInt(id, 10) : (Number.isFinite(id) ? id : 0)
     this.username = typeof username === "string" ? username : ""
@@ -44,6 +45,10 @@ class UserItem {
 
     // Theme-Präferenz: 'light' | 'dark' | 'auto'
     this.theme_mode = ['light', 'dark', 'auto'].includes(theme_mode) ? theme_mode : 'auto'
+
+    // Sprache aus dem DKC-Profil (users.language) - App-UI-Sprache folgt dieser
+    // Einstellung (siehe App.vue-Watcher), nur 'de'/'en' werden unterstützt.
+    this.language = typeof language === 'string' ? language : 'de'
   }
 
   // Getter für formatierte Datumsangaben
@@ -120,7 +125,9 @@ class UserItem {
       updated_at: this.updated_at,
       logins_total: this.logins_total,
       logins_failed: this.logins_failed,
-      session_time: this.session_time
+      session_time: this.session_time,
+      theme_mode: this.theme_mode,
+      language: this.language
     }
   }
 }

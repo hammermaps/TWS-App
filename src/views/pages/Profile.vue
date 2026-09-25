@@ -616,9 +616,11 @@ const handleProfileUpdate = async () => {
 
   if (result.success) {
     profileSuccess.value = 'Profil erfolgreich aktualisiert!'
-    // Theme sofort anwenden
-    const { applyThemeMode } = await import('@/stores/GlobalUser.js')
-    applyThemeMode(profileForm.theme_mode)
+    // Theme wird über den App.vue-Watcher auf currentUser.theme_mode angewendet
+    // (updateProfile() aktualisiert oben den geteilten GlobalUser-State via
+    // updateUserProfile() bereits) - applyThemeMode() hier war wirkungslos,
+    // da die tatsächliche Theme-Engine (@coreui/vue useColorModes) nicht
+    // dieselben CSS-Klassen/den localStorage-Key verwendet.
     // Aktualisiere Form mit neuen Daten
     loadProfileData()
   }

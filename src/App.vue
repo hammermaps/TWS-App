@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeMount, onMounted, onUnmounted } from 'vue'
+import { onBeforeMount, onMounted, onUnmounted, watch } from 'vue'
 import { useColorModes } from '@coreui/vue'
 
 import { useThemeStore } from '@/stores/theme.js'
@@ -10,6 +10,8 @@ import { useConfigSyncService } from '@/services/ConfigSyncService.js'
 import { useAutoSyncService } from '@/services/AutoSyncService.js'
 import { getToken } from '@/stores/GlobalToken.js'
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
+import { currentUser, initUserFromLocalStorage } from '@/stores/GlobalUser.js'
+import { changeLanguage } from '@/i18n/index.js'
 
 const { isColorModeSet, setColorMode } = useColorModes(
   'coreui-free-vue-admin-template-theme',
@@ -81,7 +83,23 @@ const startAutoSync = () => {
   }
 }
 
+// Farbschema und Sprache folgen der Einstellung des DKC-Benutzerprofils
+// (users.data.theme_mode / users.language, siehe twsFmtUser() in api.php) -
+// reagiert auf jede Änderung von currentUser (Login, oder beim App-Start aus
+// IndexedDB geladener Cache via initUserFromLocalStorage() unten), damit
+// nicht wie beim Header-Avatar erst eine andere Seite besucht werden muss.
+watch(() => currentUser.value?.theme_mode, (mode) => {
+  if (mode) setColorMode(mode)
+})
+watch(() => currentUser.value?.language, (lang) => {
+  if (lang) changeLanguage(lang)
+})
+
 onBeforeMount(() => {
+  // Gecachten Benutzer (falls vorhanden) laden, damit obige Watcher auch ohne
+  // frischen Login-Aufruf greifen (bereits eingeloggte Sessions/Token).
+  initUserFromLocalStorage()
+
   const urlParams = new URLSearchParams(window.location.href.split('?')[1])
   let theme = urlParams.get('theme')
 
