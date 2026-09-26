@@ -57,7 +57,18 @@
 
         <CCard class="border-success">
           <CCardBody>
-            <div class="apartment-info">
+            <div v-if="scanResult.type === 'meter'" class="apartment-info">
+              <div class="mb-2">
+                <strong>{{ $t('qrScanner.meter') }}:</strong> {{ scanResult.meter?.name }}
+              </div>
+              <div class="mb-2">
+                <strong>{{ $t('meter.meter_number') }}:</strong> {{ scanResult.meter?.meter_number }}
+              </div>
+              <div>
+                <strong>Code:</strong> <code class="text-muted">{{ scanResult.uuid }}</code>
+              </div>
+            </div>
+            <div v-else class="apartment-info">
               <div class="mb-2">
                 <strong>{{ $t('qrScanner.apartment') }}:</strong> {{ scanResult.apartment?.number }}
               </div>
@@ -72,9 +83,9 @@
         </CCard>
 
         <div class="mt-3 d-flex gap-2 justify-content-center">
-          <CButton color="success" @click="navigateToApartment">
+          <CButton color="success" @click="navigateToTarget">
             <CIcon icon="cil-arrow-right" class="me-2" />
-            {{ $t('qrScanner.goToFlushing') }}
+            {{ scanResult.type === 'meter' ? $t('qrScanner.goToReading') : $t('qrScanner.goToFlushing') }}
           </CButton>
           <CButton color="secondary" variant="outline" @click="resetScanner">
             <CIcon icon="cil-reload" class="me-2" />
@@ -111,6 +122,7 @@ import {
 import { CIcon } from '@coreui/icons-vue'
 import { useApartmentStorage } from '@/stores/ApartmentStorage.js'
 import BuildingStorage from '@/stores/BuildingStorage.js'
+import MeterStorage from '@/stores/MeterStorage.js'
 
 const props = defineProps({
   visible: {
@@ -185,49 +197,61 @@ const handleScanResult = async (scannedData) => {
   console.log('📷 QR-Code gescannt:', scannedData)
 
   try {
-    // Parse UUID aus gescanntem Daten
-    let uuid = scannedData
+    // Parse Code aus gescannten Daten
+    let code = scannedData
 
     // Falls es eine URL ist, extrahiere die UUID
     if (scannedData.includes('uuid=')) {
       const urlParams = new URLSearchParams(scannedData.split('?')[1])
-      uuid = urlParams.get('uuid')
+      code = urlParams.get('uuid')
     }
 
-    if (!uuid) {
+    if (!code) {
       throw new Error(t('qrScanner.invalidQRCode'))
     }
 
-    // Suche Apartment anhand der UUID (async!)
-    const apartment = await findApartmentByUUID(uuid)
-
-    if (!apartment) {
-      throw new Error(t('qrScanner.apartmentNotFound'))
+    // Erst gegen Zähler prüfen (mm_meter.qr_code, echte Aufkleber-Codes),
+    // dann gegen Wohnungen (vom DKC generierte/gedruckte Codes, siehe
+    // WlsQrTrait::exportApartmentQrCodes()) - beide Code-Räume sind
+    // unabhängig voneinander und überschneiden sich nicht.
+    const meter = await findMeterByCode(code)
+    if (meter) {
+      scanResult.value = { type: 'meter', uuid: code, meter }
+      stopScanner()
+      emit('scan-success', scanResult.value)
+      setTimeout(() => navigateToTarget(), 2000)
+      return
     }
 
-    // Hole Gebäude-Info
-    const building = apartmentStorage.storage.getBuilding(apartment.building_id)
-
-    scanResult.value = {
-      uuid,
-      apartment,
-      building
+    const apartment = await findApartmentByUUID(code)
+    if (apartment) {
+      const building = apartmentStorage.storage.getBuilding(apartment.building_id)
+      scanResult.value = { type: 'apartment', uuid: code, apartment, building }
+      stopScanner()
+      emit('scan-success', scanResult.value)
+      setTimeout(() => navigateToTarget(), 2000)
+      return
     }
 
-    // Stoppe Scanner
-    stopScanner()
-
-    // Emit success event
-    emit('scan-success', scanResult.value)
-
-    // Auto-Navigation nach 2 Sekunden
-    setTimeout(() => {
-      navigateToApartment()
-    }, 2000)
+    throw new Error(t('qrScanner.codeNotFound'))
 
   } catch (err) {
     console.error('Error processing scan result:', err)
     error.value = err.message || t('qrScanner.scanError')
+  }
+}
+
+const findMeterByCode = async (code) => {
+  try {
+    const meters = await MeterStorage.getMeters()
+    if (!Array.isArray(meters)) {
+      console.warn('⚠️ meters ist kein Array:', typeof meters)
+      return null
+    }
+    return meters.find(m => m.qr_code === code) || null
+  } catch (error) {
+    console.error('❌ Fehler beim Suchen des Zählers:', error)
+    return null
   }
 }
 
@@ -262,8 +286,17 @@ const findApartmentByUUID = async (uuid) => {
   }
 }
 
-const navigateToApartment = () => {
+const navigateToTarget = () => {
   if (!scanResult.value) return
+
+  if (scanResult.value.type === 'meter') {
+    router.push({
+      name: 'MeterReadingForm',
+      params: { meterId: scanResult.value.meter.id }
+    })
+    handleClose()
+    return
+  }
 
   const { apartment, building } = scanResult.value
 
