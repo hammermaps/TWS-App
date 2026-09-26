@@ -82,9 +82,15 @@ export class UserRoleResponse {
 }
 
 export class UserLoginResponse {
-  constructor({ token = "", user = null } = {}) {
+  constructor({ token = "", user = null, requiresTwoFactor = false, pendingTwoFactorTicket = "", twoFactorMethods = [] } = {}) {
     this.token = typeof token === "string" ? token : ""
     this.user = user ? (user instanceof UserItem ? user : new UserItem(user)) : null
+    // 2FA-Zwischenschritt (siehe TwoFactorAuthHelper im Backend): wenn true,
+    // sind token/user (noch) leer und der Login muss über verify2fa()
+    // abgeschlossen werden.
+    this.requiresTwoFactor = !!requiresTwoFactor
+    this.pendingTwoFactorTicket = typeof pendingTwoFactorTicket === "string" ? pendingTwoFactorTicket : ""
+    this.twoFactorMethods = Array.isArray(twoFactorMethods) ? twoFactorMethods : []
   }
 }
 
@@ -127,6 +133,9 @@ function toPlainLogin(value = {}) {
   const out = {}
   out.username = typeof value.username === "string" ? value.username : ""
   out.password = typeof value.password === "string" ? value.password : ""
+  if (typeof value.device_token === "string" && value.device_token !== "") {
+    out.device_token = value.device_token
+  }
   return out
 }
 
@@ -288,10 +297,72 @@ export class ApiUser {
       return new UserLoginResponse({ token: "", user: null })
     }
 
+    if (response.data?.requires_2fa) {
+      return new UserLoginResponse({
+        requiresTwoFactor: true,
+        pendingTwoFactorTicket: response.data.pending_2fa_ticket || "",
+        twoFactorMethods: response.data.two_factor_methods || []
+      })
+    }
+
     const token = response.data?.token || ""
     const user = response.data?.user ? new UserItem(response.data.user) : null
 
     return new UserLoginResponse({ token, user })
+  }
+
+  /**
+   * POST /user/verify-2fa - zweiter Login-Schritt nach requires_2fa:true.
+   * Bei Erfolg wie login(): { token, user }, zusätzlich ggf. device_trust_token,
+   * wenn trustDevice angefordert wurde.
+   */
+  async verify2fa({ pendingTicket, method, code, trustDevice = false } = {}, options = {}) {
+    const { timeout = null, headers = {} } = options
+
+    const request = new ApiRequest({
+      endpoint: "/user/verify-2fa",
+      method: "POST",
+      body: {
+        pending_2fa_ticket: pendingTicket,
+        method,
+        code,
+        trust_device: !!trustDevice
+      },
+      headers,
+      timeout,
+    })
+
+    const response = await this.send(request)
+
+    if (!response.success) {
+      return { success: false, error: response.error }
+    }
+
+    return {
+      success: true,
+      token: response.data?.token || "",
+      user: response.data?.user ? new UserItem(response.data.user) : null,
+      deviceTrustToken: response.data?.device_trust_token || null
+    }
+  }
+
+  /**
+   * POST /user/2fa-send-code - versendet den Einmalcode für email/sms
+   * während des 2FA-Login-Zwischenschritts.
+   */
+  async send2faCode({ pendingTicket, method } = {}, options = {}) {
+    const { timeout = null, headers = {} } = options
+
+    const request = new ApiRequest({
+      endpoint: "/user/2fa-send-code",
+      method: "POST",
+      body: { pending_2fa_ticket: pendingTicket, method },
+      headers,
+      timeout,
+    })
+
+    const response = await this.send(request)
+    return { success: response.success, error: response.error }
   }
 
   /**

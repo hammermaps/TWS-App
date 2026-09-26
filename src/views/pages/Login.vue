@@ -6,7 +6,7 @@
           <CCardGroup>
             <CCard class="p-4">
               <CCardBody>
-                <CForm @submit.prevent="handleLogin">
+                <CForm v-if="!twoFactor.active" @submit.prevent="handleLogin">
                   <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                       <h1>{{ $t('auth.login') }}</h1>
@@ -166,6 +166,77 @@
                     </CCol>
                   </CRow>
                 </CForm>
+
+                <!-- 2FA-Zwischenschritt: nach requires_2fa aus dem Login -->
+                <CForm v-else @submit.prevent="handleVerifyTwoFactor">
+                  <div class="mb-3">
+                    <h1>{{ $t('auth.twoFactorTitle') }}</h1>
+                    <p class="text-body-secondary mb-0">{{ $t('auth.twoFactorSubtitle') }}</p>
+                  </div>
+
+                  <CAlert v-if="hasError" color="danger" :visible="true" dismissible @close="clearError">
+                    {{ error }}
+                  </CAlert>
+                  <CAlert v-if="twoFactor.codeSent" color="success" :visible="true" dismissible @close="twoFactor.codeSent = false">
+                    {{ $t('auth.twoFactorCodeSent') }}
+                  </CAlert>
+
+                  <CInputGroup v-if="twoFactor.methods.length > 1" class="mb-3">
+                    <CInputGroupText>
+                      <CIcon icon="cilShieldAlt" />
+                    </CInputGroupText>
+                    <CFormSelect v-model="twoFactor.method" :disabled="isLoading">
+                      <option v-for="m in twoFactor.methods" :key="m" :value="m">
+                        {{ $t(`auth.twoFactorMethod.${m}`) }}
+                      </option>
+                    </CFormSelect>
+                  </CInputGroup>
+
+                  <div v-if="['email', 'sms'].includes(twoFactor.method)" class="mb-3">
+                    <CButton color="secondary" variant="outline" size="sm" :disabled="isLoading" @click="handleSend2faCode">
+                      {{ $t('auth.twoFactorSendCode') }}
+                    </CButton>
+                  </div>
+
+                  <CInputGroup class="mb-3">
+                    <CInputGroupText>
+                      <CIcon icon="cil-lock-locked" />
+                    </CInputGroupText>
+                    <CFormInput
+                      v-model="twoFactor.code"
+                      :placeholder="twoFactor.method === 'backup_codes' ? $t('auth.twoFactorBackupCodePlaceholder') : $t('auth.twoFactorCodePlaceholder')"
+                      autocomplete="one-time-code"
+                      :disabled="isLoading"
+                      required
+                    />
+                  </CInputGroup>
+
+                  <CFormCheck
+                    v-model="twoFactor.trustDevice"
+                    class="mb-4"
+                    :label="$t('auth.twoFactorTrustDevice')"
+                    :disabled="isLoading"
+                  />
+
+                  <CRow>
+                    <CCol :xs="6">
+                      <CButton
+                        type="submit"
+                        color="primary"
+                        class="px-4"
+                        :disabled="isLoading || !twoFactor.code"
+                      >
+                        <CSpinner v-if="isLoading" size="sm" class="me-2" />
+                        {{ isLoading ? $t('auth.loggingIn') : $t('auth.twoFactorVerify') }}
+                      </CButton>
+                    </CCol>
+                    <CCol :xs="6" class="text-end">
+                      <CButton color="link" :disabled="isLoading" @click="cancelTwoFactor">
+                        {{ $t('common.back') }}
+                      </CButton>
+                    </CCol>
+                  </CRow>
+                </CForm>
               </CCardBody>
             </CCard>
           </CCardGroup>
@@ -188,6 +259,8 @@ import {
   CCardGroup,
   CForm,
   CFormInput,
+  CFormSelect,
+  CFormCheck,
   CInputGroup,
   CInputGroupText,
   CButton,
@@ -210,6 +283,8 @@ const { t, locale } = useI18n()
 // User Composable
 const {
   login,
+  verifyTwoFactor,
+  send2faCode,
   isLoading,
   hasError,
   error,
@@ -221,6 +296,17 @@ const {
 const loginForm = reactive({
   username: '',
   password: ''
+})
+
+// 2FA-Zwischenschritt (siehe TwoFactorAuthHelper im Backend)
+const twoFactor = reactive({
+  active: false,
+  pendingTicket: '',
+  methods: [],
+  method: '',
+  code: '',
+  trustDevice: false,
+  codeSent: false
 })
 
 const successMessage = ref('')
@@ -282,21 +368,77 @@ const handleLogin = async () => {
       password: loginForm.password
     })
 
+    if (result.requiresTwoFactor) {
+      twoFactor.active = true
+      twoFactor.pendingTicket = result.pendingTwoFactorTicket
+      twoFactor.methods = result.twoFactorMethods || []
+      twoFactor.method = twoFactor.methods[0] || 'totp'
+      twoFactor.code = ''
+      twoFactor.codeSent = false
+      return
+    }
+
     if (result.success) {
-      successMessage.value = t('auth.loginSuccess')
-
-      // Reset form
-      loginForm.username = ''
-      loginForm.password = ''
-
-      // Redirect nach 1 Sekunde
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 1000)
+      onLoginSuccess()
     }
   } catch (err) {
     console.error('Login error:', err)
   }
+}
+
+const onLoginSuccess = () => {
+  successMessage.value = t('auth.loginSuccess')
+
+  // Reset form
+  loginForm.username = ''
+  loginForm.password = ''
+
+  // Redirect nach 1 Sekunde
+  setTimeout(() => {
+    router.push('/dashboard')
+  }, 1000)
+}
+
+const handleVerifyTwoFactor = async () => {
+  clearError()
+  if (!twoFactor.code) return
+
+  try {
+    const result = await verifyTwoFactor({
+      pendingTicket: twoFactor.pendingTicket,
+      method: twoFactor.method,
+      code: twoFactor.code.trim(),
+      trustDevice: twoFactor.trustDevice
+    })
+
+    if (result.success) {
+      onLoginSuccess()
+    }
+  } catch (err) {
+    console.error('2FA verify error:', err)
+  }
+}
+
+const handleSend2faCode = async () => {
+  clearError()
+  const result = await send2faCode({
+    pendingTicket: twoFactor.pendingTicket,
+    method: twoFactor.method
+  })
+  if (result.success) {
+    twoFactor.codeSent = true
+  }
+}
+
+const cancelTwoFactor = () => {
+  twoFactor.active = false
+  twoFactor.pendingTicket = ''
+  twoFactor.methods = []
+  twoFactor.method = ''
+  twoFactor.code = ''
+  twoFactor.trustDevice = false
+  twoFactor.codeSent = false
+  clearError()
 }
 
 // Versionscheck: neue Version verfügbar? Aktuelle Version noch vom Server unterstützt?

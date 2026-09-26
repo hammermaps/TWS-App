@@ -7,6 +7,7 @@ import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
 import { useGlobalAvatar } from '../composables/useGlobalAvatar.js'
 import { registerForPushNotifications, unregisterPushNotifications } from '../composables/usePushNotifications.js'
+import { getDeviceTrustToken, setDeviceTrustToken } from '../stores/DeviceTrust.js'
 
 /**
  * Vue Composable für User-Management
@@ -90,7 +91,60 @@ export function useUser(baseUrl = null) {
   }
 
   /**
-   * Benutzer anmelden
+   * Gemeinsamer Abschluss eines erfolgreichen Logins - sowohl für den
+   * direkten Login (kein 2FA nötig) als auch für den zweiten 2FA-Schritt
+   * (verifyTwoFactor()), damit beide Pfade identisch Token/User/Avatar/
+   * Push-Registrierung/IndexedDB behandeln.
+   */
+  const completeLogin = async (token, loggedInUser) => {
+    setAuthToken(token)
+
+    user.value = loggedInUser
+    setUser(loggedInUser)
+    loginInfo.value = { token, user: loggedInUser }
+
+    // ✅ Synchron userId als globale Variable setzen (schnellster Fallback)
+    if (loggedInUser.id) {
+      window._wls_userId = loggedInUser.id
+    }
+
+    // Profilbild einmal laden und in den geteilten Avatar-Store schreiben
+    // (nicht awaited - soll den Login/die Weiterleitung nicht verzögern)
+    if (loggedInUser.id) {
+      apiClient.getProfileImage(loggedInUser.id, { ttlMinutes: 24 * 60 })
+        .then((imgResult) => {
+          setAvatar(imgResult.success && imgResult.data?.base64 ? imgResult.data.base64 : null)
+        })
+        .catch(() => setAvatar(null))
+    }
+
+    // Push-Registrierung (nur auf Android/Capacitor aktiv, sonst No-op) -
+    // nicht awaited, soll den Login/die Weiterleitung nicht verzögern
+    registerForPushNotifications(apiClient).catch(() => {})
+
+    // Benutzer und userId in IndexedDB speichern
+    try {
+      await indexedDBHelper.set(STORES.USER, {
+        key: 'wls_current_user',
+        value: loggedInUser
+      })
+      if (loggedInUser.id) {
+        await indexedDBHelper.set(STORES.CONFIG, {
+          key: 'currentUserId',
+          value: loggedInUser.id
+        })
+      }
+      console.log('💾 User-Daten in IndexedDB gespeichert')
+    } catch (error) {
+      console.warn('⚠️ Fehler beim Speichern der User-Daten in IndexedDB:', error)
+    }
+  }
+
+  /**
+   * Benutzer anmelden. Liefert bei aktiver 2FA-Pflicht (und nicht
+   * vertrautem Gerät) { success: true, requiresTwoFactor: true,
+   * pendingTwoFactorTicket, twoFactorMethods } statt Token/User - der
+   * Login muss dann über verifyTwoFactor() abgeschlossen werden.
    */
   const login = async (credentials = {}, options = {}) => {
     loading.value = true
@@ -98,53 +152,20 @@ export function useUser(baseUrl = null) {
     clearError()
 
     try {
-      const result = await apiClient.login(credentials, options)
+      const deviceToken = await getDeviceTrustToken()
+      const result = await apiClient.login({ ...credentials, device_token: deviceToken || undefined }, options)
+
+      if (result.requiresTwoFactor) {
+        return {
+          success: true,
+          requiresTwoFactor: true,
+          pendingTwoFactorTicket: result.pendingTwoFactorTicket,
+          twoFactorMethods: result.twoFactorMethods
+        }
+      }
 
       if (result.token && result.user) {
-        // Token speichern
-        setAuthToken(result.token)
-
-        // Benutzer-Zustand aktualisieren
-        user.value = result.user
-        setUser(result.user)
-        loginInfo.value = result
-
-        // ✅ Synchron userId als globale Variable setzen (schnellster Fallback)
-        if (result.user.id) {
-          window._wls_userId = result.user.id
-        }
-
-        // Profilbild einmal laden und in den geteilten Avatar-Store schreiben
-        // (nicht awaited - soll den Login/die Weiterleitung nicht verzögern)
-        if (result.user.id) {
-          apiClient.getProfileImage(result.user.id, { ttlMinutes: 24 * 60 })
-            .then((imgResult) => {
-              setAvatar(imgResult.success && imgResult.data?.base64 ? imgResult.data.base64 : null)
-            })
-            .catch(() => setAvatar(null))
-        }
-
-        // Push-Registrierung (nur auf Android/Capacitor aktiv, sonst No-op) -
-        // nicht awaited, soll den Login/die Weiterleitung nicht verzögern
-        registerForPushNotifications(apiClient).catch(() => {})
-
-        // Benutzer und userId in IndexedDB speichern
-        try {
-          await indexedDBHelper.set(STORES.USER, {
-            key: 'wls_current_user',
-            value: result.user
-          })
-          if (result.user.id) {
-            await indexedDBHelper.set(STORES.CONFIG, {
-              key: 'currentUserId',
-              value: result.user.id
-            })
-          }
-          console.log('💾 User-Daten in IndexedDB gespeichert')
-        } catch (error) {
-          console.warn('⚠️ Fehler beim Speichern der User-Daten in IndexedDB:', error)
-        }
-
+        await completeLogin(result.token, result.user)
         return {
           success: true,
           token: result.token,
@@ -167,6 +188,46 @@ export function useUser(baseUrl = null) {
       loading.value = false
       setUserLoading(false)
     }
+  }
+
+  /**
+   * Schließt den Login nach requiresTwoFactor:true ab. trustDevice merkt
+   * dieses Gerät serverseitig für 30 Tage (überspringt dann diese Abfrage).
+   */
+  const verifyTwoFactor = async ({ pendingTicket, method, code, trustDevice = false } = {}) => {
+    loading.value = true
+    setUserLoading(true)
+    clearError()
+
+    try {
+      const result = await apiClient.verify2fa({ pendingTicket, method, code, trustDevice })
+
+      if (!result.success || !result.token || !result.user) {
+        handleError(result.error || 'Code ungültig')
+        return { success: false, error: result.error || 'Code ungültig' }
+      }
+
+      if (result.deviceTrustToken) {
+        await setDeviceTrustToken(result.deviceTrustToken)
+      }
+
+      await completeLogin(result.token, result.user)
+      return { success: true, token: result.token, user: result.user }
+    } catch (err) {
+      handleError(err.message || '2FA-Prüfung fehlgeschlagen')
+      return { success: false, error: error.value }
+    } finally {
+      loading.value = false
+      setUserLoading(false)
+    }
+  }
+
+  /**
+   * Fordert für email/sms-2FA während des Login-Zwischenschritts einen
+   * neuen Einmalcode an.
+   */
+  const send2faCode = async ({ pendingTicket, method } = {}) => {
+    return await apiClient.send2faCode({ pendingTicket, method })
   }
 
   /**
@@ -513,6 +574,8 @@ export function useUser(baseUrl = null) {
     // API-Funktionen
     register,
     login,
+    verifyTwoFactor,
+    send2faCode,
     logout,
     getCurrentUser,
     getUser,

@@ -348,7 +348,21 @@
     "serverUrlConfigTitle": "Server-Konfiguration",
     "versionUpdateAvailableTitle": "Neue Version {version} verfügbar",
     "versionUnsupportedTitle": "Diese App-Version wird nicht mehr unterstützt",
-    "versionUnsupportedText": "Bitte aktualisieren Sie auf Version {version} oder neuer, um die App weiter nutzen zu können."
+    "versionUnsupportedText": "Bitte aktualisieren Sie auf Version {version} oder neuer, um die App weiter nutzen zu können.",
+    "twoFactorTitle": "Zwei-Faktor-Authentifizierung",
+    "twoFactorSubtitle": "Bitte geben Sie Ihren Bestätigungscode ein",
+    "twoFactorCodePlaceholder": "6-stelliger Code",
+    "twoFactorBackupCodePlaceholder": "Backup-Code (XXXXX-XXXXX)",
+    "twoFactorSendCode": "Code senden",
+    "twoFactorCodeSent": "Code wurde versandt",
+    "twoFactorTrustDevice": "Dieses Gerät 30 Tage lang merken (keine erneute 2FA-Abfrage)",
+    "twoFactorVerify": "Bestätigen",
+    "twoFactorMethod": {
+      "totp": "Authenticator-App",
+      "email": "E-Mail-Code",
+      "sms": "SMS-Code",
+      "backup_codes": "Backup-Code"
+    }
   },
   "profile": {
     "title": "Benutzer-Profil",

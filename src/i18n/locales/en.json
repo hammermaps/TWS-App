@@ -348,7 +348,21 @@
     "serverUrlConfigTitle": "Server Configuration",
     "versionUpdateAvailableTitle": "New version {version} available",
     "versionUnsupportedTitle": "This app version is no longer supported",
-    "versionUnsupportedText": "Please update to version {version} or newer to keep using the app."
+    "versionUnsupportedText": "Please update to version {version} or newer to keep using the app.",
+    "twoFactorTitle": "Two-Factor Authentication",
+    "twoFactorSubtitle": "Please enter your verification code",
+    "twoFactorCodePlaceholder": "6-digit code",
+    "twoFactorBackupCodePlaceholder": "Backup code (XXXXX-XXXXX)",
+    "twoFactorSendCode": "Send code",
+    "twoFactorCodeSent": "Code has been sent",
+    "twoFactorTrustDevice": "Remember this device for 30 days (skip 2FA next time)",
+    "twoFactorVerify": "Verify",
+    "twoFactorMethod": {
+      "totp": "Authenticator app",
+      "email": "Email code",
+      "sms": "SMS code",
+      "backup_codes": "Backup code"
+    }
   },
   "profile": {
     "title": "User Profile",
