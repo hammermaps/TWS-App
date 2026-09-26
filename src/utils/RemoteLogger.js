@@ -45,6 +45,11 @@ const RemoteLogger = (function() {
   const MAX_BATCH = 50;
   const INTERVAL_MS = 1000; // Batch-Intervall
 
+  // Muss mit TWS_LOG_MESSAGE_MAX_LENGTH im Backend (api.php) übereinstimmen -
+  // Kürzung bereits hier vermeidet unnötigen Netzwerk-/Akkuverbrauch für
+  // Payloads, die der Server ohnehin nur gekappt speichern würde.
+  const MESSAGE_MAX_LENGTH = 4000
+
   // Simple rate limiter / circuit-breaker: limit number of send attempts in a time window
   const SEND_WINDOW_MS = 60 * 1000; // 1 minute
   const MAX_SENDS_PER_WINDOW = 15; // if exceeded, pause sending for PAUSE_AFTER_403_MS
@@ -157,6 +162,9 @@ const RemoteLogger = (function() {
     try {
       // initialize internal retry counter
       entry.__retryCount = entry.__retryCount || 0;
+      if (typeof entry.message === 'string' && entry.message.length > MESSAGE_MAX_LENGTH) {
+        entry.message = entry.message.slice(0, MESSAGE_MAX_LENGTH) + '…[gekürzt]'
+      }
       if (queue.length >= MAX_QUEUE) {
         // drop oldest to prevent unbounded growth
         queue.shift();
