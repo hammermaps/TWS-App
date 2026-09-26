@@ -1,5 +1,11 @@
 // RemoteLogger: fängt console-Methoden, window.onerror und unhandledrejection ab
 // und sendet Logs asynchron an das Backend (/api.php/logs/send)
+//
+// Der Endpunkt erfordert seit der Härtung gegen unauthentifiziertes Log-Flooding
+// ein gültiges Bearer-Token. Vor einem erfolgreichen Login existiert dieses noch
+// nicht - Logs aus dieser Phase werden daher bewusst nicht gesendet, sondern
+// verworfen (kein Puffern/Nachsenden nach dem Login).
+import { getToken, getAuthHeaders } from '../stores/GlobalToken.js'
 
 const RemoteLogger = (function() {
   // Allow overriding base URL via env
@@ -75,6 +81,13 @@ const RemoteLogger = (function() {
       // still paused due to repeated 403s or circuit-breaker
       return;
     }
+    // Vor dem Login gibt es noch kein Bearer-Token - der Endpunkt lehnt das
+    // ohnehin mit 401 ab. Statt zu senden und auf den 401-Pfad zu laufen,
+    // Logs aus dieser Phase direkt verwerfen (bewusst kein Puffern/Nachsenden).
+    if (!getToken()) {
+      queue.length = 0;
+      return;
+    }
     // circuit-breaker: limit sends per window
     pruneSendTimestamps();
     if (sendTimestamps.length >= MAX_SENDS_PER_WINDOW) {
@@ -91,7 +104,7 @@ const RemoteLogger = (function() {
 
     const batch = queue.splice(0, MAX_BATCH);
     // Use redirect: 'manual' to avoid the browser following cross-origin redirects.
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() };
     if (apiKey) headers['X-LOG-API-KEY'] = apiKey;
 
     // Use originalConsole to avoid retriggering the proxies
@@ -107,6 +120,10 @@ const RemoteLogger = (function() {
         consecutive403 = 0;
       } else if (response.status >= 300 && response.status < 400) {
         originalConsole.warn && originalConsole.warn('RemoteLogger: backend returned redirect for batch, not following (handled by proxy)');
+      } else if (response.status === 401) {
+        // Unauthorized - Token war beim Senden gültig, ist es jetzt nicht mehr
+        // (z.B. Logout während der Request lief). Batch verwerfen, nicht requeuen.
+        originalConsole.warn && originalConsole.warn('RemoteLogger: 401 Unauthorized von /logs/send — Batch verworfen.');
       } else if (response.status === 403) {
         // Forbidden — likely missing/invalid API key or server-side restriction.
         consecutive403++;
