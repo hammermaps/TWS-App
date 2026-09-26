@@ -4,8 +4,6 @@ import { useUser } from './useUser.js'
 import {
   currentUser,
   userRole,
-  useChangePasswordMethod,
-  useUpdateMethod,
   canChangePassword,
   canEditProfile,
   updateUserProfile,
@@ -37,8 +35,6 @@ export function useProfile() {
   // Computed Properties
   const canEdit = computed(() => canEditProfile.value)
   const canChangePass = computed(() => canChangePassword.value)
-  const shouldUseChangePasswordAPI = computed(() => useChangePasswordMethod.value)
-  const shouldUseUpdateAPI = computed(() => useUpdateMethod.value)
 
   /**
    * Profil-Daten aktualisieren
@@ -77,7 +73,15 @@ export function useProfile() {
   }
 
   /**
-   * Passwort ändern (rollen-basiert)
+   * Passwort ändern
+   *
+   * Es gibt serverseitig nur einen einzigen funktionierenden Endpunkt
+   * (POST /user/changepw, siehe twsHandleUserChangePw in api.php) - der
+   * verlangt immer oldPassword+newPassword. Der frühere, rollenabhängige
+   * "update API"-Zweig für normale User rief update() mit einem password-
+   * Feld auf, das der Server dort nie verarbeitet hat (twsHandleUserUpdate
+   * kennt kein password-Feld) - die App meldete "erfolgreich geändert",
+   * ohne dass sich am Passwort tatsächlich etwas änderte.
    */
   const changePassword = async (passwordData) => {
     if (!canChangePass.value) {
@@ -88,27 +92,10 @@ export function useProfile() {
     profileError.value = null
 
     try {
-      let result
-
-      if (shouldUseChangePasswordAPI.value) {
-        // Admin/Supervisor: Verwende changePassword API (oldPassword + newPassword)
-        console.log('🔐 Admin/Supervisor: Verwende changePassword API')
-        result = await apiChangePassword({
-          oldPassword: passwordData.oldPassword,
-          newPassword: passwordData.newPassword
-        })
-      } else {
-        // Normale User: Verwende update API
-        console.log('👤 User: Verwende update API für Passwort-Änderung')
-        const userId = currentUser.value?.id
-        if (!userId) {
-          throw new Error('Benutzer-ID nicht gefunden')
-        }
-
-        result = await updateUser(userId, {
-          password: passwordData.newPassword
-        })
-      }
+      const result = await apiChangePassword({
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword
+      })
 
       if (result.success) {
         return { success: true, message: 'Passwort erfolgreich geändert' }
@@ -222,14 +209,17 @@ export function useProfile() {
   const validatePasswordData = (data) => {
     const errors = {}
 
-    if (shouldUseChangePasswordAPI.value && !data.oldPassword) {
+    if (!data.oldPassword) {
       errors.oldPassword = 'Altes Passwort ist erforderlich'
     }
 
     if (!data.newPassword) {
       errors.newPassword = 'Neues Passwort ist erforderlich'
-    } else if (data.newPassword.length < 6) {
-      errors.newPassword = 'Neues Passwort muss mindestens 6 Zeichen lang sein'
+    } else if (data.newPassword.length < 8) {
+      // Serverseitiges Minimum (twsHandleUserChangePw), Client-Validierung
+      // muss identisch sein, sonst schlägt der Server-Call trotz "gültiger"
+      // Client-Prüfung mit einer verwirrenden Fehlermeldung fehl.
+      errors.newPassword = 'Neues Passwort muss mindestens 8 Zeichen lang sein'
     }
 
     if (data.confirmPassword && data.newPassword !== data.confirmPassword) {
@@ -256,8 +246,6 @@ export function useProfile() {
     // Permissions
     canEdit,
     canChangePass,
-    shouldUseChangePasswordAPI,
-    shouldUseUpdateAPI,
 
     // Actions
     updateProfile,

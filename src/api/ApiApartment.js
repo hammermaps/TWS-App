@@ -347,74 +347,6 @@ export class ApiApartment {
     }
 
     /**
-     * GET /apartments/by-uuid/{uuid} - Apartment per QR-Code UUID finden
-     */
-    async findByUUID(uuid, options = {}) {
-        const { timeout = 30000, headers = {} } = options
-        const storage = useApartmentStorage()
-        const onlineStatus = useOnlineStatusStore()
-
-        // Zuerst in IndexedDB suchen
-        const buildings = await BuildingStorage.getBuildings()
-
-        if (Array.isArray(buildings)) {
-            for (const building of buildings) {
-                const apartments = await storage.storage.getApartmentsForBuilding(building.id)
-
-                if (Array.isArray(apartments)) {
-                    const apartment = apartments.find(apt => apt.qr_code_uuid === uuid)
-                    if (apartment) {
-                        console.log('📦 Apartment per UUID aus IndexedDB gefunden:', apartment.number)
-                        return new ApiResponse({
-                            success: true,
-                            data: {
-                                apartment,
-                                building
-                            }
-                        })
-                    }
-                }
-            }
-        }
-
-        // Falls nicht im Cache und offline, Fehler zurückgeben
-        if (!onlineStatus.isFullyOnline) {
-            console.log('📴 Apartment nicht im Cache und offline')
-            return new ApiResponse({
-                success: false,
-                error: 'Apartment nicht im Offline-Cache gefunden'
-            })
-        }
-
-        // Online: API-Call zum Backend
-        const request = new ApiRequest({
-            endpoint: `/apartments/by-uuid/${encodeURIComponent(uuid)}`,
-            method: "GET",
-            headers,
-            timeout
-        })
-
-        const response = await this.send(request)
-
-        if (response.success && response.data) {
-            const apartment = new ApartmentItem(response.data.apartment)
-
-            // Speichere im LocalStorage für Offline-Zugriff
-            storage.storage.addOrUpdateApartment(apartment.building_id, apartment)
-
-            return new ApiResponse({
-                success: true,
-                data: {
-                    apartment,
-                    building: response.data.building
-                }
-            })
-        }
-
-        return response
-    }
-
-    /**
      * DELETE /apartments/delete/{id} - Apartment löschen
      */
     async getById(id, options = {}) {
@@ -825,7 +757,6 @@ export function useApiApartment() {
         create: (apartment, options) => handleRequest(() => apiApartment.create(apartment, options)),
         createFlushRecord: (apartmentId, options) => handleRequest(() => apiApartment.createFlushRecord(apartmentId, options)),
         update: (id, changes, options) => handleRequest(() => apiApartment.update(id, changes, options)),
-        getApartment: (id, options) => handleRequest(() => apiApartment.getById(id, options)),
-        findByUUID: (uuid, options) => handleRequest(() => apiApartment.findByUUID(uuid, options))
+        getApartment: (id, options) => handleRequest(() => apiApartment.getById(id, options))
     }
 }

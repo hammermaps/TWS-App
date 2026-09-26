@@ -345,15 +345,6 @@ const canViewReports = computed(() => {
   return (isAdmin.value || isSupervisor.value) && isEnabled.value
 })
 
-const useChangePasswordMethod = computed(() => {
-  // Admin und Supervisor verwenden changePassword (altes + neues Passwort)
-  return isAdmin.value || isSupervisor.value
-})
-
-const useUpdateMethod = computed(() => {
-  // Normale User verwenden update Methode
-  return isUser.value
-})
 
 // User-Profil aktualisieren
 const updateUserProfile = (updatedData) => {
@@ -387,8 +378,6 @@ const getUserDebugInfo = () => {
       canAccessAdminArea: canAccessAdminArea.value,
       canManageUsers: canManageUsers.value,
       canViewReports: canViewReports.value,
-      useChangePasswordMethod: useChangePasswordMethod.value,
-      useUpdateMethod: useUpdateMethod.value,
       isAdmin: isAdmin.value,
       isSupervisor: isSupervisor.value,
       isUser: isUser.value,
@@ -414,8 +403,6 @@ export {
   canAccessAdminArea,
   canManageUsers,
   canViewReports,
-  useChangePasswordMethod,
-  useUpdateMethod,
   setUser,
   clearUser,
   getCurrentUser,

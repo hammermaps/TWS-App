@@ -177,16 +177,11 @@
               color="info"
               :visible="true"
             >
-              <strong>{{ shouldUseChangePasswordAPI ? 'Administrator/Supervisor' : 'Benutzer' }}:</strong>
-              {{ shouldUseChangePasswordAPI
-                ? 'Sie müssen Ihr aktuelles Passwort eingeben, um es zu ändern.'
-                : 'Ihr Passwort wird über die Profil-Aktualisierung geändert.'
-              }}
+              Sie müssen Ihr aktuelles Passwort eingeben, um es zu ändern.
             </CAlert>
 
             <CForm @submit.prevent="handlePasswordChange">
-              <!-- Altes Passwort (nur für Admin/Supervisor) -->
-              <CRow v-if="shouldUseChangePasswordAPI">
+              <CRow>
                 <CCol :md="12">
                   <CFormInput
                     v-model="passwordForm.oldPassword"
@@ -203,7 +198,7 @@
                 </CCol>
               </CRow>
 
-              <CRow :class="shouldUseChangePasswordAPI ? 'mt-3' : ''">
+              <CRow class="mt-3">
                 <CCol :md="6">
                   <CFormInput
                     v-model="passwordForm.newPassword"
@@ -387,7 +382,6 @@ const {
   profileError,
   canEdit,
   canChangePass,
-  shouldUseChangePasswordAPI,
   updateProfile,
   changePassword,
   clearProfileError,
