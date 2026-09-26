@@ -556,6 +556,42 @@ export class ApiUser {
   }
 
   /**
+   * POST /user/push-token - FCM-Gerätetoken registrieren
+   */
+  async registerPushToken(token, options = {}) {
+    const { timeout = null, headers = {} } = options
+
+    const request = new ApiRequest({
+      endpoint: "/user/push-token",
+      method: "POST",
+      body: { token, device_info: options.deviceInfo || null },
+      headers,
+      timeout,
+    })
+
+    const response = await this.send(request)
+    return { success: response.success, error: response.error }
+  }
+
+  /**
+   * DELETE /user/push-token - FCM-Gerätetoken abmelden
+   */
+  async unregisterPushToken(token, options = {}) {
+    const { timeout = null, headers = {} } = options
+
+    const request = new ApiRequest({
+      endpoint: "/user/push-token",
+      method: "DELETE",
+      body: { token },
+      headers,
+      timeout,
+    })
+
+    const response = await this.send(request)
+    return { success: response.success, error: response.error }
+  }
+
+  /**
    * GET /user/photo/{id} - Profilbild als Base64 laden (mit lokalem Cache)
    * Rückgabe: { success: boolean, data: { base64: string|null }, error: string|null }
    * Optionen: { timeout, headers, ttlMinutes }

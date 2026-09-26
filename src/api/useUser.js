@@ -6,6 +6,7 @@ import { setUser, clearUser, setUserLoading, setUserError, UserItem } from '../s
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import { getApiBaseUrl } from '../config/apiConfig.js'
 import { useGlobalAvatar } from '../composables/useGlobalAvatar.js'
+import { registerForPushNotifications, unregisterPushNotifications } from '../composables/usePushNotifications.js'
 
 /**
  * Vue Composable für User-Management
@@ -123,6 +124,10 @@ export function useUser(baseUrl = null) {
             .catch(() => setAvatar(null))
         }
 
+        // Push-Registrierung (nur auf Android/Capacitor aktiv, sonst No-op) -
+        // nicht awaited, soll den Login/die Weiterleitung nicht verzögern
+        registerForPushNotifications(apiClient).catch(() => {})
+
         // Benutzer und userId in IndexedDB speichern
         try {
           await indexedDBHelper.set(STORES.USER, {
@@ -172,6 +177,8 @@ export function useUser(baseUrl = null) {
     clearError()
 
     try {
+      // Push-Token abmelden, bevor die Session beendet wird (braucht noch Auth-Header)
+      await unregisterPushNotifications(apiClient)
       // API-Call (optional, auch wenn er fehlschlägt)
       await apiClient.logout(options)
     } catch (err) {
