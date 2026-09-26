@@ -689,13 +689,17 @@ const setupEventListeners = () => {
     }
   }
 
-  // Periodische Aktualisierung alle 30 Sekunden (nur online)
+  // Periodische Aktualisierung alle 2 Minuten (nur online) - Akku-Optimierung:
+  // focus-/visibilitychange-/storage-Listener decken den eigentlichen "Daten
+  // könnten veraltet sein"-Fall bereits ab; dieses Intervall ist nur ein
+  // Fallback für den Fall, dass die Seite lange im Vordergrund bleibt, ohne
+  // dass eines dieser Events auftritt.
   refreshInterval = setInterval(() => {
     if (!document.hidden && onlineStatusStore.isFullyOnline) {
       console.log('Periodic refresh of apartments data')
       loadApartments()
     }
-  }, 30000)
+  }, 120000)
 
   window.addEventListener('focus', focusHandler)
   document.addEventListener('visibilitychange', visibilityHandler)

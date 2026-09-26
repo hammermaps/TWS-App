@@ -254,8 +254,11 @@ onMounted(() => {
   // Initiale Daten laden
   updateStats()
 
-  // Regelmäßige Updates
-  updateInterval.value = setInterval(updateStats, 10000) // Alle 10 Sekunden
+  // Regelmäßige Updates als Fallback - die eigentlichen Änderungen (Sync
+  // abgeschlossen, Online-Status geändert) lösen updateStats() bereits
+  // gezielt über den Sync-Listener bzw. den isFullyOnline-Watcher aus,
+  // daher genügt hier ein seltener Fallback-Takt (Akku-Optimierung)
+  updateInterval.value = setInterval(updateStats, 60000) // Alle 60 Sekunden
 
   // Watch auf isFullyOnline für UI-Updates
   const stopWatch = watch(() => onlineStatusStore.isFullyOnline, () => {
