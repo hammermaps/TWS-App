@@ -6,9 +6,30 @@
 import { createI18n } from 'vue-i18n'
 import de from './locales/de.json'
 import en from './locales/en.json'
+import fr from './locales/fr.json'
+import es from './locales/es.json'
+import tr from './locales/tr.json'
+import ru from './locales/ru.json'
+import pl from './locales/pl.json'
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 
 const LANGUAGE_KEY = 'wls_language'
+
+// Verfügbare Sprachen - dieselben 7 wie die Haupt-DKC-Anwendung (lang/*.json),
+// einzige Quelle für gültige Sprachcodes in der App (siehe SUPPORTED_LOCALES
+// unten und LanguageService.js, das diese Liste wiederverwendet statt sie zu
+// duplizieren).
+export const availableLocales = [
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  { code: 'pl', name: 'Polski', flag: '🇵🇱' }
+]
+
+const SUPPORTED_LOCALES = availableLocales.map(l => l.code)
 
 // Hole gespeicherte Sprache aus IndexedDB oder verwende Browser-Sprache
 async function getInitialLocale() {
@@ -34,7 +55,7 @@ async function getInitialLocale() {
 
   // Fallback auf Browser-Sprache
   const browserLang = navigator.language.split('-')[0]
-  return ['de', 'en'].includes(browserLang) ? browserLang : 'de'
+  return SUPPORTED_LOCALES.includes(browserLang) ? browserLang : 'de'
 }
 
 // Initialisiere mit deutscher Sprache, wird dann async aktualisiert
@@ -44,7 +65,12 @@ const i18n = createI18n({
   fallbackLocale: 'de',
   messages: {
     de,
-    en
+    en,
+    fr,
+    es,
+    tr,
+    ru,
+    pl
   },
   globalInjection: true, // $t global verfügbar machen
   missingWarn: false,
@@ -53,7 +79,7 @@ const i18n = createI18n({
 
 // Lade die gespeicherte Sprache asynchron
 getInitialLocale().then(locale => {
-  if (locale && ['de', 'en'].includes(locale)) {
+  if (locale && SUPPORTED_LOCALES.includes(locale)) {
     i18n.global.locale.value = locale
     document.documentElement.setAttribute('lang', locale)
     console.log('🌐 Gespeicherte Sprache geladen:', locale)
@@ -66,7 +92,7 @@ export default i18n
 
 // Helper-Funktion zum Ändern der Sprache
 export async function changeLanguage(locale) {
-  if (!['de', 'en'].includes(locale)) {
+  if (!SUPPORTED_LOCALES.includes(locale)) {
     console.warn(`Ungültige Sprache: ${locale}, verwende Fallback`)
     return false
   }
@@ -87,10 +113,4 @@ export async function changeLanguage(locale) {
 
   return true
 }
-
-// Verfügbare Sprachen
-export const availableLocales = [
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'en', name: 'English', flag: '🇬🇧' }
-]
 

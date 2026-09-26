@@ -4,9 +4,11 @@
  */
 
 import { ref } from 'vue'
-import i18n, { changeLanguage } from '@/i18n'
+import i18n, { changeLanguage, availableLocales } from '@/i18n'
 import { useConfigStorage } from '@/stores/ConfigStorage.js'
 import { useApiConfig } from '@/api/ApiConfig.js'
+
+const SUPPORTED_LOCALES = availableLocales.map(l => l.code)
 
 export function useLanguageService() {
   const configStorage = useConfigStorage()
@@ -17,7 +19,7 @@ export function useLanguageService() {
 
   /**
    * Ändert die Sprache und synchronisiert zum Server
-   * @param {string} newLanguage - Neue Sprache ('de' oder 'en')
+   * @param {string} newLanguage - Neue Sprache (Code aus availableLocales)
    * @param {boolean} syncToServer - Ob zum Server synchronisiert werden soll
    */
   const setLanguage = async (newLanguage, syncToServer = true) => {
@@ -25,7 +27,7 @@ export function useLanguageService() {
       return true
     }
 
-    if (!['de', 'en'].includes(newLanguage)) {
+    if (!SUPPORTED_LOCALES.includes(newLanguage)) {
       console.warn('❌ Ungültige Sprache:', newLanguage)
       return false
     }
@@ -80,7 +82,7 @@ export function useLanguageService() {
       const config = configStorage.loadConfig()
       if (config?.ui?.language) {
         const savedLanguage = config.ui.language
-        if (['de', 'en'].includes(savedLanguage) && savedLanguage !== currentLanguage.value) {
+        if (SUPPORTED_LOCALES.includes(savedLanguage) && savedLanguage !== currentLanguage.value) {
           console.log('📦 Lade gespeicherte Sprache:', savedLanguage)
           changeLanguage(savedLanguage)
           currentLanguage.value = savedLanguage
@@ -99,12 +101,9 @@ export function useLanguageService() {
   }
 
   /**
-   * Verfügbare Sprachen
+   * Verfügbare Sprachen (siehe i18n/index.js, einzige Quelle)
    */
-  const availableLanguages = [
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'en', name: 'English', flag: '🇬🇧' }
-  ]
+  const availableLanguages = availableLocales
 
   // Initial laden
   loadLanguage()

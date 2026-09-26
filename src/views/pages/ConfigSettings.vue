@@ -113,8 +113,9 @@
               <CCol :md="6">
                 <CFormLabel>{{ $t('settings.ui.language') }}</CFormLabel>
                 <CFormSelect v-model="configForm.ui.language">
-                  <option value="de">{{ $t('settings.ui.languageGerman') }}</option>
-                  <option value="en">{{ $t('settings.ui.languageEnglish') }}</option>
+                  <option v-for="locale in availableLocales" :key="locale.code" :value="locale.code">
+                    {{ locale.flag }} {{ locale.name }}
+                  </option>
                 </CFormSelect>
               </CCol>
             </CRow>
@@ -225,6 +226,7 @@ import { useConfigSyncService } from '@/services/ConfigSyncService.js'
 import { useAutoSyncService } from '@/services/AutoSyncService.js'
 import { useThemeSync } from '@/services/ThemeService.js'
 import { useLanguageService } from '@/services/LanguageService.js'
+import { availableLocales } from '@/i18n/index.js'
 import { isAdmin } from '@/stores/GlobalUser.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 import CIcon from '@coreui/icons-vue'
@@ -438,7 +440,7 @@ watch(() => configForm.value.ui.language, async (newLanguage, oldLanguage) => {
     // Wende Sprache sofort an (ohne Server-Sync, da das beim Save passiert)
     const success = await languageService.setLanguage(newLanguage, false)
     if (success) {
-      const langName = newLanguage === 'de' ? t('settings.ui.languageGerman') : t('settings.ui.languageEnglish')
+      const langName = availableLocales.find(l => l.code === newLanguage)?.name || newLanguage
       successMessage.value = `${t('settings.ui.language')}: ${langName}`
 
       // Verstecke Erfolgs-Nachricht nach 3 Sekunden
