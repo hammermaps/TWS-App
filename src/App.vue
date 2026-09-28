@@ -12,6 +12,11 @@ import { getToken } from '@/stores/GlobalToken.js'
 import indexedDBHelper, { STORES } from '@/utils/IndexedDBHelper.js'
 import { currentUser, initUserFromLocalStorage } from '@/stores/GlobalUser.js'
 import { changeLanguage } from '@/i18n/index.js'
+import { ApiUser } from '@/api/ApiUser.js'
+import { getApiBaseUrl } from '@/config/apiConfig.js'
+import { useGlobalAvatar } from '@/composables/useGlobalAvatar.js'
+
+const { setAvatar } = useGlobalAvatar()
 
 const { isColorModeSet, setColorMode } = useColorModes(
   'coreui-free-vue-admin-template-theme',
@@ -87,12 +92,25 @@ const startAutoSync = () => {
 // (users.data.theme_mode / users.language, siehe twsFmtUser() in api.php) -
 // reagiert auf jede Änderung von currentUser (Login, oder beim App-Start aus
 // IndexedDB geladener Cache via initUserFromLocalStorage() unten), damit
-// nicht wie beim Header-Avatar erst eine andere Seite besucht werden muss.
+// nicht erst eine andere Seite besucht werden muss.
 watch(() => currentUser.value?.theme_mode, (mode) => {
   if (mode) setColorMode(mode)
 })
 watch(() => currentUser.value?.language, (lang) => {
   if (lang) changeLanguage(lang)
+})
+// Header-Avatar (AppHeaderDropdownAccnt.vue) liest aus dem geteilten
+// useGlobalAvatar()-Store, der bislang nur von completeLogin() (useUser.js)
+// befüllt wurde - beim stillen Auto-Login (App-Start mit bereits gültigem
+// Token, kein Login-Bildschirm) blieb er dadurch leer und zeigte den
+// Standard-Avatar. Reagiert wie die Watcher oben auf die aus IndexedDB
+// geladene currentUser.id und lädt das Profilbild (eigener IndexedDB-Cache
+// in getProfileImage(), daher auch offline sofort verfügbar).
+watch(() => currentUser.value?.id, (userId) => {
+  if (!userId) return
+  new ApiUser(getApiBaseUrl()).getProfileImage(userId, { ttlMinutes: 24 * 60 })
+    .then((result) => setAvatar(result.success && result.data?.base64 ? result.data.base64 : null))
+    .catch(() => setAvatar(null))
 })
 
 onBeforeMount(() => {
