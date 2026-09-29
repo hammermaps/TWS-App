@@ -1,0 +1,83 @@
+name: Deploy Android APK (DKC-Mobile / dkc-full)
+
+# Baut bei jedem Push auf den Branch `dkc-full` eine eigene Debug-APK
+# (applicationId de.dk_automation.dkcmobile, siehe capacitor.config.json) und
+# veröffentlicht sie im DKC (ProxyServer) unter "WLS Administration →
+# DKC-Mobile" zum Download - unabhängig vom bestehenden TWS-App-Track
+# (deploy-android.yml, Branch master/main). Beide Apps lassen sich parallel
+# auf demselben Gerät installieren.
+# Ablauf: hier ändern & lokal testen, dann Push auf GitHub → dieser Workflow
+# baut automatisch und lädt die APK per api.php?action=dkc_mobile_app_deploy
+# hoch.
+#
+# Benötigtes Repository-Secret: WLS_APP_DEPLOY_TOKEN (dasselbe Secret wie bei
+# deploy-android.yml - gleiche Vertrauensstufe, muss mit dem Wert von
+# WLS_APP_DEPLOY_TOKEN in der .env des ProxyServer übereinstimmen).
+
+on:
+  push:
+    branches: [dkc-full]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          # Kein cache: 'npm' - package-lock.json/yarn.lock sind in diesem Repo
+          # bewusst .gitignore't (keine Lockdatei zum Hashen/Prüfen vorhanden).
+
+      - name: Install dependencies
+        # npm ci scheitert ohne package-lock.json - hier bewusst npm install.
+        run: npm install
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build debug APK
+        working-directory: android
+        # android/gradle.properties setzt org.gradle.java.home auf einen lokalen
+        # Entwickler-Pfad, der auf dem Runner nicht existiert - hier mit dem
+        # von setup-java bereitgestellten JAVA_HOME überschreiben, ohne die
+        # Projektdatei anzufassen.
+        run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home="$JAVA_HOME"
+
+      - name: Read app version
+        id: appver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK to DKC (DKC-Mobile-Bereich)
+        env:
+          DEPLOY_TOKEN: ${{ secrets.WLS_APP_DEPLOY_TOKEN }}
+          APP_VERSION: ${{ steps.appver.outputs.version }}
+          VERSION_CODE: ${{ github.run_number }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          status=$(curl -sS -o response.txt -w "%{http_code}" -X POST "https://dkc.dk-automation.de/api.php?action=dkc_mobile_app_deploy" \
+            -H "Authorization: Bearer ${DEPLOY_TOKEN}" \
+            -F "apk=@android/app/build/outputs/apk/debug/app-debug.apk" \
+            -F "version=${APP_VERSION}" \
+            -F "version_code=${VERSION_CODE}" \
+            -F "commit_sha=${COMMIT_SHA}" \
+            -F "notes=${COMMIT_MESSAGE}")
+          echo "HTTP-Status: ${status}"
+          cat response.txt
+          echo
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            exit 1
+          fi

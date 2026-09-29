@@ -3,20 +3,22 @@
     <CSidebarBrand v-bind="$attrs" as="a" :href="href" @click="navigate" class="app-sidebar-brand">
       <!-- Full logo für ausgeklappte Sidebar -->
       <div class="sidebar-brand-full">
-        <CIcon
-          custom-class-name="sidebar-brand-logo"
-          :icon="logo"
+        <img
+          class="sidebar-brand-logo"
+          :src="dkcLogo"
           :height="logoHeight"
+          alt="DKC-Mobile"
         />
         <span v-if="showTitle" class="brand-title ms-2">{{ title }}</span>
       </div>
 
       <!-- Kompaktes Logo für minimierte Sidebar -->
       <div class="sidebar-brand-narrow">
-        <CIcon
-          custom-class-name="sidebar-brand-sygnet"
-          :icon="sygnet"
+        <img
+          class="sidebar-brand-sygnet"
+          :src="dkcLogo"
           :height="logoHeight"
+          alt="DKC-Mobile"
         />
       </div>
     </CSidebarBrand>
@@ -25,8 +27,7 @@
 
 <script setup>
 import { RouterLink } from 'vue-router'
-import { logo } from '@/assets/brand/logo'
-import { sygnet } from '@/assets/brand/sygnet'
+import dkcLogo from '@/assets/brand/dkc-logo.png'
 
 // Props für Anpassbarkeit
 const props = defineProps({
@@ -40,7 +41,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: 'WLS App'
+    default: 'DKC-Mobile'
   }
 })
 </script>

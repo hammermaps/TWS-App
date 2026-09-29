@@ -18,6 +18,12 @@
   justify-content: center;
 }
 
+.sidebar-brand-logo,
+.sidebar-brand-sygnet {
+  width: auto;
+  border-radius: 6px;
+}
+
 .brand-title {
   font-size: 1.25rem;
   font-weight: 600;

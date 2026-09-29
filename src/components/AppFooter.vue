@@ -1,13 +1,13 @@
 <template>
   <CFooter class="safe-area-bottom px-4">
     <div>
-WLS
+DKC-Mobile
       <span class="ms-1"
         >&copy; {{ new Date().getFullYear() }} Lucas Eulberg.</span
       >
     </div>
     <div class="ms-auto">
-      WLS-App Version {{ appVersion }}
+      DKC-Mobile Version {{ appVersion }}
     </div>
     <div class="ms-auto d-flex align-items-center">
       <span class="me-1" target="_blank">Powered by</span>

@@ -348,9 +348,9 @@ router.afterEach((to, from) => {
 
   // Dokumententitel aktualisieren basierend auf der Route
   if (to.meta.title) {
-    document.title = `${to.meta.title} - WLS App`
+    document.title = `${to.meta.title} - DKC-Mobile`
   } else if (to.name) {
-    document.title = `${to.name} - WLS App`
+    document.title = `${to.name} - DKC-Mobile`
   }
 })
 

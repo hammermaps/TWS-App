@@ -486,10 +486,6 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.wrapper {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 /* Verbesserte Dropdown-Darstellung */
 :deep(.dropdown-item.active) {
   background-color: var(--cui-primary);

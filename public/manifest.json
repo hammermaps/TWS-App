@@ -1,11 +1,11 @@
 {
- "name": "WLS Leerstandsspülung App",
- "short_name": "WLS App",
- "description": "Wasser-Leerstandsspülung Verwaltung mit Offline-Unterstützung",
+ "name": "DKC-Mobile",
+ "short_name": "DKC-Mobile",
+ "description": "DKC-Mobile - Leerstandsspülung und Mängelmeldungen mit Offline-Unterstützung",
  "start_url": "/",
  "display": "standalone",
- "background_color": "#ffffff",
- "theme_color": "#321fdb",
+ "background_color": "#0d0d0d",
+ "theme_color": "#0d0d0d",
  "orientation": "portrait-primary",
  "icons": [
   {

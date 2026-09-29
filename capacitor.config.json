@@ -1,6 +1,6 @@
 {
-  "appId": "de.dk_automation.tws",
-  "appName": "TWS Leerstandsspülung App",
+  "appId": "de.dk_automation.dkcmobile",
+  "appName": "DKC-Mobile",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",

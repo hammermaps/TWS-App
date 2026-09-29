@@ -4,7 +4,7 @@ android {
     namespace "de.dk_automation.tws"
     compileSdk rootProject.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36
     defaultConfig {
-        applicationId "de.dk_automation.tws"
+        applicationId "de.dk_automation.dkcmobile"
         minSdkVersion rootProject.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 23
         targetSdkVersion rootProject.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 36
         versionCode 1

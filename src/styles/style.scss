@@ -4,8 +4,45 @@
 @use "@coreui/chartjs/scss/coreui-chartjs";
 @use "vendors/simplebar";
 
+// ============================================================
+// App-Hintergrundbild (Light / Dark) - 1:1 aus dem Web-Portal
+// übernommen (template/default/assets/img/backgrounds/), damit
+// TWS-App und Web-Portal optisch zusammengehören. Light-/Dark-
+// Umschaltung folgt CoreUIs [data-coreui-theme]-Attribut (siehe
+// useColorModes() in ThemeService.js), analog zur .dark-style-
+// Umschaltung des Web-Portals.
+// ============================================================
+html {
+  background-image: url('@/assets/backgrounds/hintergrund_light.png.webp');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+html[data-coreui-theme="dark"] {
+  background-image: url('@/assets/backgrounds/hintergrund_dark.png.webp');
+}
+
 body {
-  background-color: var(--cui-tertiary-bg);
+  background-color: rgba(245, 245, 249, 0.6);
+}
+
+html[data-coreui-theme="dark"] body {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+// Karten leicht transparent, damit das Hintergrundbild dezent
+// durchscheint (wie im Web-Portal) - Backdrop-Blur haelt Text/
+// Inhalt gut lesbar.
+.card {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+html[data-coreui-theme="dark"] .card {
+  background-color: rgba(35, 37, 50, 0.7) !important;
 }
 
 .wrapper {

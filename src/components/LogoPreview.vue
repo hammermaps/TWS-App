@@ -1,6 +1,6 @@
 <template>
   <div class="logo-preview-container">
-    <h2>WLS App Logo Vorschau</h2>
+    <h2>DKC-Mobile Logo Vorschau</h2>
 
     <!-- Vollständiges Logo -->
     <div class="preview-section">
