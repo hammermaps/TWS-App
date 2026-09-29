@@ -24,9 +24,19 @@ allprojects {
     }
 
     configurations.all {
+        // Einheitliche Kotlin-Version für das gesamte Projekt (verhindert doppelte/
+        // inkompatible kotlin-stdlib-Klassen zwischen den einzelnen Capacitor-Plugins).
+        // Bis einschließlich @capacitor/camera war 1.8.22 ausreichend; @capacitor/camera
+        // bringt Kotlin-Gradle-Plugin 2.2.20 mit und benötigt zwingend
+        // kotlin-build-tools-impl:2.2.10 (siehe dessen build.gradle) - dessen eigener
+        // interner "kotlinBuildToolsApiClasspath"-Werkzeug-Classpath verlangt exakt
+        // zueinander passende kotlin-compiler-embeddable/kotlin-stdlib-Versionen, die
+        // eine ältere Pin-Version (z. B. 1.8.22) nicht mehr erfüllen kann (weder bei der
+        // Artefaktauflösung noch beim späteren Kompilieren gegen JVM-Target 21, das der
+        // 1.8er-Compiler nicht mehr unterstützt) - daher hier auf 2.2.10 angehoben.
         resolutionStrategy.eachDependency { DependencyResolveDetails details ->
             if (details.requested.group == 'org.jetbrains.kotlin') {
-                details.useVersion '1.8.22'
+                details.useVersion '2.2.10'
             }
         }
         // kotlin-stdlib ab 1.8 enthält jdk7/jdk8 bereits – Duplikate ausschließen

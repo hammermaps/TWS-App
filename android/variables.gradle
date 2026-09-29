@@ -1,5 +1,7 @@
 ext {
-    minSdkVersion = 23
+    // @capacitor/camera (io.ionic.libs:ioncamera-android) verlangt minSdk 24 -
+    // vorher 23 (Android 6.0), jetzt 24 (Android 7.0, 2016).
+    minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.9.2'
