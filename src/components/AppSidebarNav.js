@@ -5,7 +5,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { cilExternalLink } from '@coreui/icons'
 import { CBadge, CSidebarNav, CNavItem, CNavGroup, CNavTitle } from '@coreui/vue'
 import nav from '@/_nav.js'
-import { currentUser } from '@/stores/GlobalUser.js'
+import { currentUser, hasPermission } from '@/stores/GlobalUser.js'
 import { ApiUser } from '@/api/ApiUser.js'
 import { useOnlineStatusStore } from '@/stores/OnlineStatus.js'
 
@@ -262,6 +262,12 @@ const AppSidebarNav = defineComponent({
         // Filter nach Online-Status (nur wenn requiresOnline explizit true ist)
         if (item.requiresOnline === true && !isOnline) {
           console.log(`🔴 Item "${item.name}" - Offline nicht verfügbar`)
+          return false
+        }
+
+        // Filter nach Berechtigung (z. B. Mängelmeldungen: view_mm_list)
+        if (item.permission && !hasPermission(item.permission)) {
+          console.log(`❌ Item "${item.name}" - Keine Berechtigung "${item.permission}"`)
           return false
         }
 

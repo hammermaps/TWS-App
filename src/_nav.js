@@ -48,6 +48,20 @@ export default [
   },
   {
     component: 'CNavTitle',
+    name: 'mm.title',
+    requiresOnline: false,
+    permission: 'view_mm_list',
+  },
+  {
+    component: 'CNavItem',
+    name: 'mm.list_title',
+    to: '/mm',
+    icon: 'cilWarning',
+    requiresOnline: false,
+    permission: 'view_mm_list',
+  },
+  {
+    component: 'CNavTitle',
     name: 'nav.users',
     requiresOnline: false,
   },

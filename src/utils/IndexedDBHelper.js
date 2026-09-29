@@ -5,7 +5,7 @@
  */
 
 const DB_NAME = 'TWS_APP_DB'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 // Object stores (tables) definition
 const STORES = {
@@ -20,6 +20,8 @@ const STORES = {
   IMAGES: 'images',
   METERS: 'meters',
   OFFLINE_METER_READINGS: 'offline_meter_readings',
+  MM_REPORTS: 'mm_reports',
+  OFFLINE_MM_REPORTS: 'offline_mm_reports',
 }
 
 class IndexedDBHelper {
@@ -130,6 +132,16 @@ class IndexedDBHelper {
             meterReadingStore.createIndex('meterId', 'meterId', { unique: false })
             meterReadingStore.createIndex('synced', 'synced', { unique: false })
             meterReadingStore.createIndex('meter_type', 'meter_type', { unique: false })
+          }
+        }
+
+        if (oldVersion < 5) {
+          if (!db.objectStoreNames.contains(STORES.MM_REPORTS)) {
+            db.createObjectStore(STORES.MM_REPORTS, { keyPath: 'uid' })
+          }
+          if (!db.objectStoreNames.contains(STORES.OFFLINE_MM_REPORTS)) {
+            const mmReportStore = db.createObjectStore(STORES.OFFLINE_MM_REPORTS, { keyPath: 'localId' })
+            mmReportStore.createIndex('synced', 'synced', { unique: false })
           }
         }
 

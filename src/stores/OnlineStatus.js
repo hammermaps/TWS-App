@@ -62,6 +62,16 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     return offlineMeterSyncServiceRef
   }
 
+  // Lazy-Loading für OfflineMmSyncService - analog zu OfflineMeterSyncService.
+  let offlineMmSyncServiceRef = null
+  const getMmSyncService = async () => {
+    if (!offlineMmSyncServiceRef) {
+      const module = await import('./OfflineMmSyncService.js')
+      offlineMmSyncServiceRef = module.default
+    }
+    return offlineMmSyncServiceRef
+  }
+
   // Konfiguration
   const PING_INTERVAL = 30000 // 30 Sekunden
   const MAX_FAILURES_BEFORE_OFFLINE = 3 // Nach 3 fehlgeschlagenen Pings -> Offline
@@ -161,6 +171,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
           // Synchronisiere ausstehende Offline-Zählerstände
           syncMeterData()
+
+          // Synchronisiere ausstehende Offline-Mängelmeldungen
+          syncMmData()
         }
         return true
       } else {
@@ -250,6 +263,36 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
       }
     } catch (error) {
       console.error('❌ Fehler bei Zählerstand-Synchronisation:', error)
+      // Nicht als kritischer Fehler anzeigen, da es nur um Offline-Daten geht
+    }
+  }
+
+  /**
+   * Synchronisiert ausstehende Offline-Mängelmeldungen
+   */
+  async function syncMmData() {
+    if (!isFullyOnline.value) {
+      console.log('⏸️ Mängelmeldungs-Sync übersprungen - nicht online')
+      return
+    }
+
+    try {
+      const mmSyncService = await getMmSyncService()
+      console.log('🔄 Starte Mängelmeldungs-Synchronisation...')
+
+      const result = await mmSyncService.attemptSync()
+
+      if (result && !result.skipped && result.total > 0) {
+        if (result.errors === 0) {
+          console.log(`✅ ${result.saved} Mängelmeldungen synchronisiert`)
+          notifyUser(`${result.saved} Mängelmeldungen erfolgreich synchronisiert`, 'success')
+        } else {
+          console.warn(`⚠️ Mängelmeldungs-Sync teilweise fehlgeschlagen: ${result.errors} Fehler`)
+          notifyUser(`${result.saved} von ${result.total} Mängelmeldungen synchronisiert`, 'warning')
+        }
+      }
+    } catch (error) {
+      console.error('❌ Fehler bei Mängelmeldungs-Synchronisation:', error)
       // Nicht als kritischer Fehler anzeigen, da es nur um Offline-Daten geht
     }
   }
@@ -370,6 +413,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
         // Zählerstand-Synchronisation starten
         syncMeterData()
+
+        // Mängelmeldungs-Synchronisation starten
+        syncMmData()
 
         return true
       } catch (error) {
@@ -563,6 +609,8 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
         setTimeout(() => syncFlushData(), 4000) // 4 Sekunden Verzögerung
         // Zählerstand-Synchronisation starten
         setTimeout(() => syncMeterData(), 5000) // 5 Sekunden Verzögerung
+        // Mängelmeldungs-Synchronisation starten
+        setTimeout(() => syncMmData(), 6000) // 6 Sekunden Verzögerung
       }
     })
 
@@ -658,6 +706,9 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
 
           // 4. Zählerstand-Synchronisation
           await syncMeterData()
+
+          // 5. Mängelmeldungs-Synchronisation
+          await syncMmData()
         } catch (error) {
           console.error('❌ Fehler bei automatischer Synchronisation:', error)
         }
@@ -698,6 +749,7 @@ export const useOnlineStatusStore = defineStore('onlineStatus', () => {
     triggerPreloadIfNeeded,
     syncFlushData,
     syncMeterData,
+    syncMmData,
     forcePreload,
     initialize,
     cleanup

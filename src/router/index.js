@@ -138,6 +138,34 @@ const routes = [
             /* webpackChunkName: "meter-history" */ '@/views/meters/MeterHistory.vue'
           ),
       },
+      // Mängelmeldungen (MM) routes
+      {
+        path: '/mm',
+        name: 'MmList',
+        meta: { requiresAuth: true, requiresOnline: false, permission: 'view_mm_list' },
+        component: () =>
+          import(
+            /* webpackChunkName: "mm-list" */ '@/views/mm/MmList.vue'
+          ),
+      },
+      {
+        path: '/mm/new',
+        name: 'MmReportForm',
+        meta: { requiresAuth: true, requiresOnline: false, permission: 'create_mm' },
+        component: () =>
+          import(
+            /* webpackChunkName: "mm-report-form" */ '@/views/mm/MmReportForm.vue'
+          ),
+      },
+      {
+        path: '/mm/:uid',
+        name: 'MmDetail',
+        meta: { requiresAuth: true, requiresOnline: false, permission: 'view_mm' },
+        component: () =>
+          import(
+            /* webpackChunkName: "mm-detail" */ '@/views/mm/MmDetail.vue'
+          ),
+      },
     ],
   },
   // Authentifizierungs-Routen (außerhalb des DefaultLayouts)
@@ -233,6 +261,25 @@ router.beforeEach(async (to, from, next) => {
     console.log('Benutzer bereits authentifiziert, weiterleitung zu /dashboard')
     next('/dashboard')
     return
+  }
+
+  // Permission-Prüfung für Routen mit meta.permission (erstmals eingeführt
+  // für die Mängelmeldungs-Feature-Routen - hasPermission() liest aus
+  // currentUser.permissions, das twsFmtUser() serverseitig beim Login liefert)
+  if (to.meta.permission && isAuthenticated) {
+    try {
+      const { hasPermission } = await import('@/stores/GlobalUser.js')
+      if (!hasPermission(to.meta.permission)) {
+        console.warn(`🚫 Route "${to.name}" erfordert Berechtigung "${to.meta.permission}", die nicht vorliegt`)
+        if (window.showToast) {
+          window.showToast('Keine Berechtigung für diese Seite.', 'warning')
+        }
+        next('/dashboard')
+        return
+      }
+    } catch (e) {
+      console.warn('⚠️ Konnte Berechtigung nicht prüfen:', e)
+    }
   }
 
   // Online-Status prüfen für requiresOnline Routes
