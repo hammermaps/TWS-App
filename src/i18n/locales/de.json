@@ -621,6 +621,8 @@
     "status_2": "Nachunternehmer",
     "status_3": "Erledigt",
     "status_4": "Rückfrage",
+    "status_5": "Planon-Nummer",
+    "status_6": "Bestellnummer",
     "urgency_niedrig": "Niedrig",
     "urgency_normal": "Normal",
     "urgency_hoch": "Hoch",

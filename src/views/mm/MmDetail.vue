@@ -215,6 +215,8 @@ const getStatusBadgeColor = (status) => {
     case 0: return 'warning'
     case 1: return 'info'
     case 2: return 'primary'
+    case 5: return 'info'
+    case 6: return 'primary'
     case 3: return 'success'
     case 4: return 'warning'
     default: return 'secondary'

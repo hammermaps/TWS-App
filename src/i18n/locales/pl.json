@@ -600,6 +600,8 @@
     "error_value_invalid": "Stan licznika musi być większy niż 0"
   },
   "mm": {
-    "filter_all": "Wszystkie"
+    "filter_all": "Wszystkie",
+    "status_5": "Numer Planon",
+    "status_6": "Numer zamówienia"
   }
 }

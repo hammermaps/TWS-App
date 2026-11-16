@@ -178,7 +178,7 @@ const selectedWhg = ref('')
 const pendingCount = ref(0)
 
 const canCreate = computed(() => hasPermission('create_mm'))
-const statusOptions = [-2, -1, 0, 1, 2, 3, 4]
+const statusOptions = [-2, -1, 0, 1, 2, 5, 6, 3, 4]
 
 // Eindeutige Gebäude aus den geladenen Meldungen (sortiert nach Name)
 const availableBuildings = computed(() => {
@@ -234,6 +234,8 @@ const getStatusBadgeColor = (status) => {
     case 0: return 'warning'
     case 1: return 'info'
     case 2: return 'primary'
+    case 5: return 'info'
+    case 6: return 'primary'
     case 3: return 'success'
     case 4: return 'warning'
     default: return 'secondary'

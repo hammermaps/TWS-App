@@ -600,6 +600,8 @@
     "error_value_invalid": "Meter reading must be greater than 0"
   },
   "mm": {
-    "filter_all": "All"
+    "filter_all": "All",
+    "status_5": "Planon number",
+    "status_6": "Order number"
   }
 }

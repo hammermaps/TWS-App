@@ -600,6 +600,8 @@
     "error_value_invalid": "Значение счётчика должно быть больше 0"
   },
   "mm": {
-    "filter_all": "Все"
+    "filter_all": "Все",
+    "status_5": "Номер Planon",
+    "status_6": "Номер заказа"
   }
 }

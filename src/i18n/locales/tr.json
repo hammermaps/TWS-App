@@ -600,6 +600,8 @@
     "error_value_invalid": "Sayaç değeri 0'dan büyük olmalıdır"
   },
   "mm": {
-    "filter_all": "Tümü"
+    "filter_all": "Tümü",
+    "status_5": "Planon numarası",
+    "status_6": "Sipariş numarası"
   }
 }

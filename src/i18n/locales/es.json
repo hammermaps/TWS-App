@@ -600,6 +600,8 @@
     "error_value_invalid": "El valor del contador debe ser mayor que 0"
   },
   "mm": {
-    "filter_all": "Todos"
+    "filter_all": "Todos",
+    "status_5": "Número Planon",
+    "status_6": "Número de pedido"
   }
 }

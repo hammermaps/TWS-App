@@ -600,6 +600,8 @@
     "error_value_invalid": "L'index du compteur doit être supérieur à 0"
   },
   "mm": {
-    "filter_all": "Tous"
+    "filter_all": "Tous",
+    "status_5": "Numéro Planon",
+    "status_6": "Numéro de commande"
   }
 }
