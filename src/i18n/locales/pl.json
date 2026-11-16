@@ -602,6 +602,9 @@
   "mm": {
     "filter_all": "Wszystkie",
     "status_5": "Numer Planon",
-    "status_6": "Numer zamówienia"
+    "status_6": "Numer zamówienia",
+    "building": "Budynek",
+    "apartment": "Mieszkanie",
+    "location": "Budynek / Mieszkanie"
   }
 }

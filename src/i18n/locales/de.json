@@ -627,7 +627,7 @@
     "urgency_normal": "Normal",
     "urgency_hoch": "Hoch",
     "urgency_kritisch": "Kritisch",
-    "building": "Gebäude",
+    "building": "Haus",
     "apartment": "Wohnung",
     "apartment_select": "Wohnung wählen",
     "betreff": "Betreff",
@@ -652,7 +652,7 @@
     "status": "Status",
     "reported_by": "Gemeldet von",
     "reported_at": "Gemeldet am",
-    "location": "Standort",
+    "location": "Haus / Wohnung",
     "no_permission": "Keine Berechtigung für Mängelmeldungen",
     "folge": "Weitere Informationen"
   }

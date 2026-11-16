@@ -113,7 +113,7 @@
           <CCardBody>
             <div class="info-item mb-2">
               <CIcon icon="cil-building" class="me-2 text-muted" />
-              <span class="text-muted">{{ $t('mm.building') }}:</span>
+              <span class="text-muted">{{ $t('mm.location') }}:</span>
               <strong class="ms-1">{{ formatLocation(report.street_name, report.street, report.whg) }}</strong>
             </div>
             <div class="info-item mb-2">

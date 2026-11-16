@@ -602,6 +602,9 @@
   "mm": {
     "filter_all": "Все",
     "status_5": "Номер Planon",
-    "status_6": "Номер заказа"
+    "status_6": "Номер заказа",
+    "building": "Здание",
+    "apartment": "Квартира",
+    "location": "Здание / Квартира"
   }
 }

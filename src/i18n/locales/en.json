@@ -602,6 +602,9 @@
   "mm": {
     "filter_all": "All",
     "status_5": "Planon number",
-    "status_6": "Order number"
+    "status_6": "Order number",
+    "building": "House",
+    "apartment": "Apartment",
+    "location": "House / Apartment"
   }
 }

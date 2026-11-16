@@ -602,6 +602,9 @@
   "mm": {
     "filter_all": "Tümü",
     "status_5": "Planon numarası",
-    "status_6": "Sipariş numarası"
+    "status_6": "Sipariş numarası",
+    "building": "Bina",
+    "apartment": "Daire",
+    "location": "Bina / Daire"
   }
 }
