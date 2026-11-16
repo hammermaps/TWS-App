@@ -26,6 +26,7 @@ export class MmReportItem {
     this.status           = Number(data.status) || 0
     this.betreff           = String(data.betreff || '')
     this.street            = Number(data.street) || 0
+    this.street_name       = String(data.street_name || '')
     this.whg               = String(data.whg || '')
     this.melder            = String(data.melder || '')
     this.datetime          = String(data.datetime || '')
@@ -48,6 +49,7 @@ export class MmReportDetail {
     this.apleona            = String(data.apleona || '')
     this.folge              = String(data.folge || '')
     this.street              = Number(data.street) || 0
+    this.street_name         = String(data.street_name || '')
     this.whg                = String(data.whg || '')
     this.melder              = String(data.melder || '')
     this.tel                = String(data.tel || '')
@@ -62,6 +64,7 @@ export class MmReportDetail {
     this.zeit                = String(data.zeit || '')
     this.planon              = data.planon != null ? String(data.planon) : ''
     this.instructions        = Array.isArray(data.instructions) ? data.instructions : []
+    this.photos              = Array.isArray(data.photos) ? data.photos : []
   }
 }
 
@@ -260,6 +263,41 @@ class ApiMm {
       token:   res.raw?.token || null,
       files:   Array.isArray(res.raw?.files) ? res.raw.files : [],
       error:   res.error,
+    }
+  }
+
+  /**
+   * Gibt die URL für ein MM-Foto zurück (Bearer-authentifiziert via fetch).
+   * Die Vue-Komponente muss das Bild per fetch laden und als ObjectURL einbinden.
+   * @param {string} uid
+   * @param {string} filename
+   * @param {'thumb'|'medium'|'large'|'full'} size
+   * @returns {string}
+   */
+  getPhotoUrl(uid, filename, size = 'medium') {
+    return `${this.baseUrl}/mm/${encodeURIComponent(uid)}/photo/${encodeURIComponent(filename)}?size=${size}`
+  }
+
+  /**
+   * Lädt ein MM-Foto als Blob und gibt eine ObjectURL zurück.
+   * Die ObjectURL muss nach Verwendung mit URL.revokeObjectURL() freigegeben werden.
+   * @param {string} uid
+   * @param {string} filename
+   * @param {'thumb'|'medium'|'large'|'full'} size
+   * @returns {Promise<string|null>}
+   */
+  async fetchPhotoObjectUrl(uid, filename, size = 'medium') {
+    try {
+      const response = await fetch(this.getPhotoUrl(uid, filename, size), {
+        headers: { ...getAuthHeaders(), 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'include',
+        mode: 'cors',
+      })
+      if (!response.ok) return null
+      const blob = await response.blob()
+      return URL.createObjectURL(blob)
+    } catch {
+      return null
     }
   }
 

@@ -94,7 +94,7 @@
             <div class="info-item mb-2">
               <CIcon icon="cil-building" class="me-2 text-muted" />
               <span class="text-muted">{{ $t('mm.building') }}:</span>
-              <strong class="ms-1">{{ report.street }}</strong>
+              <strong class="ms-1">{{ report.street_name || report.street }}</strong>
               <span v-if="report.whg" class="ms-2">/ {{ report.whg }}</span>
             </div>
             <div class="info-item mb-2">
