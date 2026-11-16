@@ -44,14 +44,34 @@
       </CCardBody>
     </CCard>
 
-    <!-- Status filter -->
+    <!-- Filter -->
     <CCard class="mb-4">
       <CCardBody>
-        <CFormLabel>{{ $t('mm.status') }}</CFormLabel>
-        <CFormSelect v-model="selectedStatus">
-          <option value="">{{ $t('mm.status_filter_all') }}</option>
-          <option v-for="s in statusOptions" :key="s" :value="String(s)">{{ $t('mm.status_' + s) }}</option>
-        </CFormSelect>
+        <CRow class="g-3">
+          <CCol xs="12" sm="4">
+            <CFormLabel>{{ $t('mm.status') }}</CFormLabel>
+            <CFormSelect v-model="selectedStatus">
+              <option value="">{{ $t('mm.status_filter_all') }}</option>
+              <option v-for="s in statusOptions" :key="s" :value="String(s)">{{ $t('mm.status_' + s) }}</option>
+            </CFormSelect>
+          </CCol>
+          <CCol xs="12" sm="4">
+            <CFormLabel>{{ $t('mm.building') }}</CFormLabel>
+            <CFormSelect v-model="selectedStreet">
+              <option value="">{{ $t('mm.filter_all') }}</option>
+              <option v-for="b in availableBuildings" :key="b.street" :value="String(b.street)">
+                {{ b.street_name || b.street }}
+              </option>
+            </CFormSelect>
+          </CCol>
+          <CCol xs="12" sm="4">
+            <CFormLabel>{{ $t('mm.apartment') }}</CFormLabel>
+            <CFormSelect v-model="selectedWhg" :disabled="!selectedStreet && availableWhg.length === 0">
+              <option value="">{{ $t('mm.filter_all') }}</option>
+              <option v-for="w in availableWhg" :key="w" :value="w">{{ w }}</option>
+            </CFormSelect>
+          </CCol>
+        </CRow>
       </CCardBody>
     </CCard>
 
@@ -117,7 +137,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/dateFormatter.js'
 import { useRouter } from 'vue-router'
@@ -132,7 +152,7 @@ import {
   CAlert,
   CBadge,
   CFormLabel,
-  CFormSelect
+  CFormSelect,
 } from '@coreui/vue'
 import { CIcon } from '@coreui/icons-vue'
 import { apiMm } from '@/api/ApiMm.js'
@@ -153,14 +173,49 @@ const reports = ref([])
 const loading = ref(false)
 const error = ref(null)
 const selectedStatus = ref('')
+const selectedStreet = ref('')
+const selectedWhg = ref('')
 const pendingCount = ref(0)
 
 const canCreate = computed(() => hasPermission('create_mm'))
 const statusOptions = [-2, -1, 0, 1, 2, 3, 4]
 
+// Eindeutige Gebäude aus den geladenen Meldungen (sortiert nach Name)
+const availableBuildings = computed(() => {
+  const seen = new Map()
+  for (const r of reports.value) {
+    if (!seen.has(r.street)) {
+      seen.set(r.street, { street: r.street, street_name: r.street_name })
+    }
+  }
+  return [...seen.values()].sort((a, b) =>
+    (a.street_name || String(a.street)).localeCompare(b.street_name || String(b.street), 'de')
+  )
+})
+
+// Wohnungen des gewählten Gebäudes (oder alle, wenn kein Gebäude gewählt)
+const availableWhg = computed(() => {
+  const source = selectedStreet.value
+    ? reports.value.filter(r => String(r.street) === selectedStreet.value)
+    : reports.value
+  const whgs = [...new Set(source.map(r => r.whg).filter(w => w && w.trim() !== ''))]
+  return whgs.sort((a, b) => a.localeCompare(b, 'de', { numeric: true }))
+})
+
+// Wohnung zurücksetzen, wenn das Gebäude wechselt und die Wohnung nicht mehr passt
+watch(selectedStreet, () => {
+  if (selectedWhg.value && !availableWhg.value.includes(selectedWhg.value)) {
+    selectedWhg.value = ''
+  }
+})
+
 const filteredReports = computed(() => {
-  if (selectedStatus.value === '') return reports.value
-  return reports.value.filter(r => String(r.status) === selectedStatus.value)
+  return reports.value.filter(r => {
+    if (selectedStatus.value !== '' && String(r.status) !== selectedStatus.value) return false
+    if (selectedStreet.value !== '' && String(r.street) !== selectedStreet.value) return false
+    if (selectedWhg.value !== '' && r.whg !== selectedWhg.value) return false
+    return true
+  })
 })
 
 const getUrgencyBadgeColor = (urgency) => {

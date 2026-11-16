@@ -598,5 +598,8 @@
     "pending_badge": "En attente",
     "error_value_required": "Veuillez saisir l'index du compteur",
     "error_value_invalid": "L'index du compteur doit être supérieur à 0"
+  },
+  "mm": {
+    "filter_all": "Tous"
   }
 }

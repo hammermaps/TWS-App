@@ -598,5 +598,8 @@
     "pending_badge": "Pending",
     "error_value_required": "Please enter meter reading",
     "error_value_invalid": "Meter reading must be greater than 0"
+  },
+  "mm": {
+    "filter_all": "All"
   }
 }

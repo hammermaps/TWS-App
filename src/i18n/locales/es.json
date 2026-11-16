@@ -598,5 +598,8 @@
     "pending_badge": "Pendiente",
     "error_value_required": "Introduzca el valor del contador",
     "error_value_invalid": "El valor del contador debe ser mayor que 0"
+  },
+  "mm": {
+    "filter_all": "Todos"
   }
 }

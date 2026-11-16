@@ -598,5 +598,8 @@
     "pending_badge": "В ожидании",
     "error_value_required": "Пожалуйста, введите значение счётчика",
     "error_value_invalid": "Значение счётчика должно быть больше 0"
+  },
+  "mm": {
+    "filter_all": "Все"
   }
 }

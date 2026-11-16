@@ -598,5 +598,8 @@
     "pending_badge": "Beklemede",
     "error_value_required": "Lütfen sayaç değerini girin",
     "error_value_invalid": "Sayaç değeri 0'dan büyük olmalıdır"
+  },
+  "mm": {
+    "filter_all": "Tümü"
   }
 }

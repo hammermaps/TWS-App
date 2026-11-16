@@ -598,5 +598,8 @@
     "pending_badge": "Oczekujące",
     "error_value_required": "Wprowadź stan licznika",
     "error_value_invalid": "Stan licznika musi być większy niż 0"
+  },
+  "mm": {
+    "filter_all": "Wszystkie"
   }
 }

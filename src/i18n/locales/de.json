@@ -613,6 +613,7 @@
     "save_offline": "Offline gespeichert",
     "save_offline_msg": "Die Meldung wird synchronisiert, sobald eine Verbindung besteht.",
     "status_filter_all": "Alle Status",
+    "filter_all": "Alle",
     "status_-2": "Zur Prüfung",
     "status_-1": "Abgelehnt",
     "status_0": "Freigabe",
