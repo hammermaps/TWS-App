@@ -60,7 +60,7 @@
             <CFormSelect v-model="selectedStreet">
               <option value="">{{ $t('mm.filter_all') }}</option>
               <option v-for="b in availableBuildings" :key="b.street" :value="String(b.street)">
-                {{ b.street_name || b.street }}
+                {{ formatStreetShort(b.street_name, b.street) }}
               </option>
             </CFormSelect>
           </CCol>
@@ -114,8 +114,7 @@
             <div class="info-item mb-2">
               <CIcon icon="cil-building" class="me-2 text-muted" />
               <span class="text-muted">{{ $t('mm.building') }}:</span>
-              <strong class="ms-1">{{ report.street_name || report.street }}</strong>
-              <span v-if="report.whg" class="ms-2">/ {{ report.whg }}</span>
+              <strong class="ms-1">{{ formatLocation(report.street_name, report.street, report.whg) }}</strong>
             </div>
             <div class="info-item mb-2">
               <CIcon icon="cil-user" class="me-2 text-muted" />
@@ -140,6 +139,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/dateFormatter.js'
+import { formatLocation, formatStreetShort } from '@/utils/locationFormatter.js'
 import { useRouter } from 'vue-router'
 import {
   CButton,

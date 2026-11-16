@@ -59,7 +59,7 @@
           <CTableBody>
             <CTableRow>
               <CTableHeaderCell scope="row">{{ $t('mm.location') }}</CTableHeaderCell>
-              <CTableDataCell>{{ report.street_name || report.street }} / {{ report.whg }}</CTableDataCell>
+              <CTableDataCell>{{ formatLocation(report.street_name, report.street, report.whg) }}</CTableDataCell>
             </CTableRow>
             <CTableRow>
               <CTableHeaderCell scope="row">{{ $t('mm.beschreibung') }}</CTableHeaderCell>
@@ -155,6 +155,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/dateFormatter.js'
+import { formatLocation } from '@/utils/locationFormatter.js'
 import { useRouter, useRoute } from 'vue-router'
 import {
   CButton,
