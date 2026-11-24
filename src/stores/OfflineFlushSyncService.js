@@ -147,7 +147,8 @@ class OfflineFlushSyncService {
         startTime: flush.startTime,
         endTime: flush.endTime,
         buildingId: flush.buildingId,
-        isOfflineSync: true // Flag für Backend, dass es eine nachträgliche Synchronisation ist
+        isOfflineSync: true, // Flag für Backend, dass es eine nachträgliche Synchronisation ist
+        clientId: flush.id // Queue-ID ist stabil pro Spülung und verhindert Doppelanlagen bei Wiederholung
       })
 
       if (result.success) {

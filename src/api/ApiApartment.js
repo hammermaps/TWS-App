@@ -427,7 +427,7 @@ export class ApiApartment {
      * POST /records/create - Spül-Record erstellen (wird vom Frontend nach Ablauf der min_flush_duration aufgerufen)
      */
     async createFlushRecord(apartmentId, options = {}) {
-        const { timeout = 30000, headers = {}, startTime, endTime, duration, buildingId } = options
+        const { timeout = 30000, headers = {}, startTime, endTime, duration, buildingId, clientId } = options
         const storage = useApartmentStorage()
 
         // Hole das aktuelle Apartment direkt aus IndexedDB um building_id zu erhalten
@@ -606,6 +606,10 @@ export class ApiApartment {
             user_id: currentUserId,
             start_time: startTime || new Date().toISOString(),
             end_time: endTime || new Date().toISOString()
+        }
+        // Stabile Client-ID (PHP-008): eine Wiederholung nach verlorener Antwort legt keinen zweiten Datensatz an
+        if (clientId) {
+            body.client_id = String(clientId)
         }
 
         console.log('📤 Erstelle Spül-Record:', body)
